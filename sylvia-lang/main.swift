@@ -1,9 +1,11 @@
 //
 //  main.swift
 //
-//  genus Sylvia
-//
 
+// ad-hoc tests
+
+
+import Foundation
 
 
 
@@ -16,6 +18,7 @@ do {
     fatalError("Can't load stdlib: \(error)")
 }
 
+let sd = Date()
 
 do { // evaluate to List of Text
     /*
@@ -89,3 +92,5 @@ do { // define and call native handler
     print(5, error)
 }
 
+
+print("Duration: \(Date().timeIntervalSince(sd) * 1000)ms")

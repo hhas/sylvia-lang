@@ -2,7 +2,9 @@
 //  expression.swift
 //
 //  
-//
+
+
+// TO DO: is it possible/practical for all toTYPE methods to be added via extension?
 
 
 // abstract base classes for values (blocks, identifiers, commands) that evaluate to yield other values
@@ -11,30 +13,42 @@ class Expression: Value {
     
     // forward all Expression.toTYPE() calls to evaluate()/run()
     
+    // Q. if Value is a Protocol and Expression is a protocol, and both have corresponding extensions implementing standard toTYPE methods, how will that compile? (one advantage of protocols over subclassing is that it avoids nasty 'abstract methods' such as those below)
+    
     override func toAny(env: Env, type: Coercion) throws -> Value {
-        return try self.run(env: env, type: type)
+        return try self._run(env: env, type: type)
     }
     
     override func toText(env: Env, type: Coercion) throws -> Text {
-        return try self.run(env: env, type: type)
+        return try self._run(env: env, type: type)
     }
     
     override func toList(env: Env, type: AsList) throws -> List {
-        return try self.run(env: env, type: type)
+        return try self._run(env: env, type: type) // ditto
     }
     
     override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
         return try self.evaluate(env: env, type: type)
     }
     
+    //
+    
+    func _run<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
+        let value = try self.run(env: env, type: type)
+        guard let result = value as? T else { // we pull our punches here as it's still less painful than trying to implement strong typing throughout runtime
+            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)")
+        }
+        return result
+    }
+    
     // subclasses must override the following abstract methods:
     
     func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
-        fatalError("evaluate() must be overridden in subclasses")
+        fatalError("Expression subclasses must override \(#function).")
     }
     
-    func run<T: Coercion, R: Value>(env: Env, type: T) throws -> R {
-        fatalError("evaluate() must be overridden in subclasses")
+    func run(env: Env, type: Coercion) throws -> Value {
+        fatalError("Expression subclasses must override \(#function).")
     }
 }
 
@@ -51,12 +65,12 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
         self.body = body
     }
     
-    override func run<T: Coercion, R: Value>(env: Env, type: T) throws -> R {
+    override func run(env: Env, type: Coercion) throws -> Value {
         var result: Value = noValue
         for value in self.body {
             result = try asAny.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
         }
-        return try type.coerce(value: result, env: env) as! R
+        return try type.coerce(value: result, env: env)
     }
 }
 
@@ -83,9 +97,9 @@ class Identifier: Expression {
         return try type.unbox(value: value, env: lexicalEnv)
     }
     
-    override func run<T: Coercion, R: Value>(env: Env, type: T) throws -> R {
+    override func run(env: Env, type: Coercion) throws -> Value {
         let (value, lexicalEnv) = try self.lookup(env: env)
-        return try type.coerce(value: value, env: lexicalEnv) as! R // fatal error here = bug in Coercion.coerce()
+        return try type.coerce(value: value, env: lexicalEnv)
     }
 }
 
@@ -117,11 +131,14 @@ class Command: Expression {
         fatalError()
     }
     
-    override func run<T: Coercion, R: Value>(env: Env, type: T) throws -> R {
+    override func run(env: Env, type: Coercion) throws -> Value {
         let (handler, handlerEnv) = try self.lookup(env: env)
-        return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, type: type) as! R // fatal error here = bug in Coercion.coerce()
+        return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, type: type)
     }
 }
+
+
+//
 
 
 class Thunk: Value {

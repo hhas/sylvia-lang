@@ -15,6 +15,7 @@
 		4FEC2718219A33EF00B28A5A /* stdlib.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2710219A33EE00B28A5A /* stdlib.swift */; };
 		4FEC2719219A33EF00B28A5A /* error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2711219A33EE00B28A5A /* error.swift */; };
 		4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2712219A33EF00B28A5A /* coercion.swift */; };
+		4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -40,6 +41,7 @@
 		4FEC2711219A33EE00B28A5A /* error.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = error.swift; sourceTree = "<group>"; };
 		4FEC2712219A33EF00B28A5A /* coercion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = coercion.swift; sourceTree = "<group>"; };
 		4FEC271B219A49C900B28A5A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
+		4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_bridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,16 +75,41 @@
 		4FEC2703219A33C600B28A5A /* sylvia-lang */ = {
 			isa = PBXGroup;
 			children = (
+				4FEC270C219A33EE00B28A5A /* main.swift */,
+				4FEC271D219B8B5300B28A5A /* parser */,
+				4FEC271C219B8B4500B28A5A /* interpreter */,
+				4FEC271E219B8B6B00B28A5A /* stdlib */,
+			);
+			path = "sylvia-lang";
+			sourceTree = "<group>";
+		};
+		4FEC271C219B8B4500B28A5A /* interpreter */ = {
+			isa = PBXGroup;
+			children = (
 				4FEC270D219A33EE00B28A5A /* value.swift */,
 				4FEC270B219A33EE00B28A5A /* expression.swift */,
 				4FEC270E219A33EE00B28A5A /* handler.swift */,
 				4FEC2712219A33EF00B28A5A /* coercion.swift */,
 				4FEC270F219A33EE00B28A5A /* environment.swift */,
 				4FEC2711219A33EE00B28A5A /* error.swift */,
-				4FEC2710219A33EE00B28A5A /* stdlib.swift */,
-				4FEC270C219A33EE00B28A5A /* main.swift */,
 			);
-			path = "sylvia-lang";
+			path = interpreter;
+			sourceTree = "<group>";
+		};
+		4FEC271D219B8B5300B28A5A /* parser */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = parser;
+			sourceTree = "<group>";
+		};
+		4FEC271E219B8B6B00B28A5A /* stdlib */ = {
+			isa = PBXGroup;
+			children = (
+				4FEC2710219A33EE00B28A5A /* stdlib.swift */,
+				4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */,
+			);
+			path = stdlib;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -145,6 +172,7 @@
 				4FEC2715219A33EF00B28A5A /* value.swift in Sources */,
 				4FEC2719219A33EF00B28A5A /* error.swift in Sources */,
 				4FEC2718219A33EF00B28A5A /* stdlib.swift in Sources */,
+				4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */,
 				4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */,
 				4FEC2716219A33EF00B28A5A /* handler.swift in Sources */,
 				4FEC2714219A33EF00B28A5A /* main.swift in Sources */,

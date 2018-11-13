@@ -19,24 +19,24 @@
 // TO DO: implement Swift initializers for instantiating constrained coercions in bridging code, e.g. `AsList(AsText(nonEmpty:true),min:1,max:10)`
 
 
-typealias BridgingCoercion = Coercion & Bridge
+typealias Coercion = Value & CoercionProtocol
+
+typealias BridgingCoercion = Value & CoercionProtocol & BridgingProtocol
 
 
-class Coercion: Value { // all Coercions are Value subclass, allowing them to be used directly in language // TO DO: should coercion be a protocol on top of Value, avoiding need for the following `fatalError` stubs (which are currently required by compiler due to lack of an `abstract` keyword)
+protocol CoercionProtocol { // all Coercions are Value subclass, allowing them to be used directly in language // TO DO: should coercion be a protocol on top of Value, avoiding need for the following `fatalError` stubs (which are currently required by compiler due to lack of an `abstract` keyword)
     
     // all concrete Coercion subclasses must implement coerce() method for use in native language (e.g. `someValue as text`)
     
-    var name: String { fatalError() }
+    var name: String { get }
     
-    func coerce(value: Value, env: Env) throws -> Value {
-        fatalError("All concrete Coercion subclasses must implement coerce(value:env:) method.")
-    }
+    func coerce(value: Value, env: Env) throws -> Value
 }
 
 
 // bridging coercions convert native values to/from Swift equivalents when calling primitive library functions
 
-protocol Bridge {
+protocol BridgingProtocol {
     
     // provides additional box()/unbox() methods used by bridging glue code
     
@@ -56,15 +56,19 @@ protocol Bridge {
 
 // concrete coercion classes
 
-// TO DO: how best to indicate which coercions are exposed in stdlib slots, and which are only exposed in FFI_lib slots?
+// TO DO: how best to indicate which coercions are exposed in stdlib slots, and which are only exposed in FFI_lib slots? (thinking that `primitive()` modifier should provide access to all BridgingCoercions, including those that are solely for boxing/unboxing specialized Swift types - asFloat, asUInt, asInt64, etc - whereas stdlib would expose only those that make sense to language users - e.g. asText, asNumber, asInteger, etc - and have obvious Swift equivalents)
+
+// Q. how to bridge Swift enum, tuple types? (tuple BridgingCoercions might be implemented as generics, where implementor supplies their own box/unbox functions to init(); enum coercion constructor might take an array/dict of (STRING,CASE) pairs and build runtime mapping tables from that)
+
+
 
 class AsAny: BridgingCoercion {
     
-    override var name: String { return "anything" }
+    var name: String { return "anything" }
     
     typealias SwiftType = Value
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return try value.toAny(env: env, type: self)
     }
     
@@ -80,11 +84,11 @@ class AsAny: BridgingCoercion {
 
 class AsString: BridgingCoercion { // Q. what about constraints?
     
-    override var name: String { return "text" }
+    var name: String { return "text" }
     
     typealias SwiftType = String
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return try value.toText(env: env, type: self)
     }
     
@@ -100,11 +104,11 @@ class AsString: BridgingCoercion { // Q. what about constraints?
 
 class AsDouble: BridgingCoercion {
     
-    override var name: String { return "number" }
+    var name: String { return "number" }
     
     typealias SwiftType = Double
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         let result = try value.toText(env: env, type: self)
         if Double(result.swiftValue) == nil { throw CoercionError(value: value, type: self) } // note: this only validates; it doesn't rewrite (Q. should it return `Text(String(n))`?)
         return result
@@ -123,11 +127,11 @@ class AsDouble: BridgingCoercion {
 
 class AsBool: BridgingCoercion {
     
-    override var name: String { return "boolean" }
+    var name: String { return "boolean" }
     
     typealias SwiftType = Bool
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return try value.toText(env: env, type: self).swiftValue != "" ? trueValue : falseValue
     }
     
@@ -143,7 +147,7 @@ class AsBool: BridgingCoercion {
 
 class AsArray<ElementType: BridgingCoercion>: BridgingCoercion {
     
-    override var name: String { return "list" }
+    var name: String { return "list" }
     
     typealias SwiftType = [ElementType.SwiftType]
     
@@ -153,7 +157,7 @@ class AsArray<ElementType: BridgingCoercion>: BridgingCoercion {
         self.elementType = elementType
     }
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         fatalError()//return try value.toList(env: env, type: AsList(self.elementType)) // TO DO: reboxing AsArray coercion as AsList is smelly; the problem is that toList() expects type:AsList (which allows it to get type.elementType); one option might be for AsArray to subclass AsList (although that may require some ugly casting to get AsList.elementType from Coercion back to ElementType for use in box/unbox)
     }
     
@@ -175,11 +179,11 @@ class AsArray<ElementType: BridgingCoercion>: BridgingCoercion {
 
 class AsText: BridgingCoercion { // Q. what about constraints? // TO DO: would be nice to share common constraint-checking code, though not sure how best to do that
     
-    override var name: String { return "text" }
+    var name: String { return "text" }
     
     typealias SwiftType = Text
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return try value.toText(env: env, type: self)
     }
     
@@ -197,7 +201,7 @@ class AsText: BridgingCoercion { // Q. what about constraints? // TO DO: would b
 
 class AsList: Coercion {
     
-    override var name: String { return "list" }
+    var name: String { return "list" }
     
     let elementType: Coercion
     
@@ -205,7 +209,7 @@ class AsList: Coercion {
         self.elementType = elementType
     }
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return try value.toList(env: env, type: self)
     }
 }
@@ -215,11 +219,11 @@ class AsList: Coercion {
 
 class AsIs: BridgingCoercion { // the value is passed thru as-is, without evaluation; unlike AsThunk, its context (env) is not captured
     
-    override var name: String { return "anything" }
+    var name: String { return "anything" }
     
     typealias SwiftType = Value
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return value
     }
     func unbox(value: Value, env: Env) throws -> SwiftType {
@@ -233,11 +237,11 @@ class AsIs: BridgingCoercion { // the value is passed thru as-is, without evalua
 
 class AsNothing: Coercion { // value is discarded; noValue is returned (used in primitive handler type sigs when handler returns no result)
     
-    override var name: String { return "NULL" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] type'?
+    var name: String { return "NULL" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] type'?
     
     typealias SwiftType = Value
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return noValue
     }
     func unbox(value: Value, env: Env) throws -> SwiftType {
@@ -251,7 +255,7 @@ class AsNothing: Coercion { // value is discarded; noValue is returned (used in 
 
 class AsLazy: Coercion { // native only; TO DO: what about bridging?
     
-    override var name: String { return "lazy" }
+    var name: String { return "lazy" }
     
     let type: Coercion
     
@@ -259,7 +263,7 @@ class AsLazy: Coercion { // native only; TO DO: what about bridging?
         self.type = type
     }
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         return Thunk(value, env: env, type: self.type)
     }
 }
@@ -267,7 +271,7 @@ class AsLazy: Coercion { // native only; TO DO: what about bridging?
 
 class AsDefault: Coercion { // native only; TO DO: what about bridging? (remember, we want to avoid primitive library developers hardcoding default values in func implementation)
     
-    override var name: String { return "default" }
+    var name: String { return "default" }
     
     let type: Coercion
     let defaultValue: Value
@@ -277,7 +281,7 @@ class AsDefault: Coercion { // native only; TO DO: what about bridging? (remembe
         self.defaultValue = defaultValue
     }
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         do {
             return try self.type.coerce(value: value, env: env)
         } catch is NullCoercionError {
@@ -289,7 +293,7 @@ class AsDefault: Coercion { // native only; TO DO: what about bridging? (remembe
 
 class AsOptional<T: BridgingCoercion>: BridgingCoercion {
     
-    override var name: String { return "optional" }
+    var name: String { return "optional" }
     
     typealias SwiftType = T.SwiftType?
     
@@ -299,7 +303,7 @@ class AsOptional<T: BridgingCoercion>: BridgingCoercion {
         self.type = type
     }
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         do {
             return try self.type.coerce(value: value, env: env)
         } catch is NullCoercionError {
@@ -327,7 +331,7 @@ class AsOptional<T: BridgingCoercion>: BridgingCoercion {
 
 class AsThunk<T: BridgingCoercion>: BridgingCoercion {
     
-    override var name: String { return "lazy" }
+    var name: String { return "lazy" }
     
     typealias SwiftType = T.SwiftType?
     
@@ -337,7 +341,7 @@ class AsThunk<T: BridgingCoercion>: BridgingCoercion {
         self.type = type
     }
     
-    override func coerce(value: Value, env: Env) throws -> Value {
+    func coerce(value: Value, env: Env) throws -> Value {
         fatalError() //return Thunk(value, env: env, type: self.type)
     }
     

@@ -1,65 +1,8 @@
 //
-//  stdlib.swift
+//  stdlib_bridge
 //
 
-/*
- 
- Note: primitive libraries are implemented as Swift funcs that follow standardized naming and parameter/return conventions; all bridging code is auto-generated. Clean separation of native/bridging/primitive logic has big advantages over Python/Ruby/etc-style modules where primitive functions must perform all their own bridging:
- 
-    - faster, simpler, less error-prone development of primitive libraries
- 
-    - free API documentation
- 
-    - free partial optimizing compilation (e.g. when composing two primitive functions that return/accept same Swift type, boxing/unboxing steps can be skipped)
- 
- */
-
-// math
-
-// signature: add(a: primitive(double), b: primitive(double)) returning primitive(double)
-// requirements: [throws]
-
-func add(a: Double, b: Double) throws -> Double { // TO DO: math funcs should use Scalars (union of Int|UInt|Double) (e.g. pinch Scalar struct from entoli) allowing native language to have a single unified `number` type (numeric values might themselves be represented in runtime as Text value annotated with scalar info for efficiency, or as distinct Number values that can be coerced to/from Text) (note that while arithmetic/comparison library funcs will have to work with Scalars in order to handle both ints and floats, Swift code generation could reduce overheads when both arguments are known to be ints, in which case it'll output`a+b`, otherwise `Double(a)+Double(b)`)
-    return a + b // TO DO: check how Double signals out-of-range
-}
-
-func subtract(a: Double, b: Double) throws -> Double { // for now, use Doubles; eventually there should be a generalized Number type/annotation that encapsulates Int|UInt|Double, and eventually BigInt, Decimal, Quantity, etc
-    return a - b
-}
-
-
-// misc
-
-// signature: show(value: anything)
-// requirements: [stdout]
-
-// TO DO: would it be better to pass explicitly required pipes as arguments? need to give some thought to read/write model; rather than accessing std/FS/network pipes directly, 'mount' them in local/global namespace as Values which can be manipulated via standard get/set operations (note: the value's 'type' should be inferred where practical, e.g. from filename extension/MIME type where available, or explicitly indicated in `attach` command, enabling appropriate transcoders to be automatically found and used)
-
-func show(value: Value) { // primitive library function
-    print(value)
-}
-
-
-// state
-
-// signature: defineHandler(name: primitive(text), parameters: default([], parametersList), result: default(anything, type), body: primitive(expression)) returning handler
-// requirements: [commandEnv] // any required env params are appended to bridging call in standard order (commandEnv,handlerEnv,bodyEnv)
-
-// TO DO: need asParameterList coercion that knows how to parse user-defined parameters list (which may consist of label strings and/or (label,coercion) tuples, and may include optional description strings too)
-func defineHandler(name: String, parameters: [Parameter], result: Coercion, body: Value, commandEnv: Env) throws -> Handler {
-    let  h = Handler(name: name, parameters: parameters, result: result, body: body)
-    try commandEnv.add(h)
-    return h
-}
-
-
-// signature: store(name: primitive(text), value: anything, readOnly: default(true, boolean)) returning anything
-// requirements: [commandEnv]
-
-func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -> Value {
-    try commandEnv.set(name, to: value, readOnly: readOnly)
-    return value
-}
+// TO DO: once language is fully bootstrapped, LIBRARY_bridge.swift files should be 100% code-generated from native interface declarations
 
 /*
  
@@ -69,8 +12,7 @@ func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -
 
 
 
-
-// code-generated primitive Handler classes
+// auto-generated primitive Handler classes
 
 class Handler_add_a_b: PrimitiveHandler {
     
@@ -289,7 +231,7 @@ class Handler_defineHandler_name_parameters_result_body: PrimitiveHandler {
 
 
 
-// TO DO: auto-generated load func
+// auto-generated module load function
 
 func stdlib_load(env: Env) throws { // TO DO: this adds directly to supplied env rather than creating its own; who should be responsible for creating module namespaces? (and who is responsible for adding modules to a global namespace where scripts can access them); Q. what is naming convention for 3rd-party modules? (e.g. reverse domain), and how will those modules appear in namespace (e.g. flat/custom name or hierarchical names [e.g. `com.foo.module[.handler]`])
     try env.add(Handler_add_a_b()) // TO DO: loading should never fail (unless there's a module implementation bug)
@@ -298,7 +240,10 @@ func stdlib_load(env: Env) throws { // TO DO: this adds directly to supplied env
     try env.add(Handler_store_name_value_readOnly())
     try env.add(Handler_defineHandler_name_parameters_result_body())
     
-    // TO DO: method for setting constraints (names should be vars)
+    
+    
+    // TO DO: unlike primitive handlers, bridging coercions must be manually implemented in full; however, it may be possible to auto-generate the glue code that enables them to be added to stdlib's env and call()-ed from native code with additional constraints, e.g. `list(text,min:1,max:10)`. Currently, Coercion.init() requires constraints to be supplied as Swift values, but 'convenience' bridging initializers could be added via code-generated extensions that perform the requisite unboxing (ideally using extant Coercion classes assuming it doesn't all get ridiculously circular); conversely, Coercion objects should be able to emit their own construction code as both native commands and Swift code, for use in pretty printing and Swift code generation respectively.
+    
     try env.add(asAny)
     
     try env.add(asText)
@@ -309,5 +254,15 @@ func stdlib_load(env: Env) throws { // TO DO: this adds directly to supplied env
     
     try env.add(AsDefault(asAny, noValue)) // note: AsDefault requires dummy constraint args to instantiate; native language will call() it to create new instances with appropriate constraints
     
+    // TO DO: what constants?
+    
+    
     try env.set("nothing", to: noValue)
+    try env.set("pi", to: piValue)
+    
+    // not sure if defining true/false constants is a good idea; if using 'emptiness' to signify true/false, having `true`/`false` constants that evaluate to anything other than `true`/`false` is liable to create far more confusion than convenience (one option is to define a formal Boolean value class and use that, but that raises questions on how to coerce it to text - it can't go to "true"/"false", as "false" is non-empty text, so would have to go to "ok"/"" which is unintuitive; another option is to copy Swift's approach where *only* true/false can be used in Boolean contexts, but that doesn't fit well with weak typing behavior; last alternative is to do away with true/false constants below and never speak of them again; note that only empty text and lists should be treated as Boolean false; 1 and 0 would both be true since both are represented as non-empty text, whereas strongly typed languages such as Python can treat 0 as false; the whole point of weak typing being to roundtrip data without changing its meaning even as its representation changes)
+    try env.set("true", to: trueValue)
+    try env.set("false", to: falseValue)
 }
+
+

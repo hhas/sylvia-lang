@@ -5,7 +5,7 @@
 
 typealias CallableValue = Value & Callable
 
-typealias PrimitiveHandler = CallableValue
+typealias PrimitiveHandler = CallableValue // keeping options open for now regarding primitive handler implementation (e.g. should it require different introspection/debugging implementations to native handlers then `PrimitiveHandler` can be redefined as an abstract base class)
 
 typealias Parameter = (name: String, type: Coercion)
 
@@ -39,14 +39,14 @@ protocol Callable { // TO DO: might be easier if this is class; Handlers and Coe
 
 // concrete classes
 
-class BoundHandler: CallableValue {
+class BoundHandler: CallableValue { // getting a Handler from an Env creates a closure, allowing it to be passed to and called in other contexts
     
     var name: String { return self.handler.name }
     var parameters: [Parameter] { return self.handler.parameters }
     var result: Coercion { return self.handler.result }
     
-    let handler: Callable
-    let handlerEnv: Env
+    private let handler: Callable
+    private let handlerEnv: Env
     
     init(handler: Callable, handlerEnv: Env) {
         self.handler = handler

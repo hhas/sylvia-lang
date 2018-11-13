@@ -8,9 +8,13 @@
 
 // abstract base class
 
-class Value: CustomStringConvertible { // base class for all native values
+class Value: CustomStringConvertible { // base class for all native values // Q. would it be better for Value to be a protocol + extension? (need to check how multiple extensions that implement same methods are resolved, e.g. if Value extension implements default toTYPE methods)
     
     var description: String { return "<Value>" }
+    
+    // TO DO: implement debugDescription (this should return Swift representation whereas description should return native representation using default formatting)
+    
+    // TO DO: implement pretty printing API (ideally this would be a general-purpose Visitor API; Q. for rewriting, use read-only visitor API that reconstructs entire AST from scratch, or support read-write? [right now most Value classes' internal state is `let` rather than `private(set)var`])
     
     // double-dispatch methods
     
@@ -115,3 +119,5 @@ let emptyList = List([])
 
 let trueValue = Text("ok")
 let falseValue = emptyText
+
+let piValue = Text(String(Double.pi))
