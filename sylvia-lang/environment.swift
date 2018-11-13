@@ -40,9 +40,14 @@ class Env {
         }
     }
     
-    func add(handler: Callable) throws { // used by library loader
+    func add(_ handler: CallableValue) throws { // used by library loader
         if self.frame[handler.name] != nil { throw ReadOnlyValueException(name: handler.name, env: self) }
-        self.frame[handler.name] = (readOnly: true, value: handler as! Value)
+        self.frame[handler.name] = (readOnly: true, value: handler)
+    }
+    
+    func add(_ coercion: Coercion) throws { // used by library loader // TO DO: delete this method once coercions implement Callable
+        if self.frame[coercion.name] != nil { throw ReadOnlyValueException(name: coercion.name, env: self) }
+        self.frame[coercion.name] = (readOnly: true, value: coercion)
     }
     
     func child() -> Env { // TO DO: what about scope name, global/local, writable flag?

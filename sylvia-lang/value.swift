@@ -112,3 +112,6 @@ class List: Value {
 let noValue = Nothing()
 let emptyText = Text("")
 let emptyList = List([])
+
+let trueValue = Text("ok")
+let falseValue = emptyText

@@ -5,6 +5,8 @@
 
 typealias CallableValue = Value & Callable
 
+typealias PrimitiveHandler = CallableValue
+
 typealias Parameter = (name: String, type: Coercion)
 
 
