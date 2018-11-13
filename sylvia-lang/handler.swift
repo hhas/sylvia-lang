@@ -3,6 +3,8 @@
 //
 
 
+typealias CallableValue = Value & Callable
+
 typealias Parameter = (name: String, type: Coercion)
 
 
@@ -11,7 +13,7 @@ typealias Parameter = (name: String, type: Coercion)
 enum EnvType { // used in primitive libraries; indicates what, if any, environment[s] the handler needs to access (module, body, and/or caller) in order to perform its work
     case noEnv
     case handlerEnv // TO DO: one of the challenges with handlerEnv (i.e. moduleEnv) is legality of the module's handlers modifying the module's slots; in principle, a module could just use its own internal Swift vars - is there any situation where it would be preferable to push this state into Env? (e.g. module persistency; Swift vars won't persist, but Env state could be written to disk)
-    case bodyEnv // create a sub-env from handler scope
+    case bodyEnv // create a sub-env from handler scope (TO DO: when would this be needed? e.g. a handler that creates and returns a BoundHandler [closure] might want to use bodyEnv, giving the returned handler access to constructor's arguments and any additional local values it creates while keeping those values visible in native runtime debugger/introspection)
     case commandEnv
     // TO DO: include read-only/write-only/read-write flags? this can be used to determine [some] side-effects, which might in turn be used by runtime to memoize outputs (e.g. for performance, or to enable backtracking in 'debugger' mode), or in user docs to indicate scope of action (unfortunately, Swift/Cocoa doesn't provide a mechanism to indicate other side effects, e.g. file read/write, so that sort of metainfo would have to be supplied by module developer on trust)
 }
@@ -29,13 +31,13 @@ protocol Callable { // TO DO: might be easier if this is class; Handlers and Coe
     
     func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value
 
-}
+} // TO DO: define Callable extension that implements `description`
 
 
 
 // concrete classes
 
-class BoundHandler: Value, Callable {
+class BoundHandler: CallableValue {
     
     var name: String { return self.handler.name }
     var parameters: [Parameter] { return self.handler.parameters }
@@ -56,7 +58,7 @@ class BoundHandler: Value, Callable {
 }
 
 
-class Handler: Value, Callable { // native handler
+class Handler: CallableValue { // native handler
     
     override var description: String { return "\(self.name)\(self.parameters)" }
     

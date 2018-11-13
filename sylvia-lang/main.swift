@@ -44,9 +44,9 @@ do { // evaluate to List of Text, using default value
 
 
 do { // evaluate command
-    let v = Command("add", [Text("1"), Text("2")])
+    let v = Command("sub", [Command("add", [Text("1"), Text("2")]), Text("6")])
     let t = asAny
-    print(try t.coerce(value: v, env: e)) // "3" // native
+    print(try t.coerce(value: v, env: e)) // "-3" // native
 } catch {
     print(4, error)
 }

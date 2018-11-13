@@ -92,6 +92,29 @@ class AsString: BridgingCoercion { // Q. what about constraints?
 }
 
 
+class AsDouble: BridgingCoercion {
+    
+    typealias SwiftType = Double
+    
+    override func coerce(value: Value, env: Env) throws -> Value {
+        let result = try value.toText(env: env, type: self)
+        if Double(result.swiftValue) == nil { throw CoercionError(value: value, type: self) } // note: this only validates; it doesn't rewrite (Q. should it return `Text(String(n))`?)
+        return result
+    }
+    
+    func unbox(value: Value, env: Env) throws -> SwiftType {
+        guard let n = try Double(value.toText(env: env, type: self).swiftValue) else { throw CoercionError(value: value, type: self) }
+        return n
+    }
+    
+    func box(value: SwiftType, env: Env) throws -> Value {
+        return Text(String(value))
+    }
+
+    
+}
+
+
 
 class AsArray<ElementType: BridgingCoercion>: BridgingCoercion {
     
@@ -275,6 +298,7 @@ class AsThunk<T: BridgingCoercion>: BridgingCoercion {
 
 let asAny = AsAny()
 let asText = AsText()
+let asDouble = AsDouble()
 let asString = AsString()
 let asList = AsList(asAny)
 let asIs = AsIs()

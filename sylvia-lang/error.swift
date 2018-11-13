@@ -4,6 +4,16 @@
 
 
 
+class InternalError: Error, CustomStringConvertible {
+    
+    let description: String
+    
+    init(_ message: String) {
+        self.description = "An internal error occurred: \(message)"
+    }
+}
+
+
 class CoercionError: Error, CustomStringConvertible {
     
     let value: Value
@@ -27,29 +37,6 @@ class CoercionError: Error, CustomStringConvertible {
 // TO DO: when to promote NullCoercionError to permanent error?
 
 class NullCoercionError: CoercionError {} // coercing Nothing always throws NullCoercionError; this may be caught by AsDefault
-
-
-
-// evaluation error
-
-class HandlerFailedException: Error, CustomStringConvertible {
-    
-    let handler: Callable
-    let error: Error
-    
-    init(handler: Callable, error: Error) {
-        self.handler = handler
-        self.error = error
-    }
-    
-    var localizedDescription: String {
-        return self.description
-    }
-    
-    var description: String {
-        return "Handler \(self.handler.name) failed: \(self.error)"
-    }
-}
 
 
 // environment lookup errors
@@ -91,5 +78,49 @@ class HandlerNotFoundException: EnvironmentException {
     
     override var description: String {
         return "Can’t find handler named “\(self.name)”."
+    }
+}
+
+
+// evaluation error
+
+class HandlerFailedException: Error, CustomStringConvertible {
+    
+    let handler: Callable
+    let error: Error
+    
+    init(handler: Callable, error: Error) {
+        self.handler = handler
+        self.error = error
+    }
+    
+    var localizedDescription: String {
+        return self.description
+    }
+    
+    var description: String {
+        return "Handler \(self.handler.name) failed: \(self.error)"
+    }
+}
+
+
+class BadArgumentException: Error, CustomStringConvertible {
+    
+    let command: Command
+    let handler: CallableValue
+    let index: Int
+    
+    init(command: Command, handler: CallableValue, index: Int) {
+        self.command = command
+        self.handler = handler
+        self.index = index
+    }
+    
+    var localizedDescription: String {
+        return self.description
+    }
+    
+    var description: String {
+        return "\(self.handler.name) requires \(self.handler.parameters[self.index].name) parameter of type \(self.handler.parameters[self.index].type) but received: \(self.command.arguments[self.index])"
     }
 }
