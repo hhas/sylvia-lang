@@ -5,8 +5,6 @@
 
 typealias CallableValue = Value & Callable
 
-typealias PrimitiveHandler = CallableValue // keeping options open for now regarding primitive handler implementation (e.g. should it require different introspection/debugging implementations to native handlers then `PrimitiveHandler` can be redefined as an abstract base class)
-
 typealias Parameter = (name: String, type: Coercion)
 
 
@@ -106,4 +104,41 @@ class Handler: CallableValue { // native handler
     }
 }
 
+
+
+
+typealias PrimitiveCall = (_ command: Command, _ commandEnv: Env, _ handler: CallableValue, _ handlerEnv: Env, _ type: Coercion) throws -> Value
+
+struct CallableInterface {
+    let name: String
+    let parameters: [Parameter]
+    let returnType: Coercion
+}
+
+
+class PrimitiveHandler: CallableValue {
+    
+    // introspection // TO DO: push all this into CallableInterface struct
+    
+    let name: String
+    let parameters: [Parameter]
+    let result: Coercion
+    
+    let call: PrimitiveCall
+    
+    init(_ interface: CallableInterface, _ call: @escaping PrimitiveCall) {
+        self.name = interface.name
+        self.parameters = interface.parameters
+        self.result = interface.returnType
+        self.call = call
+    }
+    
+    func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value {
+        do{
+            return try type.coerce(value: self.call(command, commandEnv, self, handlerEnv, self.result), env: commandEnv)
+        } catch {
+            throw HandlerFailedException(handler: self, error: error)
+        }
+    }
+}
 

@@ -50,7 +50,19 @@ protocol BridgingProtocol {
     
     func box(value: SwiftType, env: Env) throws -> Value
     
+    func unboxArgument(at index: Int, command: Command, commandEnv: Env, handler: CallableValue) throws -> SwiftType
     // TO DO: bridging coercions that perform constraint checks need ability to emit raw Swift code for performing those checks in order to compile away unnecessary coercions, e.g. given native code `bar(foo())`, if foo() returns a boxed Swift String and bar() unboxes it again, partial compilation can discard those Coercions and generate `LIB.bar(LIB.foo())` Swift code
+}
+
+extension BridgingProtocol {
+    
+    func unboxArgument(at index: Int, command: Command, commandEnv: Env, handler: CallableValue) throws -> SwiftType { // TO DO: this isn't working right
+        do {
+            return try self.unbox(value: command.argument(index), env: commandEnv)
+        } catch {
+            throw BadArgumentException(command: command, handler: handler, index: index)
+        }
+    }
 }
 
 
@@ -62,9 +74,9 @@ protocol BridgingProtocol {
 
 
 
-class AsAny: BridgingCoercion {
+class AsValue: BridgingCoercion { // any value *except* `nothing`
     
-    var name: String { return "anything" }
+    var name: String { return "value" }
     
     typealias SwiftType = Value
     
@@ -74,6 +86,30 @@ class AsAny: BridgingCoercion {
     
     func unbox(value: Value, env: Env) throws -> SwiftType {
         return try value.toAny(env: env, type: self)
+    }
+    
+    func box(value: SwiftType, env: Env) throws -> Value {
+        return value
+    }
+}
+
+
+class AsAnything: BridgingCoercion { // any value including `nothing`
+    
+    var name: String { return "anything" }
+    
+    typealias SwiftType = Value
+    
+    func coerce(value: Value, env: Env) throws -> Value {
+        do {
+            return try value.toAny(env: env, type: self)
+        } catch is NullCoercionError {
+            return noValue
+        }
+    }
+    
+    func unbox(value: Value, env: Env) throws -> SwiftType {
+        return try self.coerce(value: value, env: env)
     }
     
     func box(value: SwiftType, env: Env) throws -> Value {
@@ -131,12 +167,22 @@ class AsBool: BridgingCoercion {
     
     typealias SwiftType = Bool
     
+    // TO DO: implement `Value.toBool()` and use that (right now this implementation only accepts text/nothing and errors on lists)
+    
     func coerce(value: Value, env: Env) throws -> Value {
-        return try value.toText(env: env, type: self).swiftValue != "" ? trueValue : falseValue
+        do {
+            return try value.toText(env: env, type: self).swiftValue != "" ? trueValue : falseValue
+        } catch is NullCoercionError {
+            return falseValue
+        }
     }
     
     func unbox(value: Value, env: Env) throws -> SwiftType {
-        return try value.toText(env: env, type: self).swiftValue != ""
+        do {
+            return try value.toText(env: env, type: self).swiftValue != ""
+        } catch is NullCoercionError {
+            return false
+        }
     }
     
     func box(value: SwiftType, env: Env) throws -> Value {
@@ -299,7 +345,7 @@ class AsOptional<T: BridgingCoercion>: BridgingCoercion {
     
     let type: T
     
-    init(_ type: T, defaultValue: Value) {
+    init(_ type: T) {
         self.type = type
     }
     
@@ -333,7 +379,7 @@ class AsThunk<T: BridgingCoercion>: BridgingCoercion {
     
     var name: String { return "lazy" }
     
-    typealias SwiftType = T.SwiftType?
+    typealias SwiftType = Thunk
     
     let type: T
     
@@ -342,25 +388,30 @@ class AsThunk<T: BridgingCoercion>: BridgingCoercion {
     }
     
     func coerce(value: Value, env: Env) throws -> Value {
-        fatalError() //return Thunk(value, env: env, type: self.type)
+        return Thunk(value, env: env, type: self.type)
     }
     
     func unbox(value: Value, env: Env) throws -> SwiftType {
-        fatalError()
+        return Thunk(value, env: env, type: self.type)
     }
     
     func box(value: SwiftType, env: Env) throws -> Value {
-        fatalError()
+        return value
     }
 }
 
 
 
-let asAny = AsAny()
+let asValue = AsValue()
 let asText = AsText()
 let asBool = AsBool()
 let asDouble = AsDouble()
 let asString = AsString()
-let asList = AsList(asAny)
+let asList = AsList(asValue)
+
 let asIs = AsIs()
 let asNothing = AsNothing()
+
+let asAnything = AsAnything()
+
+let asThunk = AsThunk(asAnything)

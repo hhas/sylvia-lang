@@ -16,7 +16,7 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     // TO DO: implement pretty printing API (ideally this would be a general-purpose Visitor API; Q. for rewriting, use read-only visitor API that reconstructs entire AST from scratch, or support read-write? [right now most Value classes' internal state is `let` rather than `private(set)var`])
     
-    // double-dispatch methods
+    // double-dispatch methods; these are called by Coercion.evaluate()/run() methods; they should not be called directly
     
     func toAny(env: Env, type: Coercion) throws -> Value { // collection subclasses override this to recursively evaluate items
         return self
@@ -31,13 +31,12 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     // List subclass overrides the following; other values coerce to single-item list/array (V->[V]):
     
     func toList(env: Env, type: AsList) throws -> List {
-        return try List([type.elementType.coerce(value: self, env: env)])
+        return try List([type.elementType.coerce(value: self, env: env)]) // TO DO: catch NullCoercionError and rethow as permanent CoercionError
     }
     
     func toArray<E, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
-        return try [type.elementType.unbox(value: self, env: env)]
+        return try [type.elementType.unbox(value: self, env: env)] // TO DO: ditto
     }
-    
 }
 
 
@@ -70,7 +69,7 @@ class Text: Value { // TO DO: Scalar?
     
     private(set) var swiftValue: String // TO DO: restricted mutability; e.g. perform appends in-place only if refcount==1, else copy self and append to that
     
-    init(_ swiftValue: String) {
+    init(_ swiftValue: String) { // TO DO: what constraints are appropriate here? e.g. nonEmpty, minLength, maxLength, pattern, etc are all possibilities; simplest from API perspective is regexp, although that's also the most complex (unless standard patterns for describing the other constraints - e.g. "."/".+"/"\A.+\Z" are common patterns for indicating 'nonEmpty:true' - are recognized and optimized away)
         self.swiftValue = swiftValue
     }
     
@@ -95,16 +94,16 @@ class List: Value {
     }
     
     override func toArray<E, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
-        return try self.swiftValue.map { try type.elementType.unbox(value: $0, env: env) }
+        return try self.swiftValue.map { try type.elementType.unbox(value: $0, env: env) } // TO DO: block needs to catch and rethrow NullCoercionError as permanent CoercionError (e.g.. `[nothing]->list(optional(anything))` should return `[nothing]`, but `[nothing]->optional(list(anything))` needs to throw CoercionError, not return `nothing`)
     }
     
     override func toAny(env: Env, type: Coercion) throws -> Value {
-        return try List(self.swiftValue.map { try type.coerce(value: $0, env: env) })
+        return try List(self.swiftValue.map { try type.coerce(value: $0, env: env) }) // TO DO: ditto
     }
 }
 
 
-// other native values might include Nothing, Number (if distinct from Text), Symbol, Table, Expression, Call, Thunk, etc.; downside is each new native type requires another `toType()` method added to Value and to each subclass that supports that coercion (though these can at least be organized into class extensions so don't clog up the main class implementations)
+// other native values might include Boolean, Number, Date (if distinct from Text, which can easily represent these data types as text, caching any underlying representations for performance if needed, if Perl-style 'scalar' representation is preferred); Symbol (enum); Table (dict); Block, Identifier, Command, Handler, Thunk (being an Algol-style language, these latter value types aren't exposed as first-class datatypes in language, although a more Lisp-ish flavor could represent all code structures as data); downside is each new native type requires another `toType()` method added to Value and to each subclass that supports that coercion (though these can at least be organized into class extensions so don't clog up the main class implementations)
 
 
 

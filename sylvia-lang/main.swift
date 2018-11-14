@@ -26,7 +26,7 @@ do { // evaluate to List of Text
         => [“Hello”, “World”]
      */
     let v = List([Text("Hello"), Text("World")])
-    let t = AsAny()
+    let t = AsValue()
     print(try t.coerce(value: v, env: e))
 } catch {
     print(1, error)
@@ -65,8 +65,7 @@ do { // evaluate commands
         => “-3”
      */
     let v = Command("subtract", [Command("add", [Text("1"), Text("2")]), Text("6")])
-    let t = asAny
-    print(try t.coerce(value: v, env: e)) // "-3" // native
+    print(try asAnything.coerce(value: v, env: e)) // "-3" // native
 } catch {
     print(4, error)
 }
@@ -86,11 +85,33 @@ do { // define and call native handler
                     body: Command("add", [Text("1"), Identifier("n")]))
     try e.add(h)
     let v = Command("show", [Command("addOne", [Text("3")])])
-    let t = asAny
-    print(try t.coerce(value: v, env: e)) // prints "4" and returns `nothing`
+    print(try asAnything.coerce(value: v, env: e)) // prints "4" and returns `nothing`
 } catch {
     print(5, error)
 }
 
+
+do { // conditional
+    /*
+     testIf(value: "ok", ifTrue: show("yes"), ifFalse: show("no"))  // prints "yes"
+     testIf(value: "", ifTrue: show("yes"), ifFalse: show("no"))    // prints "no"
+     */
+    for arg in [trueValue, falseValue] {
+        let v = Command("testIf", [arg, Command("show", [Text("yes")]), Command("show", [Text("no")])])
+        print(try asAnything.coerce(value: v, env: e))
+    }
+    // optional arguments and return values
+    /*
+     testIf(value: "ok", ifTrue: "42")      // returns "42"
+     testIf(value: "", ifTrue: "42"))       // returns `nothing`
+     testIf(value: nothing, ifTrue: "42"))  // returns `nothing`
+     */
+    for arg in [trueValue, falseValue, noValue] {
+        let v = Command("testIf", [arg, Text("42")])
+        print(try asAnything.coerce(value: v, env: e))
+    }
+} catch {
+    print(6, error)
+}
 
 print("Duration: \(Date().timeIntervalSince(sd) * 1000)ms")

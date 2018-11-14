@@ -16,6 +16,8 @@
 		4FEC2719219A33EF00B28A5A /* error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2711219A33EE00B28A5A /* error.swift */; };
 		4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2712219A33EF00B28A5A /* coercion.swift */; };
 		4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */; };
+		4FEC2725219BA63100B28A5A /* lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2724219BA63100B28A5A /* lexer.swift */; };
+		4FEC2727219BA64200B28A5A /* parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2726219BA64200B28A5A /* parser.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -42,6 +44,8 @@
 		4FEC2712219A33EF00B28A5A /* coercion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = coercion.swift; sourceTree = "<group>"; };
 		4FEC271B219A49C900B28A5A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
 		4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_bridge.swift; sourceTree = "<group>"; };
+		4FEC2724219BA63100B28A5A /* lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = lexer.swift; sourceTree = "<group>"; };
+		4FEC2726219BA64200B28A5A /* parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = parser.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +103,8 @@
 		4FEC271D219B8B5300B28A5A /* parser */ = {
 			isa = PBXGroup;
 			children = (
+				4FEC2724219BA63100B28A5A /* lexer.swift */,
+				4FEC2726219BA64200B28A5A /* parser.swift */,
 			);
 			path = parser;
 			sourceTree = "<group>";
@@ -169,11 +175,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FEC2727219BA64200B28A5A /* parser.swift in Sources */,
 				4FEC2715219A33EF00B28A5A /* value.swift in Sources */,
 				4FEC2719219A33EF00B28A5A /* error.swift in Sources */,
 				4FEC2718219A33EF00B28A5A /* stdlib.swift in Sources */,
 				4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */,
 				4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */,
+				4FEC2725219BA63100B28A5A /* lexer.swift in Sources */,
 				4FEC2716219A33EF00B28A5A /* handler.swift in Sources */,
 				4FEC2714219A33EF00B28A5A /* main.swift in Sources */,
 				4FEC2713219A33EF00B28A5A /* expression.swift in Sources */,

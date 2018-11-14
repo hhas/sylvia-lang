@@ -45,6 +45,10 @@ class Env {
         self.frame[handler.name] = (readOnly: true, value: handler)
     }
     
+    func add(_ interface: CallableInterface, _ call: @escaping PrimitiveCall) throws { // used to load primitive handler definitions
+        try self.add(PrimitiveHandler(interface, call))
+    }
+    
     func add(_ coercion: Coercion) throws { // used by library loader // TO DO: delete this method once coercions implement Callable
         if self.frame[coercion.name] != nil { throw ReadOnlyValueException(name: coercion.name, env: self) }
         self.frame[coercion.name] = (readOnly: true, value: coercion)

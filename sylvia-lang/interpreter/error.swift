@@ -3,6 +3,8 @@
 //
 
 
+/******************************************************************************/
+// implementation bugs
 
 class InternalError: Error, CustomStringConvertible {
     
@@ -12,6 +14,9 @@ class InternalError: Error, CustomStringConvertible {
         self.description = "An internal error occurred: \(message)"
     }
 }
+
+/******************************************************************************/
+// coercion errors
 
 
 class CoercionError: Error, CustomStringConvertible {
@@ -39,6 +44,7 @@ class CoercionError: Error, CustomStringConvertible {
 class NullCoercionError: CoercionError {} // coercing Nothing always throws NullCoercionError; this may be caught by AsDefault
 
 
+/******************************************************************************/
 // environment lookup errors
 
 class EnvironmentException: Error, CustomStringConvertible { // abstract base class
@@ -82,7 +88,8 @@ class HandlerNotFoundException: EnvironmentException {
 }
 
 
-// evaluation error
+/******************************************************************************/
+// command evaluation errors
 
 class HandlerFailedException: Error, CustomStringConvertible {
     

@@ -15,30 +15,31 @@ class Expression: Value {
     
     // Q. if Value is a Protocol and Expression is a protocol, and both have corresponding extensions implementing standard toTYPE methods, how will that compile? (one advantage of protocols over subclassing is that it avoids nasty 'abstract methods' such as those below)
     
-    override func toAny(env: Env, type: Coercion) throws -> Value {
-        return try self._run(env: env, type: type)
-    }
-    
-    override func toText(env: Env, type: Coercion) throws -> Text {
-        return try self._run(env: env, type: type)
-    }
-    
-    override func toList(env: Env, type: AsList) throws -> List {
-        return try self._run(env: env, type: type) // ditto
-    }
-    
-    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
-        return try self.evaluate(env: env, type: type)
+    internal func safeRun<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
+        // we pull our punches here: in theory, casting `value as! T` will never fail as Coercions should always return correct value class, but we guard to be sure (ideally we wouldn't have to use runtime upcasting at all, but trying to implement 100% typesafe runtime APIs for a weak untyped language would almost certainly be an intractable generics hell)
+        let value = try self.run(env: env, type: type)
+        guard let result = value as? T else {
+            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)") // presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
+        }
+        return result
     }
     
     //
     
-    func _run<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
-        let value = try self.run(env: env, type: type)
-        guard let result = value as? T else { // we pull our punches here as it's still less painful than trying to implement strong typing throughout runtime
-            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)")
-        }
-        return result
+    override func toAny(env: Env, type: Coercion) throws -> Value {
+        return try self.safeRun(env: env, type: type)
+    }
+    
+    override func toText(env: Env, type: Coercion) throws -> Text {
+        return try self.safeRun(env: env, type: type)
+    }
+    
+    override func toList(env: Env, type: AsList) throws -> List {
+        return try self.safeRun(env: env, type: type) // ditto
+    }
+    
+    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
+        return try self.evaluate(env: env, type: type)
     }
     
     // subclasses must override the following abstract methods:
@@ -68,7 +69,7 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
     override func run(env: Env, type: Coercion) throws -> Value {
         var result: Value = noValue
         for value in self.body {
-            result = try asAny.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
+            result = try asValue.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
         }
         return try type.coerce(value: result, env: env)
     }
@@ -117,7 +118,7 @@ class Command: Expression {
     }
     
     func argument(_ index: Int) -> Value {
-        return index > arguments.count ? noValue : self.arguments[index]
+        return index >= arguments.count ? noValue : self.arguments[index]
     }
     
     private func lookup(env: Env) throws -> (handler: Callable, lexicalEnv: Env) {
@@ -141,7 +142,7 @@ class Command: Expression {
 //
 
 
-class Thunk: Value {
+class Thunk: Expression {
     
     override var description: String { return "<Thunk \(self.value)>" }
     
@@ -155,22 +156,18 @@ class Thunk: Value {
         self.type = type
     }
     
-    private func force() throws -> Value {
+    func force() throws -> Value {
         return try self.type.coerce(value: self.value, env: self.env)
     }
     
     // evaluating a thunk forces it (unless type specifies AsThunk, in which case it thunks again)
     
-    override func toAny(env: Env, type: Coercion) throws -> Value {
-        return try self.force()
-    }
-    override func toText(env: Env, type: Coercion) throws -> Text {
-        return try type.coerce(value: self.force(), env: env) as! Text
-    }
-    override func toList(env: Env, type: AsList) throws -> List {
-        return try type.coerce(value: self.force(), env: env) as! List
-    }
-    override func toArray<E, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
+    override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
         return try type.unbox(value: self.force(), env: env)
     }
+    
+    override func run(env: Env, type: Coercion) throws -> Value {
+        return try type.coerce(value: self.force(), env: env)
+    }
+
 }
