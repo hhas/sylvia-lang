@@ -5,6 +5,10 @@
 //
 
 
+// TO DO: need to start thinking about public/internal/private declarations
+
+// TO DO: what about annotating values with canonical Coercion types? (e.g. a list that is explicitly declared as `editable(list(text(nonEmpty),1,10))` could have that coercion attached to it so that all subsequent insertions/replacements/deletions to that list are constraint-checked against that coercion; ultimately, Coercion instances might even interlinked to provide dependent type-style capabilities, e.g. a handler that accepts a variant input `anyOf([number, date])` could guarantee that its output value will always be of the same type as the given input value - the output coercion receiving the Coercion object that was successfully matched by the input coercion)
+
 
 // abstract base class
 

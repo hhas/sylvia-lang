@@ -17,7 +17,7 @@ do {
 } catch {
     fatalError("Can't load stdlib: \(error)")
 }
-
+/*
 let sd = Date()
 
 do { // evaluate to List of Text
@@ -60,11 +60,11 @@ do { // evaluate to List of Text, using default value
 
 do { // evaluate commands
     /*
-        « subtract(add(1, 2), 6) »
+        « '-'('+'(1, 2), 6) »
         1 + 2 - 6
         => “-3”
      */
-    let v = Command("subtract", [Command("add", [Text("1"), Text("2")]), Text("6")])
+    let v = Command("-", [Command("+", [Text("1"), Text("2")]), Text("6")])
     print(try asAnything.coerce(value: v, env: e)) // "-3" // native
 } catch {
     print(4, error)
@@ -80,9 +80,8 @@ do { // define and call native handler
          « “4.0” »
          => nothing
      */
-    let h = Handler(name: "addOne",
-                    parameters: [(name: "n", type: asDouble)], result: asDouble,
-                    body: Command("add", [Text("1"), Identifier("n")]))
+    let h = Handler(CallableInterface(name: "addOne", parameters: [(name: "n", type: asDouble)], returnType: asDouble),
+                    Command("+", [Text("1"), Identifier("n")]))
     try e.add(h)
     let v = Command("show", [Command("addOne", [Text("3")])])
     print(try asAnything.coerce(value: v, env: e)) // prints "4" and returns `nothing`
@@ -115,3 +114,15 @@ do { // conditional
 }
 
 print("Duration: \(Date().timeIntervalSince(sd) * 1000)ms")
+*/
+
+
+
+let ops = OperatorRegistry()
+ops.add(stdlib_operators)
+
+//print(ops.symbolLookup.debugDescription)
+
+let lexer = Lexer(code: "(1 + foo) / 2 == x", operatorRegistry: ops)
+
+for t in lexer.tokenize() { print(t) }

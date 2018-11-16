@@ -11,10 +11,6 @@
  */
 
 
-// TO DO: lighterweight implementation using a single reusable PrimitiveHandler class that is instantiated with code-generated call function and introspection info (c.f. entoli)
-
-
-
 // auto-generated primitive handler bridging code
 
 // add(a,b)
@@ -24,7 +20,7 @@ let signature_add_a_b = (
     returnType: asDouble
 )
 let interface_add_a_b = CallableInterface( // TO DO: include all documentation, metainfo
-    name: "add",
+    name: "+",
     parameters: [
         ("a", signature_add_a_b.paramType_0),
         ("b", signature_add_a_b.paramType_1)
@@ -46,7 +42,7 @@ let signature_subtract_a_b = (
     returnType: asDouble
 )
 let interface_subtract_a_b = CallableInterface(
-    name: "subtract",
+    name: "-",
     parameters: [
         ("a", signature_subtract_a_b.paramType_0),
         ("b", signature_subtract_a_b.paramType_1)
@@ -100,25 +96,25 @@ func call_store_name_value_readOnly(command: Command, commandEnv: Env, handler: 
 
 
 // defineHandler(name,parameters,result,body)
-let signature_defineHandler_name_parameters_result_body = (
+let signature_defineHandler_name_parameters_returnType_body = (
     paramType_0: asString,
     paramType_1: AsArray(asString), // TO DO: currently doesn't support coercions
     paramType_2: asValue, // coercion object
     paramType_3: asIs,
     returnType: asValue // TO DO: returning Handler may be a bad idea as it won't be bound to its current context
 )
-let interface_defineHandler_name_parameters_result_body = CallableInterface(
+let interface_defineHandler_name_parameters_returnType_body = CallableInterface(
     name: "defineHandler",
-    parameters: [("value", signature_defineHandler_name_parameters_result_body.paramType_0)],
-    returnType: signature_defineHandler_name_parameters_result_body.returnType
+    parameters: [("value", signature_defineHandler_name_parameters_returnType_body.paramType_0)],
+    returnType: signature_defineHandler_name_parameters_returnType_body.returnType
 )
-func call_defineHandler_name_parameters_result_body(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
-    let arg_0 = try signature_defineHandler_name_parameters_result_body.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_defineHandler_name_parameters_result_body.paramType_1.unbox(value: command.argument(1), env: commandEnv) .map{return(name:$0,type:asValue as Coercion)} // KLUDGE; TO DO: define AsParameter coercion
-    let arg_2 = try signature_defineHandler_name_parameters_result_body.paramType_2.unbox(value: command.argument(2), env: commandEnv) as! Coercion // KLUDGE; TO DO: define AsCoercion coercion
-    let arg_3 = try signature_defineHandler_name_parameters_result_body.paramType_3.unboxArgument(at: 3, command: command, commandEnv: commandEnv, handler: handler)
-    let result = try defineHandler(name: arg_0, parameters: arg_1, result: arg_2, body: arg_3, commandEnv: commandEnv)
-    return try signature_defineHandler_name_parameters_result_body.returnType.box(value: result, env: handlerEnv)
+func call_defineHandler_name_parameters_returnType_body(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_defineHandler_name_parameters_returnType_body.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_defineHandler_name_parameters_returnType_body.paramType_1.unbox(value: command.argument(1), env: commandEnv) .map{return(name:$0,type:asValue as Coercion)} // KLUDGE; TO DO: define AsParameter coercion
+    let arg_2 = try signature_defineHandler_name_parameters_returnType_body.paramType_2.unbox(value: command.argument(2), env: commandEnv) as! Coercion // KLUDGE; TO DO: define AsCoercion coercion
+    let arg_3 = try signature_defineHandler_name_parameters_returnType_body.paramType_3.unboxArgument(at: 3, command: command, commandEnv: commandEnv, handler: handler)
+    let result = try defineHandler(name: arg_0, parameters: arg_1, returnType: arg_2, body: arg_3, commandEnv: commandEnv)
+    return try signature_defineHandler_name_parameters_returnType_body.returnType.box(value: result, env: handlerEnv)
 }
 
 
@@ -142,7 +138,7 @@ func call_testIf_value_ifTrue_ifFalse(command: Command, commandEnv: Env, handler
     let arg_0 = try signature_testIf_value_ifTrue_ifFalse.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_testIf_value_ifTrue_ifFalse.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let arg_2 = try signature_testIf_value_ifTrue_ifFalse.paramType_2.unboxArgument(at: 2, command: command, commandEnv: commandEnv, handler: handler)
-    let result = try testIf(value: arg_0, ifTrue: arg_1, ifFalse: arg_2)
+    let result = try testIf(value: arg_0, ifTrue: arg_1, ifFalse: arg_2, commandEnv: commandEnv)
     return try signature_testIf_value_ifTrue_ifFalse.returnType.box(value: result, env: handlerEnv)
 }
 
@@ -150,16 +146,23 @@ func call_testIf_value_ifTrue_ifFalse(command: Command, commandEnv: Env, handler
 
 // auto-generated module load function
 
-func stdlib_load(env: Env) throws { // TO DO: this adds directly to supplied env rather than creating its own; who should be responsible for creating module namespaces? (and who is responsible for adding modules to a global namespace where scripts can access them); Q. what is naming convention for 3rd-party modules? (e.g. reverse domain), and how will those modules appear in namespace (e.g. flat/custom name or hierarchical names [e.g. `com.foo.module[.handler]`])
+// TO DO: how should external entry point be named/declared?
+
+func stdlib_load(env: Env) throws {
+    
+    // TO DO: this adds directly to supplied env rather than creating its own; Q. who should be responsible for creating module namespaces? (and who is responsible for adding modules to a global namespace where scripts can access them); Q. what is naming convention for 3rd-party modules? (e.g. reverse domain), and how will those modules appear in namespace (e.g. flat/custom name or hierarchical names [e.g. `com.foo.module[.handler]`])
+    
+    // TO DO: loading should never fail (unless there's a module implementation bug, e.g. duplicate name); how practical to guarantee error-free module loading, in which case LIBNAME_load can be non-throwing?
+    
+    // TO DO: ideally these load calls would only
     try loadConstants(env: env)
     try loadCoercions(env: env)
     
-    // TO DO: loading should never fail (unless there's a module implementation bug)
     try env.add(interface_add_a_b, call_add_a_b)
     try env.add(interface_subtract_a_b, call_subtract_a_b)
     try env.add(interface_show_value, call_show_value)
     try env.add(interface_store_name_value_readOnly, call_store_name_value_readOnly)
-    try env.add(interface_defineHandler_name_parameters_result_body, call_defineHandler_name_parameters_result_body)
+    try env.add(interface_defineHandler_name_parameters_returnType_body, call_defineHandler_name_parameters_returnType_body)
     try env.add(interface_testIf_value_ifTrue_ifFalse, call_testIf_value_ifTrue_ifFalse)
     
 }

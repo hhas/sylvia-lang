@@ -19,19 +19,41 @@ enum EnvType { // used in primitive libraries; indicates what, if any, environme
 }
 
 
-
-
-protocol Callable { // TO DO: might be easier if this is class; Handlers and Coercions can then inherit from it, overriding name, parameters, call() [athough it's mildly irritating that Swift doesn't have `abstract` keyword, avoiding need to define `fatalError()` implementations here]
+struct CallableInterface: CustomDebugStringConvertible {
+    // describes a handler interface; used for introspection, and also for argument/result coercions in NativeHandler
     
-    // standard introspection // TO DO: what about documentation, metainfo (e.g. categories, hashtags)
+    // note: for simplicity, parameters are positional only; ideally they should also support labelling (but requires more complex unpacking algorithm to match labeled/unlabeled command arguments to labeled parameters, particularly when args are omitted from anywhere other than end of arg list)
+    
+    let name: String
+    let parameters: [Parameter]
+    let returnType: Coercion
+    
+    var debugDescription: String { return "<CallableInterface: \(self.signature)>" }
+    
+    var signature: String { return "\(self.name)\(self.parameters) returning \(self.returnType)" } // quick-n-dirty; TO DO: format as native syntax
+    
+    // TO DO: how should handlers' Value.description appear? (showing signature alone is ambiguous as it's indistinguishable from a command; what about "SIGNATURE{…}"? or "«handler SIGNATURE»"? [i.e. annotation syntax could be used to represent opaque/external values as well as attached metadata])
+    
+    // TO DO: what about documentation?
+    // TO DO: what about meta-info (categories, hashtags, module location, dependencies, etc)?
+}
+
+
+protocol Callable {
+    
+    var interface: CallableInterface { get }
     
     var name: String { get }
-    var parameters: [Parameter] { get }
-    var result: Coercion { get }
     
     func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value
 
-} // TO DO: define Callable extension that implements `description`
+}
+
+extension Callable {
+    
+    var name: String { return self.interface.name }
+}
+
 
 
 
@@ -39,9 +61,9 @@ protocol Callable { // TO DO: might be easier if this is class; Handlers and Coe
 
 class BoundHandler: CallableValue { // getting a Handler from an Env creates a closure, allowing it to be passed to and called in other contexts
     
-    var name: String { return self.handler.name }
-    var parameters: [Parameter] { return self.handler.parameters }
-    var result: Coercion { return self.handler.result }
+    var interface: CallableInterface { return self.handler.interface }
+    
+    override var description: String { return self.interface.signature } // TO DO: how best to implement `var description` on handlers? (cleanest solution is to add it automatically via a protocol extension to Callable, though that will require reworking Value.description first); for now, just kludge it onto each handler class
     
     private let handler: Callable
     private let handlerEnv: Env
@@ -60,21 +82,15 @@ class BoundHandler: CallableValue { // getting a Handler from an Env creates a c
 
 class Handler: CallableValue { // native handler
     
-    override var description: String { return "\(self.name)\(self.parameters)" }
+    override var description: String { return self.interface.signature }
     
+    let interface: CallableInterface
     
-    // for now, parameters are positional; eventually they should be labeled (which requires more complex unpacking algorithm to match labeled/unlabeled command arguments to labeled parameters, particularly when args are omitted from anywhere other than end of arg list)
-    
-    let name: String // TO DO: name and parameters should be introspectable; might consider making Callable a protocol which any Value can implement (e.g. Coercion should implement call method allowing additional constraints to be applied, e.g. `foo as list (type:text, min:1, max:10)` would call standard `AsList` coercion stored in global `list` slot in order to specialize it)
-    let parameters: [Parameter]
     let body: Value
-    let result: Coercion
     
-    init(name: String, parameters: [Parameter], result: Coercion, body: Value) {
-        self.name = name
-        self.parameters = parameters
+    init(_ interface: CallableInterface, _ body: Value) {
+        self.interface = interface
         self.body = body
-        self.result = result
     }
     
     // unbox()/coerce() support; returns BoundHandler capturing both handler and its original handlerEnv; this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
@@ -89,7 +105,7 @@ class Handler: CallableValue { // native handler
         do {
             let bodyEnv = handlerEnv.child()
             var arguments = command.arguments
-            for (parameterName, parameterType) in self.parameters {
+            for (parameterName, parameterType) in self.interface.parameters {
                 let value = arguments.count > 0 ? arguments.removeFirst() : noValue
                 //print("unpacking argument \(parameterName): \(value)")
                 try bodyEnv.set(parameterName, to: parameterType.coerce(value: value, env: commandEnv)) // expand/thunk parameter using command's lexical scope
@@ -97,7 +113,7 @@ class Handler: CallableValue { // native handler
             if arguments.count > 0 {
                 print("unconsumed arguments: \(arguments)") // throw TooManyArgumentsException?
             }
-            return try type.coerce(value: self.result.coerce(value: self.body, env: bodyEnv), env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
+            return try type.coerce(value: self.interface.returnType.coerce(value: self.body, env: bodyEnv), env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
         } catch {
             throw HandlerFailedException(handler: self, error: error)
         }
@@ -109,33 +125,25 @@ class Handler: CallableValue { // native handler
 
 typealias PrimitiveCall = (_ command: Command, _ commandEnv: Env, _ handler: CallableValue, _ handlerEnv: Env, _ type: Coercion) throws -> Value
 
-struct CallableInterface {
-    let name: String
-    let parameters: [Parameter]
-    let returnType: Coercion
-}
 
 
 class PrimitiveHandler: CallableValue {
     
-    // introspection // TO DO: push all this into CallableInterface struct
+    override var description: String { return self.interface.signature }
     
-    let name: String
-    let parameters: [Parameter]
-    let result: Coercion
+    let interface: CallableInterface
     
-    let call: PrimitiveCall
+    private let call: PrimitiveCall
     
     init(_ interface: CallableInterface, _ call: @escaping PrimitiveCall) {
-        self.name = interface.name
-        self.parameters = interface.parameters
-        self.result = interface.returnType
+        self.interface = interface
         self.call = call
     }
     
     func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value {
+        // TO DO: double-coercing returned values (once in self.call() and again in type.coerce()) is a pain, but should mostly go away once Coercions can be intersected (hopefully, intersected Coercions created within static expressions can eventually be memoized, or the AST rewritten by the interpreter to use them in future, avoiding the need to recreate those intersections every time they're used)
         do{
-            return try type.coerce(value: self.call(command, commandEnv, self, handlerEnv, self.result), env: commandEnv)
+            return try type.coerce(value: self.call(command, commandEnv, self, handlerEnv, self.interface.returnType), env: commandEnv)
         } catch {
             throw HandlerFailedException(handler: self, error: error)
         }

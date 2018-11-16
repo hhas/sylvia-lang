@@ -18,6 +18,9 @@
 		4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */; };
 		4FEC2725219BA63100B28A5A /* lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2724219BA63100B28A5A /* lexer.swift */; };
 		4FEC2727219BA64200B28A5A /* parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2726219BA64200B28A5A /* parser.swift */; };
+		4FEC2729219DB5DF00B28A5A /* operator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2728219DB5DF00B28A5A /* operator.swift */; };
+		4FEC272B219E18B100B28A5A /* stdlib_operators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC272A219E18B100B28A5A /* stdlib_operators.swift */; };
+		4FEC272D219E1D7100B28A5A /* parsefunc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC272C219E1D7100B28A5A /* parsefunc.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,6 +49,9 @@
 		4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_bridge.swift; sourceTree = "<group>"; };
 		4FEC2724219BA63100B28A5A /* lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = lexer.swift; sourceTree = "<group>"; };
 		4FEC2726219BA64200B28A5A /* parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = parser.swift; sourceTree = "<group>"; };
+		4FEC2728219DB5DF00B28A5A /* operator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = operator.swift; sourceTree = "<group>"; };
+		4FEC272A219E18B100B28A5A /* stdlib_operators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_operators.swift; sourceTree = "<group>"; };
+		4FEC272C219E1D7100B28A5A /* parsefunc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = parsefunc.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +110,8 @@
 			isa = PBXGroup;
 			children = (
 				4FEC2724219BA63100B28A5A /* lexer.swift */,
+				4FEC2728219DB5DF00B28A5A /* operator.swift */,
+				4FEC272C219E1D7100B28A5A /* parsefunc.swift */,
 				4FEC2726219BA64200B28A5A /* parser.swift */,
 			);
 			path = parser;
@@ -114,6 +122,7 @@
 			children = (
 				4FEC2710219A33EE00B28A5A /* stdlib.swift */,
 				4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */,
+				4FEC272A219E18B100B28A5A /* stdlib_operators.swift */,
 			);
 			path = stdlib;
 			sourceTree = "<group>";
@@ -179,13 +188,16 @@
 				4FEC2715219A33EF00B28A5A /* value.swift in Sources */,
 				4FEC2719219A33EF00B28A5A /* error.swift in Sources */,
 				4FEC2718219A33EF00B28A5A /* stdlib.swift in Sources */,
+				4FEC272B219E18B100B28A5A /* stdlib_operators.swift in Sources */,
 				4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */,
 				4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */,
 				4FEC2725219BA63100B28A5A /* lexer.swift in Sources */,
 				4FEC2716219A33EF00B28A5A /* handler.swift in Sources */,
 				4FEC2714219A33EF00B28A5A /* main.swift in Sources */,
+				4FEC2729219DB5DF00B28A5A /* operator.swift in Sources */,
 				4FEC2713219A33EF00B28A5A /* expression.swift in Sources */,
 				4FEC2717219A33EF00B28A5A /* environment.swift in Sources */,
+				4FEC272D219E1D7100B28A5A /* parsefunc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

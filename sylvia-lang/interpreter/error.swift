@@ -128,6 +128,7 @@ class BadArgumentException: Error, CustomStringConvertible {
     }
     
     var description: String {
-        return "\(self.handler.name) requires \(self.handler.parameters[self.index].name) parameter of type \(self.handler.parameters[self.index].type) but received: \(self.command.arguments[self.index])"
+        return "\(self.handler.interface.name) requires \(self.handler.interface.parameters[self.index].name) parameter of "
+            + "type \(self.handler.interface.parameters[self.index].type) but received: \(self.command.arguments[self.index])"
     }
 }
