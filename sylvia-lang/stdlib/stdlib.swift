@@ -62,6 +62,7 @@ func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, 
     return h
 }
 
+// TO DO: will need separate `to` and `when` (`upon`?) operators/commands for defining native (and primitive?) handlers; the `to ACTION` form (used to implement new commands) should throw on unknown arguments, the `when EVENT` form (used to declare event handlers) should ignore them (this allows event handlers to receive notifications while ignoring any arguments not of interest to them; this'll be of more use once labeled arguments/parameters are supported) (strictly speaking, the `when` form is redundant if handlers accept varargs, e.g. in Python: `def EVENT(*args,**kargs)` will accept and discard unwanted arguments silently; however, it's semantically clearer)
 
 // signature: store(name: primitive(text), value: anything, readOnly: default(true, boolean)) returning anything
 // requires: throws, commandEnv

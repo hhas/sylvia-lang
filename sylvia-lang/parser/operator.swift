@@ -4,6 +4,10 @@
 
 //  registry for all library-defined operator definitions; used by Lexer when matching words and symbols to determine if they're operators or not, and obtain the appropriate parsing details for use by Pratt parser
 
+// - whole-word matching: word-based operator names (e.g. `AND`, `as`) must be bounded by non-word characters (whitespace/punctuation/symbol/linebreak/etc)
+// - longest match: symbol-based operators (e.g. `==`, `&`) can be bounded by anything, including other symbols
+
+
 import Foundation
 
 
@@ -26,7 +30,7 @@ typealias OperatorDefinition = (name: OperatorName, precedence: Int, parseFunc: 
 
 
 
-class SymbolSearchTree: CustomDebugStringConvertible { // used to perform longest match on symbol-based operators
+class SymbolSearchTree: CustomDebugStringConvertible { // performs longest-match identification of symbol-based operator names
     
     typealias SymbolTable = [Character: SymbolSearchTree]
     
@@ -51,19 +55,18 @@ class SymbolSearchTree: CustomDebugStringConvertible { // used to perform longes
     }
     
     func matchLongestSymbol(_ lexer: Lexer) -> String? {
-        guard let c = lexer.next() else { return nil }
-        //print("READ: '\(c)'")
-        if let table = self.symbols[c] {
-            if let result = table.matchLongestSymbol(lexer) {
-                return String(c) + result
-            } else if table.isComplete {
-                return String(c)
+        if let c = lexer.next() { // advance lexer by one character
+            if let table = self.symbols[c] { // could this + preceding characters be the start (or all) of an symbol-based operator name?
+                if let result = table.matchLongestSymbol(lexer) { // recursively see if the next character(s) continue the match
+                    return String(c) + result // as recursive calls return, add preceding characters to give the full operator name
+                } else if table.isComplete {
+                    return String(c) // found end of longest match, so return the last character of full operator name
+                }
             }
+            lexer.backtrack() // if the character wasn't part of a known operator name, return cursor to previous position
         }
-        lexer.backtrack()
-        return nil
+        return nil // character was not matched/end of code
     }
-    
 }
 
 
@@ -73,14 +76,13 @@ typealias OperatorTable = [OperatorName: OperatorDefinition]
 
 
 class OperatorRegistry { // once populated, a single OperatorRegistry instance can be used by multiple Lexer instances (as long as they're all using the same operator definitions)
-    
-    
+
+    // all operator definitions by name/alias (each operator definition appears once under its canonical name, and once for each of its aliases, e.g. `(name:"÷",…,aliases:["/"])` inserts two entries)
+    // note that the pretty printer will normally replace aliases with canonical names for consistency, e.g. `2/3` would prettify as `2 ÷ 3`
     private var prefixOperators = OperatorTable()
-    private var infixOperators = OperatorTable() // keys are operator names, including aliases; i.e. each operator definition will appear once in table under its canonical name, and once for each of its aliases, e.g. `(name:"÷", …, aliases: ["/"])` will create two entries; the pretty printer will normally replace aliases with canonical names for consistency, e.g. `2/3` would prettify as `2 ÷ 3` // TO DO: make this a class as keyword and symbol operators require different matching algorithms (whole word case-insensitive vs longest exact match; the first can be done with a flat dictionary, but the second requires a dictionary tree where keys are characters and values are dictionaries of next characters to match [if any]; FWIW, the keyword dictionary could also contain the symbol operators by full name)
+    private var infixOperators = OperatorTable()
     
-    private(set) var symbolLookup = SymbolSearchTree()
-    
-    
+    private(set) var symbolLookup = SymbolSearchTree() // tree structure used to perform longest match of symbol-based operator names; topmost node matches 1st character of symbol name, 2nd level matches 2nd character (if any), and so on
     
     private func add(_ definition: OperatorDefinition, named name: String, to table: inout OperatorTable) {
         let normalizedName = name.lowercased() // operator names are case-insensitive // TO DO: TBC
@@ -103,11 +105,9 @@ class OperatorRegistry { // once populated, a single OperatorRegistry instance c
     private func add(_ definition: OperatorDefinition, to table: inout OperatorTable) {
         self.add(definition, named: definition.name, to: &table)
         for alias in definition.aliases { self.add(definition, named: alias, to: &table) }
-
     }
 
-    func add(_ definition: OperatorDefinition) {
-        
+    private func add(_ definition: OperatorDefinition) {
         switch definition.parseFunc {
         case .atom, .prefix:
             self.add(definition, to: &self.prefixOperators)
@@ -116,19 +116,20 @@ class OperatorRegistry { // once populated, a single OperatorRegistry instance c
         }
     }
     
+    // add zero or more operator definitions to registry
     func add(_ definitions: [OperatorDefinition]) {
         for definition in definitions { self.add(definition) }
     }
     
-    
+    // get definition(s) for a word-based operator, if it exists (e.g. `matchWord("mod")` returns infix operator definition for modulus handler)
     func matchWord(_ name: String) -> (OperatorDefinition?, OperatorDefinition?) { // note: this can also match explicitly delimited symbol operators
         let normalizedName = name.lowercased()
         return (self.prefixOperators[normalizedName], self.infixOperators[normalizedName])
     }
     
+    // get definition(s) for a symbol-based operator, if it exists (e.g. `matchSymbol("==")` returns infix operator definition for equality handler)
     func matchSymbol(_ lexer: Lexer) -> (OperatorDefinition?, OperatorDefinition?) {
         // TO DO: tell operator registry to find longest possible match and return it, [re]positioning lexer's cursor at end of it (caution: if operators `ABC`, `AB`, `CD` are defined and code is `ABCD`, this will match `ABC` and report `D` is unknown; it is not smart enough to deal with such ambiguity by backtracking to end of `AB` and then trying to match `CD` [which may be just as well, as it keeps the rules simple to understand]; if the user wants `AB` and `CD` operators matched they must be explicitly delimited by [e.g.] a space or parens)
-        
         if let name = self.symbolLookup.matchLongestSymbol(lexer) {
             return self.matchWord(name)
         } else {

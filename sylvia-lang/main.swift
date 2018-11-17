@@ -123,6 +123,6 @@ ops.add(stdlib_operators)
 
 //print(ops.symbolLookup.debugDescription)
 
-let lexer = Lexer(code: "(1 + foo) / 2 == x", operatorRegistry: ops)
+let lexer = Lexer(code: "(0.00003 *+ foo exp -2) / 2e5×-2-1.123456E-100 == nothing", operatorRegistry: ops)
 
 for t in lexer.tokenize() { print(t) }

@@ -44,4 +44,4 @@ func parsePostfixOperator(_ parser: Parser, leftExpr: Value, operatorName: Strin
 // TO DO: assignment operator (this will map to `store` command; might want to think about naming conventions though)
 
 
-// TO DO: how best to parse handler definitions?
+// TO DO: how best to parse handler definitions? `'to' NAME '(' [PARAM [',' PARAM]*]? ')' ['returning' TYPE] BLOCK`; is it worth making `returning` an infix operator in its own right? (if not, bear in mind it will appear in token stream as an .identifer)

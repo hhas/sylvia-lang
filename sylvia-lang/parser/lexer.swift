@@ -2,10 +2,12 @@
 //  lexer.swift
 //
 
+// TO DO: a quicker way to check quote and block balancing during code editing is to skip all characters except quote and block delimiters [and their associated escape sequences], which can be done with a very simple Scanner that pushes open delimiters onto a stack and pops them off again when the corresponding close delimiter is found
+
 import Foundation
 
 
-typealias Token = (type: TokenType, value: String) // TO DO: consider storing matched string/operator definition as part of enum
+typealias Token = (type: TokenType, value: String) // TO DO: TokenType enums should contain the tokenized text (which may be slightly different to the original text fragment as the lexer starts to clean things up) plus any additional information the parser might need (e.g. custom parseFuncs); currently `value` contains the original text fragment but might be simpler just to capture substring range (we need the original code during single-line parsing so that the parser can choose which text ranges should appear inside quotes and which should appear outside, and swap if needed [since text literals and annotations can be multi-line, there's no way for a single line to know if its first character is part of code or within a larger quoted section without consulting preceding lines; and even then it may require intelligent guesswork when lexing a script during editing, as user adds/replaces/removes/rearranges parts of that script])
 
 
 
@@ -21,10 +23,67 @@ extension CharacterSet { // convenience extension, allows CharacterSet instances
 }
 
 
-// define the language's base punctuation (keeping this separate to other syntax)
+// TO DO: messing with Unicode.Scalar just to please CharacterSet is grotty and a pain (since Lexer should only care about Characters); how easy/wise to convert CharacterSets to Set<Character>?
+
+// the following should probably be public static constants on Lexer
+
+// identifiers
+let identifierCharacters = CharacterSet.letters.union(CharacterSet(charactersIn: "_"))
+let identifierAdditionalCharacters = identifierCharacters.union(digitCharacters)
+
+// number literals
+let signCharacters = CharacterSet(charactersIn: "+-") // TO DO: decide exactly what sign glyphs to include here (be aware that these characters are also in symbolCharacters as they can also be used as arithmetic operators)
+let digitCharacters = CharacterSet.decimalDigits // lexer will match decimal and exponent notations itself (note that a leading +/- will be tokenized as prefix/infix operator; it's up to parser to match unary +/- .operator followed by .number and reduce it to a signed number value)
+let decimalSeparators = CharacterSet(charactersIn: ".")
+let hexadecimalCharacters = digitCharacters.union(CharacterSet(charactersIn: "AaBbCcDdEeFf"))
+let hexadecimalSeparators = CharacterSet(charactersIn: "Xx")
+let exponentSeparators = CharacterSet(charactersIn: "Ee")
+
+// operators/unknown symbols
+let symbolCharacters = CharacterSet.symbols.union(CharacterSet.punctuationCharacters)
+
+// white space
+let linebreakCharacters = CharacterSet.newlines
+let whitespaceCharacters = CharacterSet.whitespaces
 
 
-enum TokenType { // TO DO: should this be named Token and hold parsed strings (plus formatting flags, operator definitions, etc where applicable)? what about layout hinting, so pretty printer can output normalized (correctly indented, regularly spaced) code while still preserving/improving certain aspects of user's code layout (e.g. explicit line wraps within lists)
+// punctuation (these are hardcoded and non-overrideable)
+
+// quoted text/name literals
+let quoteDelimiterTokens: [Character:TokenType] = [
+    "\"": .quotedText,
+    "“": .quotedText,
+    "”": .quotedText,
+    "'": .quotedIdentifier,
+    "‘": .quotedIdentifier,
+    "’": .quotedIdentifier,
+    "«": .annotationLiteral,
+    "»": .annotationLiteralEnd,
+]
+
+let quoteDelimiterCharacters = CharacterSet(quoteDelimiterTokens.keys.map { $0.unicodeScalars.first! })
+
+// collection literal/expression group delimiters, and separators
+let punctuationTokens: [Character:TokenType] = [
+    "{": .blockLiteral, // while parens could be used for blocks too (lexical context will determine how/when they're evaluated), we're using conservative C-like syntax for familiarity, and using parens for argument/parameter lists and overriding operator precedence only (this leaves us without a literal record [struct] syntax, but we can do without a record type for this exercise)
+    "}": .blockLiteralEnd,
+    "(": .groupLiteral,
+    ")": .groupLiteralEnd,
+    "[": .listLiteral,
+    "]": .listLiteralEnd,
+    ",": .itemSeparator,
+]
+
+let punctuationCharacters = CharacterSet(punctuationTokens.keys.map { $0.unicodeScalars.first! })
+
+// characters which are guaranteed to terminate preceding (non-operator) token
+let boundaryCharacters = linebreakCharacters.union(whitespaceCharacters).union(quoteDelimiterCharacters).union(punctuationCharacters).union(symbolCharacters)
+
+
+
+// Token
+
+enum TokenType { // TO DO: rename Token and hold parsed strings (plus formatting flags, operator definitions, etc where applicable); Q. what about layout hinting, so pretty printer can output normalized (correctly indented, regularly spaced) code while still preserving/improving certain aspects of user's code layout (e.g. explicit line wraps within long lists should always appear after item separator commas and before next item)
     case startOfCode
     case endOfCode
     // Punctuation
@@ -86,65 +145,22 @@ enum TokenType { // TO DO: should this be named Token and hold parsed strings (p
 
 
 
-let identifierCharacters = CharacterSet.letters.union(CharacterSet(charactersIn: "_"))
-let digitCharacters = CharacterSet.decimalDigits // lexer will match decimal and exponent notations itself (note that a leading +/- will be tokenized as prefix/infix operator; it's up to parser to match unary +/- .operator followed by .number and reduce it to a signed number value)
-
-let signedIntegerCharacters = digitCharacters.union(CharacterSet(charactersIn: "+-")) // TO DO: decide exactly what sign glyphs to include here (be aware that these characters are also in symbolCharacters as they can also be used as arithmetic operators)
-let identifierAdditionalCharacters = identifierCharacters.union(digitCharacters)
-let symbolCharacters = CharacterSet.symbols.union(CharacterSet.punctuationCharacters)
-let linebreakCharacters = CharacterSet.newlines
-let whitespaceCharacters = CharacterSet.whitespaces
-
-
-
-
 
 class Lexer {
     
-    // Punctuation tokens (these are hardcoded and non-overrideable)
-    
-    // quoted text/name literals
-    let quoteDelimiters: [Character:TokenType] = [
-        "\"": .quotedText,
-        "“": .quotedText,
-        "”": .quotedText,
-        "'": .quotedIdentifier,
-        "‘": .quotedIdentifier,
-        "’": .quotedIdentifier,
-        "«": .annotationLiteral,
-        "»": .annotationLiteralEnd,
-        ]
-    
-    // collection literal/expression group delimiters, and separators
-    let punctuation: [Character:TokenType] = [
-        "{": .blockLiteral, // while parens could be used for blocks too (lexical context will determine how/when they're evaluated), we're using conservative C-like syntax for familiarity, and using parens for argument/parameter lists and overriding operator precedence only (this leaves us without a literal record [struct] syntax, but we can do without a record type for this exercise)
-        "}": .blockLiteralEnd,
-        "(": .groupLiteral,
-        ")": .groupLiteralEnd,
-        "[": .listLiteral,
-        "]": .listLiteralEnd,
-        ",": .itemSeparator,
-        ]
-    
-    let decimalSeparator: Character = "."
-    let exponentSeparators: Set<Character> = ["e", "E"]
-    
-    
-    // TO DO: any benefit to using CharacterSet([Unicode.Scalar])? (e.g. SubString provides Scalar view)
-    private(set) lazy var reservedCharacters = Set(quoteDelimiters.keys).union(Set(punctuation.keys))
-    
-    
-    // TO DO: word-based operators (e.g. `and`, `of`) must be bounded by non-word characters; symbol-based operators can be bounded by anything
-    
-    let code: String
-    let operatorRegistry: OperatorRegistry
+    private let code: String
+    private let operatorRegistry: OperatorRegistry?
     private(set) var index: String.Index // cursor position; external code can use this to get current position in order to backtrack to it later, e.g. when identifying operator names by longest match (e.g. `!`, `!=`, `!==`)
     
-    init(code: String, operatorRegistry: OperatorRegistry = OperatorRegistry()) {
+    // initializer takes source code plus optional operator lookup tables
+    
+    init(code: String, operatorRegistry: OperatorRegistry? = nil) {
         self.code = code
         self.operatorRegistry = operatorRegistry
         self.index = code.startIndex
     }
+    
+    // TO DO: messy API
     
     func peek() -> Character? {
         return self.index < self.code.endIndex ? self.code[self.index] : nil
@@ -164,6 +180,14 @@ class Lexer {
         }
     }
     
+    func next(ifIn characterSet: CharacterSet) -> Character? {
+        if let p: Unicode.Scalar = self.peek(), characterSet.contains(p) {
+            return self.next()
+        } else {
+            return nil
+        }
+    }
+    
     func backtrack(to index: String.Index? = nil) {
         if let i = index {
             self.index = i
@@ -172,17 +196,88 @@ class Lexer {
         }
     }
     
+    //
+    
+    // read text/number literals
+    
+    private var isEndOfWord: Bool { // does the next character (if any) terminate the current [non-symbol] token?
+        // caution: do not use this to identify end of operators/symbols as those follow different rules (see OperatorRegistry)
+        guard let p: Unicode.Scalar = self.peek() else { return true } // end of code
+        return boundaryCharacters.contains(p)
+    }
+    
+    private func readUnknown(_ value: String) -> Token {
+        var value = value
+        if let p = self.next() { // TO DO: this needs to continue consuming up to next valid boundary char (quote delimiter, punctuation, or white space)
+            value.append(p)
+        }
+        return (.unknown, value)
+    }
+    
+    private func readCharacters(_ characterSet: CharacterSet) -> String {
+        var value = ""
+        while let p: Unicode.Scalar = self.peek(), characterSet.contains(p) { // consume all characters
+            value.append(self.next()!)
+        }
+        return value
+    }
+    
+    // TO DO: replace `if let p = self.peek(), CHARSET.contains(p) { value.append(self.next()!),… }` with `if let c = self.next(CHARSET) { value.append(c),… }`
+    
+    private func readNumber(allowHexadecimal: Bool = true, allowDecimal: Bool = true, allowExponent: Bool = true) -> Token { // TO DO: move this to reusable standalone function for canonical number parsing/coercing (might even be an idea to put it on Scalar, similar to how OperatorRegistry works)
+        // TO DO: .number enum should include number format (integer/decimal/hexadecimal/exponent) (this is less of an issue if readNumber() emits Scalar/Quantity values, as those can include literal format themselves)
+        // note: if `allowHexidecimal` is true and a hexidecimal number (e.g. "0x12AB") is matched, allowDecimal and allowExponent are treated as false
+        // first char is already known to be either a digit or a +/- symbol that is followed by a digit // TO DO: can't assume this
+        var value = ""
+        if let c = self.next(ifIn: signCharacters) { value.append(c) } // read +/- sign, if any
+        // TO DO: eventually could match known currency symbols here, returning appropriate 'currency' token (in addition to capturing $/€/etc currency symbol, currency values would also use fixed point/decimal storage instead of Float/Double)
+        let digits = self.readCharacters(digitCharacters) // read the digits
+        if digits == "" { return self.readUnknown(value) } // (or return .unknown if there weren't any)
+        value += digits
+        // peek at next char to decide what to do next
+        if let p: Unicode.Scalar = self.peek() {
+            if allowHexadecimal && hexadecimalSeparators.contains(p) && ["-0", "0", "+0"].contains(value) { // found "0x"
+                value.append(self.next()!) // append the 'x' character // TO DO: normalize for readability (lowercase 'x', uppercase A-F)
+                let digits = self.readCharacters(hexadecimalCharacters) // get all hexadecimal digits after the 'x'
+                if digits == "" { return self.readUnknown(value) } // (or return .unknown if there weren't any)
+                value += digits
+            } else {
+                if allowDecimal && decimalSeparators.contains(p) { // read the fractional part, if found
+                    value.append(self.next()!)
+                    let digits = self.readCharacters(digitCharacters) // get all digits after the '.'
+                    if digits == "" { return self.readUnknown(value) } // (or return .unknown if there weren't any)
+                    value += digits
+                }
+                if allowExponent, let c = self.next(ifIn: exponentSeparators) { // read the exponent part, if found
+                    value.append(c)
+                    let (token, suffix) = readNumber(allowHexadecimal: false, allowDecimal: false, allowExponent: false)
+                    value += suffix // TO DO: what about normalizing the exponent (c.f. AppleScript), e.g. `2e4` -> "2.0E+4"? or is that too pedantic
+                    if case .unknown = token { return (.unknown, value) }
+                }
+                // TO DO: while currency prefixes are a pain, unit suffixes (e.g. `mm`, `g`) are somewhat easier; worth giving it a crack once essentials are all done
+            }
+        }
+        return self.isEndOfWord ? (.number(value: value), value) : self.readUnknown(value)
+    }
+    
+    // TO DO: readLiteralText()
+    
+    // main
+    
     func tokenize() -> [Token] { // note: tokenization should never fail; any issues should be added to token stream for parsers to worry about // TO DO: ensure original lines of source code can be reconstructed from token stream (that will allow ambiguous quoting in per-line reading to be resolved downstream)
         if self.code == "" { return [] }
         var result = [Token]()
         var token: Token = (.startOfCode, "")
         while let c = self.next() {
+            
+            // TO DO: consider moving body of this loop into `readOneToken()` [making sure, of course, that none of its branches will ever consume <>1 token]
+            
             //print("'\(c)'")
             // push previous token onto result list
             result.append(token)
-            if let t = self.punctuation[c] {
+            if let t = punctuationTokens[c] {
                 token = (t, String(c))
-            } else if let t = self.quoteDelimiters[c] {
+            } else if let t = quoteDelimiterTokens[c] {
                 
                 // TO DO: see above notes re. single-line lexing, where it's impossible for lexer to know if cursor is inside or outside literal text/annotation quotes at any time (one possibility is to collect two outputs: a raw token stream where everything is broken down to tokens without regard to quotedness, and a lookup list of every chunk of text found between quotes [the latter being faster than reconstituting quoted content from token runs; capturing the substring ranges into the original code string would also do])
                 
@@ -203,61 +298,50 @@ class Lexer {
                         }
                     }
                     // TO DO: 'expected end of annotation but found end of code' error if depth > 0 (bearing in mind that unbalanced block & quote delimiters will be normal in per-line parsing; solution might be to add before and after tally cases to TokenType so that imbalances are passed on to parser [think double-entry bookkeeping, where each tokenized line is a ledger and the parser's job is to perform a trial balance; once everything balances it can output the final AST])
-                    token.value.append("»")
                 default:
-                    while let c = self.next(), self.quoteDelimiters[c] == nil { // TO DO: backslash escapes (initially for \", \n, \t; later for \u0000; eventually for \(…) interpolation too [e.g. convert text literal to a stdlib command]) // TO DO: normalize linebreak characters as LF; how best to treat invisibles, control chars? (best to reject invisible chars, by requiring backslash escapes/converting invisibles to escapes in editing mode)
+                    // TO DO: `self.backtrack(); return self.readTextLiteral()` and move following to function for clarity
+                    while let c = self.next(), quoteDelimiterTokens[c] == nil { // TO DO: backslash escapes (initially for \", \n, \t; later for \u0000; eventually for \(…) interpolation too [e.g. convert text literal to a stdlib command]) // TO DO: normalize linebreak characters as LF; how best to treat invisibles, control chars? (best to reject invisible chars, by requiring backslash escapes/converting invisibles to escapes in editing mode)
                         token.value.append(c)
                     }
                 }
             } else { // TO DO: this won't handle characters composed of >1 code point
                 switch c {
                 case identifierCharacters: // TO DO: also accept digits after first char
-                    var chars = String(c)
-                    while let p: Unicode.Scalar = self.peek(), identifierAdditionalCharacters.contains(p) {
-                        chars.append(self.next()!)
-                    }
-                    let name = String(chars)
-                    let (prefixOperator, infixOperator) = self.operatorRegistry.matchWord(name)
+                    var value = String(c)
+                    while let c = self.next(ifIn: identifierAdditionalCharacters) { value.append(c) }
+                    let name = String(value)
+                    let (prefixOperator, infixOperator) = self.operatorRegistry?.matchWord(name) ?? (nil, nil)
                     if prefixOperator == nil && infixOperator == nil {
                         token = (.identifier(value: name, isQuoted: false), name)
                     } else {
                         token = (.operator(value: name, prefix: prefixOperator, infix: infixOperator), name)
                     }
-                // TO DO: need to match [case-insensitively] against word operators table; if found, it's an .operator; if not, it's an .identifier (note: OperatorRegistry may return prefix and/or infix operator descriptions)
                 case symbolCharacters:
-                    
-                    // TO DO: need to do longest match against symbol operators; if found, it's an .operator; if not, it's an .unknown
-                    self.backtrack()
-                    let (prefixOperator, infixOperator) = self.operatorRegistry.matchSymbol(self)
+                    self.backtrack() // unconsume symbol char so that operator registry can attempt to match full symbol name
+                    let (prefixOperator, infixOperator) = self.operatorRegistry?.matchSymbol(self) ?? (nil, nil)
                     if prefixOperator == nil && infixOperator == nil {
-                        token = (.symbol, String(self.next()!))
+                        let c = self.next()! // reconsume symbol
+                        // if std math operators aren't loaded (e.g. pure data structure parsing) then see if symbol is '+'/'-' followed by a digit (i.e. beginning of a signed number), and attempt to match it as a signed number
+                        if signCharacters ~= c, let p: Unicode.Scalar = self.peek(), digitCharacters.contains(p) {
+                            self.backtrack() // unconsume +/- symbol and let readNumber() [try to] match entire number
+                            token = self.readNumber()
+                        } else { // it's an unrecognized symbol, which parser will report as syntax error should it appear at top level of code
+                            token = (.symbol, String(c))
+                        }
                     } else {
                         let name = prefixOperator?.name ?? infixOperator!.name
-                        token = (.operator(value: name, prefix: prefixOperator, infix: infixOperator), name)
+                        token = (.operator(value: name, prefix: prefixOperator, infix: infixOperator), name) // TO DO: FIX: token.value is wrong here (it's the canonical operator name but should be the original matched text); either matchSymbol needs to return the original substring as well as operator definitions, or (if recording code ranges only) we need to capture the start and end indexes of the token; TBH, it'd probably be best to separate out the raw range recording completely, as the outer repeat loop can take care of that
                     }
-                    
-                case digitCharacters: // TO DO: also match +/- for signed numbers (backtracking if not followed by digit); this will only be invoked if std math operators aren't loaded (e.g. pure data structure parsing)
-                    // note: assuming operator tables are loaded, leading +/- will be matched as prefix operator and left for parser to optimize away; it would be better to match operators before digits so that lexer can be used to read data only
-                    token = (.number(value: String(c)), String(c))
-                    while let p: Unicode.Scalar = self.peek(), digitCharacters.contains(p) {
-                        token.value.append(self.next()!)
-                    }
-                    // TO DO: fraction, exponent; 0x… hexadecimal
-                    if self.peek() == decimalSeparator {
-                        
-                    }
-                    if let c: Character = self.peek(), exponentSeparators.contains(c) {
-                        
-                    }
+                case digitCharacters: // match unsigned number literal; note: assuming stdlib operator tables are loaded, any preceding '+'/'-' symbols will be matched as prefix operators (it's up to parser to optimize these operators away, c.f. AppleScript)
+                    self.backtrack() // unconsume digit and let readNumber() [try to] match entire number token
+                    token = self.readNumber()
                 case linebreakCharacters:
                     token = (.lineBreak, "\n")
                 case whitespaceCharacters:
                     token = (.whitespace, String(c))
-                    while let p: Unicode.Scalar = self.peek(), whitespaceCharacters.contains(p) {
-                        token.value.append(self.next()!)
-                    }
+                    while let c = self.next(ifIn: whitespaceCharacters) { token.value.append(c) }
                 default:
-                    token = (.unknown, String(c))
+                    token = self.readUnknown(String(c))
                 }
             }
         }
