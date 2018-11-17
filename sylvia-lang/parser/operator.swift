@@ -27,8 +27,31 @@ typealias OperatorName = String
 typealias OperatorDefinition = (name: OperatorName, precedence: Int, parseFunc: ParseFunc, aliases: [OperatorName])
 
 
+//
+
+enum OperatorNameType { // TO DO: merge into `OperatorName` type and implement init(stringLiteral:) (ExpressibleByStringLiteral)
+    case word
+    case symbol
+    case invalid
+    
+    init(_ name: String) {
+        if let p = name.first?.unicodeScalars.first { // TO DO: as elsewhere, doesn't support multiple glyphs
+            let chars = CharacterSet(charactersIn: name)
+            if identifierCharacters.contains(p) && chars.subtracting(identifierAdditionalCharacters).isEmpty {
+                self = .word
+            } else if chars.subtracting(symbolCharacters).isEmpty {
+                self = .symbol
+            } else {
+                self = .invalid
+            }
+        } else {
+            self = .invalid
+        }
+    }
+}
 
 
+//
 
 class SymbolSearchTree: CustomDebugStringConvertible { // performs longest-match identification of symbol-based operator names
     
@@ -71,12 +94,11 @@ class SymbolSearchTree: CustomDebugStringConvertible { // performs longest-match
 
 
 
-typealias OperatorTable = [OperatorName: OperatorDefinition]
-
-
 
 class OperatorRegistry { // once populated, a single OperatorRegistry instance can be used by multiple Lexer instances (as long as they're all using the same operator definitions)
 
+    typealias OperatorTable = [OperatorName: OperatorDefinition]
+    
     // all operator definitions by name/alias (each operator definition appears once under its canonical name, and once for each of its aliases, e.g. `(name:"÷",…,aliases:["/"])` inserts two entries)
     // note that the pretty printer will normally replace aliases with canonical names for consistency, e.g. `2/3` would prettify as `2 ÷ 3`
     private var prefixOperators = OperatorTable()
@@ -90,7 +112,7 @@ class OperatorRegistry { // once populated, a single OperatorRegistry instance c
             print("Can't redefine existing operator: \(name.debugDescription)") // TO DO: how to report error if already defined in table? (e.g. pass error info to a callback function/delegate supplied by caller; from UX POV, typically want to deal with all problem operators on completion at once rather than one at a time as they're encountered; e.g. a code editor would prompt user to fix whereas CLI would just abort)
             return
         }
-        // need to distinguish symbol-based name from word-based name (operator names must be one or other)
+        // need to distinguish symbol-based name from word-based name (operator names must be all symbols or all letters)
         switch OperatorNameType(normalizedName) {
         case .word: () // whole word matching
         case .symbol:
