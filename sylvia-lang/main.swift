@@ -17,8 +17,12 @@ do {
 } catch {
     fatalError("Can't load stdlib: \(error)")
 }
-/*
+
+
 let sd = Date()
+
+
+/*
 
 do { // evaluate to List of Text
     /*
@@ -113,7 +117,6 @@ do { // conditional
     print(6, error)
 }
 
-print("Duration: \(Date().timeIntervalSince(sd) * 1000)ms")
 */
 
 
@@ -131,15 +134,21 @@ var code = """
 
 "hello"
 
-xxx"
-
-"""
+xxx
 
 
-code = """
 "foo \\n bar "
 """
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
 
-for t in lexer.tokenize() { print(t) }
+let tokens = lexer.tokenize()
+
+
+print("Duration: \(Date().timeIntervalSince(sd) * 1000)ms")
+
+
+
+for t in tokens { print((t.start.encodedOffset, t.end.encodedOffset), t.type, "  ⟹", code[t.start..<t.end].debugDescription) }
+
+

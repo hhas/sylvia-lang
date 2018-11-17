@@ -53,14 +53,14 @@ enum OperatorNameType { // TO DO: merge into `OperatorName` type and implement i
 
 //
 
-class SymbolSearchTree: CustomDebugStringConvertible { // performs longest-match identification of symbol-based operator names
+class SymbolSearchTree: CustomDebugStringConvertible { // performs longest-match identification of symbol-based operator names // TO DO: probably make this private once development/debugging is done (OperatorRegistry should provide a better `debugDescription` implementation that returns hierarchical representation of loaded symbol-matching tables and the operators to which they match for troubleshooting purposes)
     
     typealias SymbolTable = [Character: SymbolSearchTree]
     
     private var symbols = SymbolTable()
     internal var isComplete: Bool = false
     
-    var debugDescription: String { return "\(self.isComplete ? "X" : "")\(self.symbols)" }
+    var debugDescription: String { return "\(self.isComplete ? "X" : "")\(self.symbols)" } // quick-n-nasty; get rid of this once OperatorRegistry provides improved description strings
     
     func add(_ name: String) {
         if let c = name.first {
