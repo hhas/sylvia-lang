@@ -92,6 +92,16 @@ func testIf(value: Bool, ifTrue: Value, ifFalse: Value, commandEnv: Env) throws 
     return try asAnything.coerce(value: (value ? ifTrue : ifFalse), env: commandEnv)
 }
 
+func repeatTimes(count: Int, expr: Value, commandEnv: Env) throws -> Value {
+    var count = count
+    var result: Value = noValue
+    while count > 0 {
+        result = try asAnything.coerce(value: expr, env: commandEnv)
+        count -= 1
+    }
+    return result
+}
+
 /******************************************************************************/
 // COERCIONS
 /******************************************************************************/

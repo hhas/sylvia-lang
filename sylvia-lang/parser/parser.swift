@@ -80,9 +80,14 @@ class Parser {
             if case Token.groupLiteral = self.peek() {  // `NAME(…`
                 var arguments = [Value]()
                 while true {
-                    if case Token.groupLiteralEnd = self.peek() { break }
-                    arguments.append(try self.parseExpression())
-                    if case Token.itemSeparator = self.peek() { () } else { break }
+                    if case Token.groupLiteralEnd = self.next() { break } // advance to first item in argument list, or break if empty
+                    do {
+                        arguments.append(try self.parseExpression())
+                    } catch {
+                        print("Failed to read argument \(arguments.count):", error)
+                        throw error
+                    }
+                    if case Token.itemSeparator = self.peek() { () } else { break } // TO DO: skipIfItemSeparator()->Bool
                 }
                 guard case .groupLiteralEnd = self.next() else { throw SyntaxError("Expected “)” but found \(self.this)") }
                 return Command(name, arguments)
@@ -128,14 +133,24 @@ class Parser {
                 token = self.next()
             }
             return try self.parseOperation(token, leftExpr)
+//        case .itemSeparator: // TO DO: make sure this token has appropriate precedence to ensure parseExpression exits its while look, and delete this case
+//            print("Found item separator (caller is responsible for discarding it); returning current leftexpr:",leftExpr)
+//            return leftExpr
         default:
             throw SyntaxError("Invalid token after \(leftExpr): \(token)")
         }
     }
     
-    func parseExpression(_ precedence: Int = 0) throws -> Value {
-        var left = try self.parseAtom(self.next())
-        while precedence < self.peek().precedence { left = try self.parseOperation(self.next(), left) }
+    func parseExpression(_ precedence: Int = 0) throws -> Value { // cursor should be on preceding token when called
+        let token = self.next()
+       // print("parseExpression reading:",token)
+        var left = try self.parseAtom(token)
+       // print("Parsed atom; now on \(self.this); next is:",self.peek(), "precedence (expression<next):", precedence, "<", self.peek().precedence)
+        while precedence < self.peek().precedence { // TO DO:
+            left = try self.parseOperation(self.next(), left)
+            //print(precedence,"<", self.peek().precedence)
+        }
+       // print("ended parseExpression on:",self.this)
         return left
     }
     

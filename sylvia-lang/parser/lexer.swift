@@ -170,7 +170,8 @@ enum Token { // TO DO: rename TokenInfo and hold parsed strings (plus formatting
     var precedence: Int {
         switch self {
         case .annotationLiteral:            return 1000 // '«...»'
-        case .itemSeparator:                return 60   // ','
+        case .itemSeparator: return -3 // TO DO: what should precedences be?
+        case .listLiteralEnd, .blockLiteralEnd, .groupLiteralEnd:                return -2   // ','
         case .operatorName(let definition): return definition.infix?.precedence ?? 0 // only infix/postfix ops are of relevance (atom/prefix ops do not take a left operand [i.e. leftExpr], so return 0 for those to finish the previous expression and start a new one)
         default:                            return 0
         }
@@ -351,77 +352,78 @@ class Lexer {
     // TO DO: consider making this lazy (see Sequence and IteratorProtocol), e.g. quote balancing analyzer could lazily read start of a line, and if it doesn't look like it's syntactically legal code (e.g. if it finds `IDENTIFIER IDENTIFIER` sequences), it could quickly discard and start over on assumption that line already starts inside quoted text and see how well that works. e.g Each Line analyzer starts by guessing likelihood of being inside or outside quoted text (indentation, recognized operator names, illegal code token sequences, opening/closing typographers quotes, etc can all help generate a % score); if it looks like code([i.e. not inside quotes), it counts any unbalanced closing braces on assumption preceding lines will contain balancing open braces, and counts unbalanced opening braces on expectation that subsequent lines will close those; once all lines are read and imbalances tallied, it can make determination about whether entire program is syntactically correct (and if it is, how likely is that intentional vs accidentally/deliberately misplaced quotes) and, if not, identify where the imbalances occur and make a rough guess at where user most likely needs to add/remove braces to correct this (e.g. if a top-level closing brace is missing near start of script, it *really* doesn't help user to suggest they insert it right at end of script; instead, if unindented handler-like token patterns can be detected on subsequent lines, it is highly likely that the missing brace should be inserted somewhere before the first of those).
     
     func tokenize() -> [TokenInfo] { // note: tokenization should never fail; any issues should be added to token stream for parsers to worry about // TO DO: ensure original lines of source code can be reconstructed from token stream (that will allow ambiguous quoting in per-line reading to be resolved downstream)
-        if self.code == "" { return [] }
         var start = self.index
         var result: [TokenInfo] = [(.startOfCode, start, start)]
-        // TO DO: backtrack() calls is ugly; consider using separate `var char:Character?` and `func next()->()`
-        while let c = self.next() {
-            let token: Token
-            if let t = punctuationTokens[c] {
-                token = t
-            } else { // TO DO: this won't handle characters composed of >1 code point; will this be an issue?
-                switch c {
-                case quotedTextDelimiterCharacters:
-                    token = self.readQuotedText()
-                case quotedIdentifierDelimiterCharacters:
-                    token = self.readQuotedIdentifier()
-                case annotationDelimiterCharacters:
-                    // TO DO: if depth <> 0 need to handle unbalanced .annotationLiteral (bear in mind that unbalanced block & quote delimiters will be normal in per-line parsing; solution might be to add before and after tally cases to Token so that imbalances are passed on to parser [think double-entry bookkeeping, where each tokenized line is a ledger and the parser's job is to perform a trial balance; once everything balances it can output the final AST])
-                    var value = annotationDelimiters.start
-                    var depth = 1
-                    while let c = self.next(), depth > 0 {
-                        value.append(c)
-                        switch c {
-                        case annotationDelimiterCharacters: depth += 1
-                        case annotationDelimiterEndCharacters: depth -= 1
-                        default: ()
+        if self.code != "" {
+            // TO DO: backtrack() calls is ugly; consider using separate `var char:Character?` and `func next()->()`
+            while let c = self.next() {
+                let token: Token
+                if let t = punctuationTokens[c] {
+                    token = t
+                } else { // TO DO: this won't handle characters composed of >1 code point; will this be an issue?
+                    switch c {
+                    case quotedTextDelimiterCharacters:
+                        token = self.readQuotedText()
+                    case quotedIdentifierDelimiterCharacters:
+                        token = self.readQuotedIdentifier()
+                    case annotationDelimiterCharacters:
+                        // TO DO: if depth <> 0 need to handle unbalanced .annotationLiteral (bear in mind that unbalanced block & quote delimiters will be normal in per-line parsing; solution might be to add before and after tally cases to Token so that imbalances are passed on to parser [think double-entry bookkeeping, where each tokenized line is a ledger and the parser's job is to perform a trial balance; once everything balances it can output the final AST])
+                        var value = annotationDelimiters.start
+                        var depth = 1
+                        while let c = self.next(), depth > 0 {
+                            value.append(c)
+                            switch c {
+                            case annotationDelimiterCharacters: depth += 1
+                            case annotationDelimiterEndCharacters: depth -= 1
+                            default: ()
+                            }
                         }
-                    }
-                    token = .annotationLiteral(value) // TO DO: how best to capture value? (for now, just grab the entire "«…»" substring; eventually we should move this to AnnotationType which can process annotation's syntax itself, c.f. OperatorRegistry, and return .comment, .todo, .userdoc, etc)
-                case annotationDelimiterEndCharacters: // found unbalanced "»"
-                    token = .annotationLiteralEnd
-                case identifierCharacters: // TO DO: also accept digits after first char
-                    var value = String(c)
-                    while let c = self.next(ifIn: identifierAdditionalCharacters) { value.append(c) }
-                    let name = String(value)
-                    let (prefixOperator, infixOperator) = self.operatorRegistry?.matchWord(name) ?? (nil, nil)
-                    if prefixOperator == nil && infixOperator == nil {
-                        token = .identifier(value: name, isQuoted: false)
-                    } else {
-                        token = .operatorName(value: name, prefix: prefixOperator, infix: infixOperator)
-                    }
-                case symbolCharacters:
-                    self.backtrack() // unconsume symbol char so that operator registry can attempt to match full symbol name
-                    let (prefixOperator, infixOperator) = self.operatorRegistry?.matchSymbol(self) ?? (nil, nil)
-                    if prefixOperator == nil && infixOperator == nil {
-                        let c = self.next()! // reconsume symbol
-                        // if std math operators aren't loaded (e.g. pure data structure parsing) then see if symbol is '+'/'-' followed by a digit (i.e. beginning of a signed number), and attempt to match it as a signed number
-                        if signCharacters ~= c, let p: Unicode.Scalar = self.peek(), digitCharacters.contains(p) {
-                            self.backtrack() // unconsume +/- symbol and let readNumber() [try to] match entire number
-                            token = self.readNumber()
-                        } else { // it's an unrecognized symbol, which parser will report as syntax error should it appear at top level of code
-                            token = .symbol(c)
+                        token = .annotationLiteral(value) // TO DO: how best to capture value? (for now, just grab the entire "«…»" substring; eventually we should move this to AnnotationType which can process annotation's syntax itself, c.f. OperatorRegistry, and return .comment, .todo, .userdoc, etc)
+                    case annotationDelimiterEndCharacters: // found unbalanced "»"
+                        token = .annotationLiteralEnd
+                    case identifierCharacters: // TO DO: also accept digits after first char
+                        var value = String(c)
+                        while let c = self.next(ifIn: identifierAdditionalCharacters) { value.append(c) }
+                        let name = String(value)
+                        let (prefixOperator, infixOperator) = self.operatorRegistry?.matchWord(name) ?? (nil, nil)
+                        if prefixOperator == nil && infixOperator == nil {
+                            token = .identifier(value: name, isQuoted: false)
+                        } else {
+                            token = .operatorName(value: name, prefix: prefixOperator, infix: infixOperator)
                         }
-                    } else {
-                        let name = prefixOperator?.name ?? infixOperator!.name
-                        token = .operatorName(value: name, prefix: prefixOperator, infix: infixOperator) // TO DO: FIX: token.value is wrong here (it's the canonical operator name but should be the original matched text; it's up to consumer to choose whether to canonicize or not, e.g. when pretty printing); either matchSymbol needs to return the original substring as well as operator definitions, or (if recording code ranges only) we need to capture the start and end indexes of the token; TBH, it'd probably be best to separate out the raw range recording completely, as the outer repeat loop can take care of that
+                    case symbolCharacters:
+                        self.backtrack() // unconsume symbol char so that operator registry can attempt to match full symbol name
+                        let (prefixOperator, infixOperator) = self.operatorRegistry?.matchSymbol(self) ?? (nil, nil)
+                        if prefixOperator == nil && infixOperator == nil {
+                            let c = self.next()! // reconsume symbol
+                            // if std math operators aren't loaded (e.g. pure data structure parsing) then see if symbol is '+'/'-' followed by a digit (i.e. beginning of a signed number), and attempt to match it as a signed number
+                            if signCharacters ~= c, let p: Unicode.Scalar = self.peek(), digitCharacters.contains(p) {
+                                self.backtrack() // unconsume +/- symbol and let readNumber() [try to] match entire number
+                                token = self.readNumber()
+                            } else { // it's an unrecognized symbol, which parser will report as syntax error should it appear at top level of code
+                                token = .symbol(c)
+                            }
+                        } else {
+                            let name = prefixOperator?.name ?? infixOperator!.name
+                            token = .operatorName(value: name, prefix: prefixOperator, infix: infixOperator) // TO DO: FIX: token.value is wrong here (it's the canonical operator name but should be the original matched text; it's up to consumer to choose whether to canonicize or not, e.g. when pretty printing); either matchSymbol needs to return the original substring as well as operator definitions, or (if recording code ranges only) we need to capture the start and end indexes of the token; TBH, it'd probably be best to separate out the raw range recording completely, as the outer repeat loop can take care of that
+                        }
+                    case digitCharacters: // match unsigned number literal; note: assuming stdlib operator tables are loaded, any preceding '+'/'-' symbols will be matched as prefix operators (it's up to parser to optimize these operators away, c.f. AppleScript)
+                        self.backtrack() // unconsume digit and let readNumber() [try to] match entire number token
+                        token = self.readNumber()
+                    case linebreakCharacters: // TO DO: need initializer flag that tells lexer to process entire script or first line only
+                        token = .lineBreak
+                    case whitespaceCharacters:
+                        let value = String(c) + self.readCharacters(ifIn: whitespaceCharacters) // TO DO: should be sufficient to skipCharacters(ifIn:)
+                        token = .whitespace(value) // TO DO: is there any situation where the whitespace itself needs to be known? (e.g. indentation)
+                    default:
+                        token = self.readUnknown(String(c)) // TO DO: is there any value in readUnknown capturing the extracted text? (actually, would be better if .unknown captured the token it had started to parse, if any [e.g. in readNumber()], followed by rest of text up to boundary; editing tools/error reporting can then use that to provide helpful suggestions on how to correct code, including auto-suggest, auto-correct, etc)
                     }
-                case digitCharacters: // match unsigned number literal; note: assuming stdlib operator tables are loaded, any preceding '+'/'-' symbols will be matched as prefix operators (it's up to parser to optimize these operators away, c.f. AppleScript)
-                    self.backtrack() // unconsume digit and let readNumber() [try to] match entire number token
-                    token = self.readNumber()
-                case linebreakCharacters: // TO DO: need initializer flag that tells lexer to process entire script or first line only
-                    token = .lineBreak
-                case whitespaceCharacters:
-                    let value = String(c) + self.readCharacters(ifIn: whitespaceCharacters) // TO DO: should be sufficient to skipCharacters(ifIn:)
-                    token = .whitespace(value) // TO DO: is there any situation where the whitespace itself needs to be known? (e.g. indentation)
-                default:
-                    token = self.readUnknown(String(c)) // TO DO: is there any value in readUnknown capturing the extracted text? (actually, would be better if .unknown captured the token it had started to parse, if any [e.g. in readNumber()], followed by rest of text up to boundary; editing tools/error reporting can then use that to provide helpful suggestions on how to correct code, including auto-suggest, auto-correct, etc)
                 }
+                let end = self.index
+                assert(start < end, "Invalid token (cannot be zero length): \(token)") // only .startOfCode/.endOfCode markers are zero-length
+                result.append((token, start, end))
+                start = end
             }
-            let end = self.index
-            assert(start < end, "Invalid token (cannot be zero length): \(token)") // only .startOfCode/.endOfCode markers are zero-length
-            result.append((token, start, end))
-            start = end
         }
         result.append((.endOfCode, self.index, self.index))
         return result

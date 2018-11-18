@@ -34,6 +34,7 @@ func call_add_a_b(command: Command, commandEnv: Env, handler: CallableValue, han
     let arg_1 = try signature_add_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let result = try add(a: arg_0, b: arg_1)
     return try signature_add_a_b.returnType.box(value: result, env: handlerEnv)
+    // TO DO: how best to auto-annotate the returned Text value with the Swift result value (in this case Double)?
 }
 
 
@@ -189,6 +190,27 @@ func call_testIf_value_ifTrue_ifFalse(command: Command, commandEnv: Env, handler
 }
 
 
+// repeatTimes(count,expr)
+let signature_repeatTimes_count_expr = (
+    paramType_0: asInt,
+    paramType_1: asIs,
+    returnType: asIs // should check this
+)
+let interface_repeatTimes_count_expr = CallableInterface(
+    name: "repeatTimes",
+    parameters: [
+        ("count", signature_repeatTimes_count_expr.paramType_0),
+        ("expr", signature_repeatTimes_count_expr.paramType_1),
+        ],
+    returnType: signature_repeatTimes_count_expr.returnType
+)
+func call_repeatTimes_count_expr(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_repeatTimes_count_expr.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_repeatTimes_count_expr.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    let result = try repeatTimes(count: arg_0, expr: arg_1, commandEnv: commandEnv)
+    return try signature_repeatTimes_count_expr.returnType.box(value: result, env: handlerEnv)
+}
+
 
 // auto-generated module load function
 
@@ -214,6 +236,7 @@ func stdlib_load(env: Env) throws {
     try env.add(interface_store_name_value_readOnly, call_store_name_value_readOnly)
     try env.add(interface_defineHandler_name_parameters_returnType_body, call_defineHandler_name_parameters_returnType_body)
     try env.add(interface_testIf_value_ifTrue_ifFalse, call_testIf_value_ifTrue_ifFalse)
+    try env.add(interface_repeatTimes_count_expr, call_repeatTimes_count_expr)
     
 }
 
