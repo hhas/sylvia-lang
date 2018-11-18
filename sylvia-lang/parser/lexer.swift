@@ -43,7 +43,7 @@
 import Foundation
 
 
-typealias Token = (type: TokenType, start: String.Index, end: String.Index) // TO DO: TokenType enums should contain the tokenized text (which may be slightly different to the original text fragment as the lexer starts to clean things up) plus any additional information the parser might need (e.g. custom parseFuncs); currently `value` contains the original text fragment but might be simpler just to capture substring range (we need the original code during single-line parsing so that the parser can choose which text ranges should appear inside quotes and which should appear outside, and swap if needed [since text literals and annotations can be multi-line, there's no way for a single line to know if its first character is part of code or within a larger quoted section without consulting preceding lines; and even then it may require intelligent guesswork when lexing a script during editing, as user adds/replaces/removes/rearranges parts of that script])
+typealias TokenInfo = (type: Token, start: String.Index, end: String.Index) // TO DO: Token enums should contain the tokenized text (which may be slightly different to the original text fragment as the lexer starts to clean things up) plus any additional information the parser might need (e.g. custom parseFuncs); currently `value` contains the original text fragment but might be simpler just to capture substring range (we need the original code during single-line parsing so that the parser can choose which text ranges should appear inside quotes and which should appear outside, and swap if needed [since text literals and annotations can be multi-line, there's no way for a single line to know if its first character is part of code or within a larger quoted section without consulting preceding lines; and even then it may require intelligent guesswork when lexing a script during editing, as user adds/replaces/removes/rearranges parts of that script])
 
 
 
@@ -80,7 +80,7 @@ let annotationDelimiterEndCharacters = CharacterSet(charactersIn: annotationDeli
 let quoteDelimiterCharacters = quotedTextDelimiterCharacters.union(quotedIdentifierDelimiterCharacters)
                                 .union(annotationDelimiterCharacters).union(annotationDelimiterEndCharacters)
 
-let punctuationTokens: [Character:TokenType] = [
+let punctuationTokens: [Character:Token] = [
     "{": .blockLiteral, // while parens could be used for blocks too (lexical context will determine how/when they're evaluated), we're using conservative C-like syntax for familiarity, and using parens for argument/parameter lists and overriding operator precedence only (this leaves us without a literal record [struct] syntax, but we can do without a record type for this exercise)
     "}": .blockLiteralEnd,
     "(": .groupLiteral,
@@ -121,45 +121,60 @@ let boundaryCharacters = linebreakCharacters.union(whitespaceCharacters).union(q
 
 
 /******************************************************************************/
-// Token
+// TokenInfo
 
-enum TokenType { // TO DO: rename Token and hold parsed strings (plus formatting flags, operator definitions, etc where applicable); Q. what about layout hinting, so pretty printer can output normalized (correctly indented, regularly spaced) code while still preserving/improving certain aspects of user's code layout (e.g. explicit line wraps within long lists should always appear after item separator commas and before next item)
+
+enum Token { // TO DO: rename TokenInfo and hold parsed strings (plus formatting flags, operator definitions, etc where applicable); Q. what about layout hinting, so pretty printer can output normalized (correctly indented, regularly spaced) code while still preserving/improving certain aspects of user's code layout (e.g. explicit line wraps within long lists should always appear after item separator commas and before next item)
     
     
     // what about #WORD and @WORD (hashtags and 'super global' identifiers)?
     
     // what about EXPR? and EXPR! as debugging/introspection modifiers?
     
-    
-    
+    // TO DO: how useful really are start- and end-of-code delimiters?
     case startOfCode
     case endOfCode
     
-    // Punctuation
+    // annotations
     case annotationLiteral(String)  // atomic; the lexer automatically reads everything between `«` and corresponding `»`, including nested annotations; Q. how to use annotations for docstrings, comments, TODO, TOFIX, metainfo, etc?
     case annotationLiteralEnd       // this will only appear in token stream if not balanced by an earlier .annotationLiteral
+    
+    // block structures
     case listLiteral                // "[" an ordered collection (array)
     case listLiteralEnd             // "]"
     case blockLiteral               // "{"
     case blockLiteralEnd            // "}"
     case groupLiteral               // "("
     case groupLiteralEnd            // ")"
+    
+    // separators
     case itemSeparator              // ","
     case lineBreak                  // "\n", etc // CharacterSet.newLines
+    // TO DO: also allow ";" as expression separator? (TBH, period would be preferable, but not if it's already symbol for attribute selection)
     
-    // Literals
+    // literals
     case textLiteral(value: String)         // atomic; the lexer automatically reads everything between `"` and corresponding `"`, including `\CHARACTER` escapes (curly quotes are also accepted, and are used as standard when pretty printing text literals)
-    case number(value: String)     // .decimal // TO DO: this needs to support +/-, decimal point, and exponent notation (what about accepting `.1` as shorthand for `0.1`? should probably disallow `1.` as a syntax error though; note that JS & Python permit both, whereas Swift rejects both; note that if we do accept them, the pretty printer should always canonify them)
+    case number(value: String)     // .decimal // TO DO: readNumber should also output Int/Double/decimal/fixed point/etc representation (e.g. output Scalar enum rather than String, c.f. entoli's numeric-parser.swift); when implementing UnitTypeRegistry (MeasurementRegistry?) also decide if .measurement(Measurement) should be a distinct Token, or if .number should include a `unit:UnitType?` slot (TBH it's probably worth going the whole hog and having lexer delegate all number reading to dedicated module which can also be used elsewhere, e.g. by numeric coercions and parsing/formatting libraries)
     
-    // Names
+    // names
     case identifier(value: String, isQuoted: Bool) // .letters // atomic; the lexer automatically reads everything between `'` and corresponding `'`; this allows identifier names that are otherwise masked by operator names to be used in quoted form (e.g. `'AND'(a,b)` = `a AND b`)
     case operatorName(value: String, prefix: OperatorDefinition?, infix: OperatorDefinition?)
     
-    // Interstitials
+    // interstitials (i.e. everything that doesn't appear to be valid code)
     case whitespace(String)
     case symbol(Character)     // any symbols that are are not recognized as operators // TO DO: or just use .unknown?
     case unknown(description: String) // any characters that are not otherwise recognized
     case illegal // TO DO: currently unused; decide how invalid unicode chars are handled (see also CharacterSet.illegalCharacters); for now, everything just gets stuffed into `unknown`
+    
+    
+    var precedence: Int {
+        switch self {
+        case .annotationLiteral:            return 1000 // '«...»'
+        case .itemSeparator:                return 60   // ','
+        case .operatorName(let definition): return definition.infix?.precedence ?? 0 // only infix/postfix ops are of relevance (atom/prefix ops do not take a left operand [i.e. leftExpr], so return 0 for those to finish the previous expression and start a new one)
+        default:                            return 0
+        }
+    }
 }
 
 
@@ -226,7 +241,7 @@ class Lexer {
         return boundaryCharacters.contains(p)
     }
     
-    private func readUnknown(_ value: String, description: String = "unknown characters") -> TokenType {
+    private func readUnknown(_ value: String, description: String = "unknown characters") -> Token {
         var value = value
         if let p = self.next() { // TO DO: FIX: this needs to continue consuming up to next valid boundary char (quote delimiter, punctuation, or white space)
             value.append(p)
@@ -253,7 +268,7 @@ class Lexer {
     
     //
     
-    private func readNumber(allowHexadecimal: Bool = true, allowDecimal: Bool = true, allowExponent: Bool = true) -> TokenType { // TO DO: move this to reusable standalone function for canonical number parsing/coercing (might even be an idea to put it on Scalar, similar to how OperatorRegistry works)
+    private func readNumber(allowHexadecimal: Bool = true, allowDecimal: Bool = true, allowExponent: Bool = true) -> Token { // TO DO: move this to reusable standalone function for canonical number parsing/coercing (might even be an idea to put it on Scalar, similar to how OperatorRegistry works)
         // TO DO: .number enum should include number format (integer/decimal/hexadecimal/exponent) (this is less of an issue if readNumber() emits Scalar/Quantity values, as those can include literal format themselves)
         // note: if `allowHexidecimal` is true and a hexidecimal number (e.g. "0x12AB") is matched, allowDecimal and allowExponent are treated as false
         // first char is already known to be either a digit or a +/- symbol that is followed by a digit // TO DO: can't assume this
@@ -265,6 +280,7 @@ class Lexer {
         value += digits
         // peek at next char to decide what to do next
         if let p: Unicode.Scalar = self.peek() {
+            // TO DO: `0u…` codepoint matching (this should consume one or more whitespace-delimited UTF-8 code points, e.g. `0u34 0u12A 0u34BC56` and return corresponding `.codepointText(String)` token; this will be particularly useful if/when quoted text changes from using backslash escapes to 'tag' interpolation, and more reusable than `\u0123` escape sequences that only work within literals)
             if allowHexadecimal && hexadecimalSeparators.contains(p) && ["-0", "0", "+0"].contains(value) { // found "0x"
                 value.append(self.next()!) // append the 'x' character // TO DO: normalize for readability (lowercase 'x', uppercase A-F)
                 let digits = self.readCharacters(ifIn: hexadecimalCharacters) // get all hexadecimal digits after the '0x'
@@ -298,7 +314,7 @@ class Lexer {
     
     // TO DO: rethink how readQuoted… funcs are implemented to better support per-line lexing (TBH, there may not be much we can do here; it's really up to line analyzer to tell the lexer what its starting point is when feeding it a single line to read)
     
-    private func readQuotedText() -> TokenType {
+    private func readQuotedText() -> Token {
         // TO DO: move all this stuff into its own LiteralText enum
         // TO DO: currently uses conventional backslash escapes, but `««EXPR»»` escapes would work better for users
         
@@ -323,7 +339,7 @@ class Lexer {
         }
     }
     
-    private func readQuotedIdentifier() -> TokenType {
+    private func readQuotedIdentifier() -> Token {
         // TO DO: should opening quote be captured?
         // TO DO: should probably disallow digits at start of name, even when quoted (e.g. if `A[B]` becomes synonym for `A.B`, allowing B to start with a digit would prevent `[…]` being used as by-index selector, e.g. `A[3]`, c.f. JS; also need to consider what could go wrong allowing identifier and text values to be used mostly interchangeably)
         let value = self.readCharacters(ifNotIn: quotedIdentifierDelimiterCharacters) // TO DO: is there any possible use case where escaping `'` would be needed? if not, don't provide escape support; it may also be best to restrict characters that can appear within quoted identifiers to word, symbol [and potentially spaces], to avoid excessive flexibility (re. spaces: while Latin-based identifiers can be transformed between camelCase and all-lowercase representations for display purposes, identifiers in languages that use whitespace separation but do not have uppercase representation would not support such transformations so will require some other joining character; conventions on use of underscores in names would also need to be worked out—one option is always to use underscores, not camelcase, which would also be safer in event that identifiers are case-insensitive [plus need to consider how native identifiers might map to foreign ones, e.g. ObjC class and method names])
@@ -334,13 +350,13 @@ class Lexer {
     
     // TO DO: consider making this lazy (see Sequence and IteratorProtocol), e.g. quote balancing analyzer could lazily read start of a line, and if it doesn't look like it's syntactically legal code (e.g. if it finds `IDENTIFIER IDENTIFIER` sequences), it could quickly discard and start over on assumption that line already starts inside quoted text and see how well that works. e.g Each Line analyzer starts by guessing likelihood of being inside or outside quoted text (indentation, recognized operator names, illegal code token sequences, opening/closing typographers quotes, etc can all help generate a % score); if it looks like code([i.e. not inside quotes), it counts any unbalanced closing braces on assumption preceding lines will contain balancing open braces, and counts unbalanced opening braces on expectation that subsequent lines will close those; once all lines are read and imbalances tallied, it can make determination about whether entire program is syntactically correct (and if it is, how likely is that intentional vs accidentally/deliberately misplaced quotes) and, if not, identify where the imbalances occur and make a rough guess at where user most likely needs to add/remove braces to correct this (e.g. if a top-level closing brace is missing near start of script, it *really* doesn't help user to suggest they insert it right at end of script; instead, if unindented handler-like token patterns can be detected on subsequent lines, it is highly likely that the missing brace should be inserted somewhere before the first of those).
     
-    func tokenize() -> [Token] { // note: tokenization should never fail; any issues should be added to token stream for parsers to worry about // TO DO: ensure original lines of source code can be reconstructed from token stream (that will allow ambiguous quoting in per-line reading to be resolved downstream)
+    func tokenize() -> [TokenInfo] { // note: tokenization should never fail; any issues should be added to token stream for parsers to worry about // TO DO: ensure original lines of source code can be reconstructed from token stream (that will allow ambiguous quoting in per-line reading to be resolved downstream)
         if self.code == "" { return [] }
         var start = self.index
-        var result: [Token] = [(.startOfCode, start, start)]
+        var result: [TokenInfo] = [(.startOfCode, start, start)]
         // TO DO: backtrack() calls is ugly; consider using separate `var char:Character?` and `func next()->()`
         while let c = self.next() {
-            let token: TokenType
+            let token: Token
             if let t = punctuationTokens[c] {
                 token = t
             } else { // TO DO: this won't handle characters composed of >1 code point; will this be an issue?
@@ -350,7 +366,7 @@ class Lexer {
                 case quotedIdentifierDelimiterCharacters:
                     token = self.readQuotedIdentifier()
                 case annotationDelimiterCharacters:
-                    // TO DO: if depth <> 0 need to handle unbalanced .annotationLiteral (bear in mind that unbalanced block & quote delimiters will be normal in per-line parsing; solution might be to add before and after tally cases to TokenType so that imbalances are passed on to parser [think double-entry bookkeeping, where each tokenized line is a ledger and the parser's job is to perform a trial balance; once everything balances it can output the final AST])
+                    // TO DO: if depth <> 0 need to handle unbalanced .annotationLiteral (bear in mind that unbalanced block & quote delimiters will be normal in per-line parsing; solution might be to add before and after tally cases to Token so that imbalances are passed on to parser [think double-entry bookkeeping, where each tokenized line is a ledger and the parser's job is to perform a trial balance; once everything balances it can output the final AST])
                     var value = annotationDelimiters.start
                     var depth = 1
                     while let c = self.next(), depth > 0 {
@@ -403,6 +419,7 @@ class Lexer {
                 }
             }
             let end = self.index
+            assert(start < end, "Invalid token (cannot be zero length): \(token)") // only .startOfCode/.endOfCode markers are zero-length
             result.append((token, start, end))
             start = end
         }

@@ -16,6 +16,18 @@ class InternalError: Error, CustomStringConvertible {
 }
 
 /******************************************************************************/
+// parse error
+
+class SyntaxError: Error, CustomStringConvertible {
+    
+    let description: String
+    
+    init(_ message: String) {
+        self.description = "Invalid syntax: \(message)"
+    }
+}
+
+/******************************************************************************/
 // coercion errors
 
 
@@ -47,7 +59,7 @@ class NullCoercionError: CoercionError {} // coercing Nothing always throws Null
 /******************************************************************************/
 // environment lookup errors
 
-class EnvironmentException: Error, CustomStringConvertible { // abstract base class
+class EnvironmentError: Error, CustomStringConvertible { // abstract base class
     
     let name: String
     let env: Env
@@ -66,21 +78,21 @@ class EnvironmentException: Error, CustomStringConvertible { // abstract base cl
 }
 
 
-class ValueNotFoundException: EnvironmentException {
+class ValueNotFoundError: EnvironmentError {
 
     override var description: String {
         return "Can’t find value named “\(self.name)”."
     }
 }
 
-class ReadOnlyValueException: EnvironmentException {
+class ReadOnlyValueError: EnvironmentError {
     
     override var description: String {
         return "Can’t replace read-only value named “\(self.name)”."
     }
 }
 
-class HandlerNotFoundException: EnvironmentException {
+class HandlerNotFoundError: EnvironmentError {
     
     override var description: String {
         return "Can’t find handler named “\(self.name)”."
@@ -91,7 +103,7 @@ class HandlerNotFoundException: EnvironmentException {
 /******************************************************************************/
 // command evaluation errors
 
-class HandlerFailedException: Error, CustomStringConvertible {
+class HandlerFailedError: Error, CustomStringConvertible {
     
     let handler: Callable
     let error: Error
@@ -111,7 +123,7 @@ class HandlerFailedException: Error, CustomStringConvertible {
 }
 
 
-class BadArgumentException: Error, CustomStringConvertible {
+class BadArgumentError: Error, CustomStringConvertible {
     
     let command: Command
     let handler: CallableValue
@@ -128,7 +140,8 @@ class BadArgumentException: Error, CustomStringConvertible {
     }
     
     var description: String {
-        return "\(self.handler.interface.name) requires \(self.handler.interface.parameters[self.index].name) parameter of "
-            + "type \(self.handler.interface.parameters[self.index].type) but received: \(self.command.arguments[self.index])"
+        let parameter = self.handler.interface.parameters[self.index]
+        let argument = self.command.arguments[self.index]
+        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)” parameter requires \(type(of:parameter.type)) but received \(type(of:argument)): \(argument)" // TO DO: better type descriptions needed
     }
 }

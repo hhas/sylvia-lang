@@ -11,12 +11,16 @@
 
 // TO DO: any benefit in annotating Values parsed from source code as `.literal`, `.immutable`, etc, to distinguish from Values created at runtime? (e.g. parser and/or runtime could intern or otherwise optimize literal values that they know will never be mutated)
 
+// TO DO: assuming Value supports flexible annotating (i.e. per-value dict/struct rather than hardcoded vars), parser should attach source code range to each AST node for use in generating error messages, tracebacks, GUI editor code highlighting (c.f. OSAScriptError), etc
+
 
 // abstract base class
 
 class Value: CustomStringConvertible { // base class for all native values // Q. would it be better for Value to be a protocol + extension? (need to check how multiple extensions that implement same methods are resolved, e.g. if Value extension implements default toTYPE methods)
     
-    var description: String { return "<Value>" }
+    lazy var annotations = [Any]() // TO DO: what data structure?
+    
+    var description: String { return "«TODO: `\(type(of:self)).description`»" }
     
     // TO DO: implement debugDescription (this should return Swift representation whereas description should return native representation using default formatting)
     

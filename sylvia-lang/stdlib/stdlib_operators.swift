@@ -5,6 +5,13 @@
 // note: all operators are just syntactic sugar over existing commands, e.g. `1+2` -> `add(1,2)`; this simplifies implementation, integrates with existing documentation generators, and enables easy metaprogramming (a parsed program [AST] is just lots of nested/sequential Commands and other Values, which parser and pretty printer can trivally convert between operator+command syntax and command-only syntax)
 
 
+// custom parse funcs
+
+
+func parseNothingOperator(_ parser: Parser, operatorName: String, precedence: Int) throws -> Value {
+    return noValue
+}
+
 
 // how best to define/auto-generate operator tables? (custom parse funcs will need to be written in Swift, but everything else can be done natively via FFILib; it just needs a suitable command/operator syntax for declaring new operators [e.g. compare how Swift does it])
 
@@ -48,7 +55,7 @@ let stdlib_operators: [OperatorDefinition] = [
     ("hasType", 400, .infix(parseInfixOperator), []), // try coercing value to specified type and return 'true' if it succeeds or 'false' if it fails (an extra trick is to cache successful Coercions within the value, allowing subsequent tests to compare coercion objects instead of coercing the value itself, though of course this cache will be invalidated if the value is mutated)
     
     // assignment
-    // TO DO: if using NAME:VALUE for general assignment, we'll have to rely on coercions to specify read/write, e.g. `foo: 1 as editable(number)`, or else use `[let|var] NAME:VALUE`
+    // TO DO: if using NAME:VALUE for general assignment, we'll have to rely on coercions to specify read/write, e.g. `foo: 1 as editable(number)`, or else use `[let|var] NAME:VALUE`; using coercions is arguably better as the same syntax then works for handler signatures, allowing handler to indicate if it shares caller's argument value (c.f. pass-by-reference) or makes its own copy if needed (c.f. pass-by-value) (in keeping with existing read-only-by-default assignment policy, the latter behavior would be default and the former behavior explicitly requested using `EXPR as editable(…)`, or maybe even make `editable an atom/prefix operator for cleaner syntax, e.g. `EXPR as editable`, `EXPR as editable text`, etc, `EXPR as editable list(text)`); if we can be really sneaky, `A of B` operator could work by passing B as first argument to A, e.g. `EXPR as editable list of text`, `EXPR as editable list (max:10) of text`
     
     ("=", 400, .infix(parseInfixOperator), []), // assignment (Q. how best to distinguish read-only vs read-write? could probably use colons for constants and `=` for variables, but will need to confirm that colons will still work okay when used in key-value lists and labeled arguments/parameters); another option is to avoid `=` completely (as mistyping `a==b` as `a=b` is a common cause of bugs, especially when it's also legal as an expression) and use e.g. `:=` for assignment and `==` for comparison
     
@@ -61,6 +68,8 @@ let stdlib_operators: [OperatorDefinition] = [
     ("XOR",  96, .infix(parseInfixOperator),   []),
     ("OR",   94, .infix(parseInfixOperator),   []),
     
+    // key constants
+    ("nothing", 0, .atom(parseNothingOperator), []),
     
 ]
 

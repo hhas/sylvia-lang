@@ -11,13 +11,15 @@
 import Foundation
 
 
+// TO DO: worth revising entire OperatorDefinition to be enum instead of just parseFunc attribute? would save extra layer of dereferencing + sanity-checking in parser (think the idea behind current arrangement was to avoid unnecessary duplication of other, identical attributes, but those could be grouped into separate tuple, e.g. `.infix(OperatorInfo, InfixParseFunc))`, where `typealias OperatorInfo = (name:precedence:aliases:)`
 
-enum ParseFunc { // defines an operator parsing function for use by Pratt parser; used in OperatorDefinition
+
+enum ParseFunc { // holds an operator parsing function for use by Pratt parser; used in OperatorDefinition
     
     typealias Prefix = (_ parser: Parser, _ operatorName: String, _ precedence: Int) throws -> Value
     typealias Infix  = (_ parser: Parser, _ leftExpr: Value, _ operatorName: String, _ precedence: Int) throws -> Value
     
-    case atom(Prefix)
+    case atom(Prefix) // key constants, e.g. `nothing`, may be defined as .atom operators, allowing parser to eliminate need for environment lookups by inserting the value directly into AST
     case prefix(Prefix)
     case infix(Infix)
     case postfix(Infix)

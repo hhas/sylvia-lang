@@ -26,14 +26,14 @@ class Env {
     
     func get(_ name: String) throws -> Value {
         guard let value = self.find(name)?.slot.value else {
-            throw ValueNotFoundException(name: name, env: self)
+            throw ValueNotFoundError(name: name, env: self)
         }
         return value
     }
     
     func set(_ name: String, to value: Value, readOnly: Bool = true) throws {
         if let (slot, env) = self.find(name) {
-            if slot.readOnly { throw ReadOnlyValueException(name: name, env: self) }
+            if slot.readOnly { throw ReadOnlyValueError(name: name, env: self) }
             env.frame[name] = (readOnly: readOnly, value: value)
         } else {
             self.frame[name] = (readOnly: readOnly, value: value)
@@ -41,7 +41,7 @@ class Env {
     }
     
     func add(_ handler: CallableValue) throws { // used by library loader
-        if self.frame[handler.name] != nil { throw ReadOnlyValueException(name: handler.name, env: self) }
+        if self.frame[handler.name] != nil { throw ReadOnlyValueError(name: handler.name, env: self) }
         self.frame[handler.name] = (readOnly: true, value: handler)
     }
     
@@ -50,7 +50,7 @@ class Env {
     }
     
     func add(_ coercion: Coercion) throws { // used by library loader // TO DO: delete this method once coercions implement Callable
-        if self.frame[coercion.name] != nil { throw ReadOnlyValueException(name: coercion.name, env: self) }
+        if self.frame[coercion.name] != nil { throw ReadOnlyValueError(name: coercion.name, env: self) }
         self.frame[coercion.name] = (readOnly: true, value: coercion)
     }
     

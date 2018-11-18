@@ -31,6 +31,7 @@ class Expression: Value {
     }
     
     override func toText(env: Env, type: Coercion) throws -> Text {
+        //print("Calling toText on:", self)
         return try self.safeRun(env: env, type: type)
     }
     
@@ -42,7 +43,7 @@ class Expression: Value {
         return try self.evaluate(env: env, type: type)
     }
     
-    // subclasses must override the following abstract methods:
+    // subclasses must override the following abstract methods: (TO DO: redefine `Expression` a typealias of ExpressionBase class plus protocol, avoiding need for these nasty 'abstract method' stubs)
     
     func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
         fatalError("Expression subclasses must override \(#function).")
@@ -55,26 +56,6 @@ class Expression: Value {
 
 
 // concrete expression classes
-
-class Block: Expression { // a sequence of zero or more Values to evaluate in turn; result is last value evaluated; TO DO: use Icon-style evaluation, where 'failure' result causes subsequent evals to be skipped? (this might be done via exceptions, c.f. null coercion, rather than actual return values)
-    
-    override var description: String { return "\(self.body)" }
-    
-    let body: [Value]
-    
-    init(_ body: [Value]) {
-        self.body = body
-    }
-    
-    override func run(env: Env, type: Coercion) throws -> Value {
-        var result: Value = noValue
-        for value in self.body {
-            result = try asValue.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
-        }
-        return try type.coerce(value: result, env: env)
-    }
-}
-
 
 class Identifier: Expression {
     
@@ -90,7 +71,7 @@ class Identifier: Expression {
     
     private func lookup(env: Env) throws -> (value: Value, lexicalEnv: Env) {
         guard let (slot, lexicalEnv) = env.find(self.name) else {
-            throw ValueNotFoundException(name: self.name, env: env)
+            throw ValueNotFoundError(name: self.name, env: env)
         }
         return (slot.value, lexicalEnv)
     }
@@ -109,7 +90,7 @@ class Identifier: Expression {
 
 class Command: Expression {
     
-    override var description: String { return "\(self.name)\(self.arguments)" }
+    override var description: String { return "‘\(self.name)’ (\((self.arguments.map{$0.description}).joined(separator:", ")))" }
     
     let name: String
     let arguments: [Value]
@@ -125,7 +106,7 @@ class Command: Expression {
     
     private func lookup(env: Env) throws -> (handler: Callable, lexicalEnv: Env) {
         guard let (slot, lexicalEnv) = env.find(self.name), let handler = slot.value as? Callable else {
-            throw HandlerNotFoundException(name: self.name, env: env)
+            throw HandlerNotFoundError(name: self.name, env: env)
         }
         return (handler, lexicalEnv)
     }
@@ -135,8 +116,15 @@ class Command: Expression {
     }
     
     override func run(env: Env, type: Coercion) throws -> Value {
+        //print("Calling run on Command:", self)
         let (handler, handlerEnv) = try self.lookup(env: env)
+        //print("Got Handler \(handler.name):", handler)
+        do {
         return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, type: type)
+        } catch {
+            print("Handler \(handler.name) failed:", error)
+            throw error
+        }
     }
 }
 
@@ -173,3 +161,31 @@ class Thunk: Expression {
     }
 
 }
+
+
+// expression sequences
+
+class Block: Expression { // a sequence of zero or more Values to evaluate in turn; result is last value evaluated; TO DO: use Icon-style evaluation, where 'failure' result causes subsequent evals to be skipped? (this might be done via exceptions, c.f. null coercion, rather than actual return values)
+    
+    // TO DO: implement Formatter class + visitor API, allowing AST to be pretty printed with indentation, operator syntax
+    
+    override var description: String { return "{\n\t\(self.body.map{$0.description}.joined(separator:"\n"))\n}" }
+    
+    let body: [Value]
+    
+    init(_ body: [Value]) {
+        self.body = body
+    }
+    
+    override func run(env: Env, type: Coercion) throws -> Value {
+        var result: Value = noValue
+        for value in self.body {
+            result = try asValue.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
+        }
+        return try type.coerce(value: result, env: env)
+    }
+}
+
+
+typealias ScriptAST = Block // TO DO: scripts have some differences to standard `{…}` blocks (e.g. main evaluation entry point[s], no braces or additional indentation when pretty printing), so eventually want to implement as subclass of Block
+

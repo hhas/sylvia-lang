@@ -34,6 +34,14 @@ func subtract(a: Double, b: Double) throws -> Double { // for now, use Doubles; 
     return a - b
 }
 
+func multiply(a: Double, b: Double) throws -> Double {
+    return a * b
+}
+
+func divide(a: Double, b: Double) throws -> Double {
+    return a / b
+}
+
 
 /******************************************************************************/
 // I/O

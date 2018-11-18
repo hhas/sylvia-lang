@@ -111,11 +111,11 @@ class Handler: CallableValue { // native handler
                 try bodyEnv.set(parameterName, to: parameterType.coerce(value: value, env: commandEnv)) // expand/thunk parameter using command's lexical scope
             }
             if arguments.count > 0 {
-                print("unconsumed arguments: \(arguments)") // throw TooManyArgumentsException?
+                print("unconsumed arguments: \(arguments)") // throw TooManyArgumentsError?
             }
             return try type.coerce(value: self.interface.returnType.coerce(value: self.body, env: bodyEnv), env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
         } catch {
-            throw HandlerFailedException(handler: self, error: error)
+            throw HandlerFailedError(handler: self, error: error)
         }
     }
 }
@@ -145,7 +145,7 @@ class PrimitiveHandler: CallableValue {
         do{
             return try type.coerce(value: self.call(command, commandEnv, self, handlerEnv, self.interface.returnType), env: commandEnv)
         } catch {
-            throw HandlerFailedException(handler: self, error: error)
+            throw HandlerFailedError(handler: self, error: error)
         }
     }
 }

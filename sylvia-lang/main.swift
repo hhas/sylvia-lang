@@ -15,7 +15,8 @@ let e = Env()
 do {
     try stdlib_load(env: e)
 } catch {
-    fatalError("Can't load stdlib: \(error)")
+    print("ImportError: Can’t import stdlib due to \(type(of:error)): \(error)")
+    exit(1)
 }
 
 
@@ -140,6 +141,8 @@ xxx
 "foo \\n bar "
 """
 
+code = "1 + \n 2 * 3"
+
 let lexer = Lexer(code: code, operatorRegistry: ops)
 
 let tokens = lexer.tokenize()
@@ -149,6 +152,17 @@ print("Duration: \(Date().timeIntervalSince(sd) * 1000)ms")
 
 
 
-for t in tokens { print((t.start.encodedOffset, t.end.encodedOffset), t.type, "  ⟹", code[t.start..<t.end].debugDescription) }
+let p = Parser(tokens)
+
+do {
+    let s = try p.parseScript()
+    print(s)
+    let res = try s.run(env: e, type: asAnything)
+    print(res)
+} catch {
+    print(error)
+}
+
+//for t in tokens { print((t.start.encodedOffset, t.end.encodedOffset), t.type, "  ⟹", code[t.start..<t.end].debugDescription) }
 
 

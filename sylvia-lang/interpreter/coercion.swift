@@ -33,6 +33,10 @@ protocol CoercionProtocol { // all Coercions are Value subclass, allowing them t
     func coerce(value: Value, env: Env) throws -> Value
 }
 
+//extension CoercionProtocol { // TO DO: this doesn't work as Value already implements a `description` var
+//    var description: String { return self.name }
+//}
+
 
 // bridging coercions convert native values to/from Swift equivalents when calling primitive library functions
 
@@ -57,10 +61,12 @@ protocol BridgingProtocol {
 extension BridgingProtocol {
     
     func unboxArgument(at index: Int, command: Command, commandEnv: Env, handler: CallableValue) throws -> SwiftType { // TO DO: this isn't working right
+        //print("Unboxing argument \(index)")
         do {
             return try self.unbox(value: command.argument(index), env: commandEnv)
         } catch {
-            throw BadArgumentException(command: command, handler: handler, index: index)
+            print("Unboxing argument \(index) failed:",error)
+            throw BadArgumentError(command: command, handler: handler, index: index) // TO DO: exception chaining
         }
     }
 }

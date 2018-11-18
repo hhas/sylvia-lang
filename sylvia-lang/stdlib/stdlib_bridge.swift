@@ -10,6 +10,8 @@
  
  */
 
+// TO DO: consider supporting .nonMutating/.mutatesOnce/.mutating flags for indicating side effects ('mutatesOnce' = idempotent; once called, subsequent identical calls have no additional effect)
+
 
 // auto-generated primitive handler bridging code
 
@@ -54,6 +56,50 @@ func call_subtract_a_b(command: Command, commandEnv: Env, handler: CallableValue
     let arg_1 = try signature_subtract_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let result = try subtract(a: arg_0, b: arg_1)
     return try signature_subtract_a_b.returnType.box(value: result, env: handlerEnv)
+}
+
+
+// multiply(a,b)
+let signature_multiply_a_b = (
+    paramType_0: asDouble,
+    paramType_1: asDouble,
+    returnType: asDouble
+)
+let interface_multiply_a_b = CallableInterface(
+    name: "×",
+    parameters: [
+        ("a", signature_multiply_a_b.paramType_0),
+        ("b", signature_multiply_a_b.paramType_1)
+    ],
+    returnType: signature_multiply_a_b.returnType
+)
+func call_multiply_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_multiply_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_multiply_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    let result = try multiply(a: arg_0, b: arg_1)
+    return try signature_multiply_a_b.returnType.box(value: result, env: handlerEnv)
+}
+
+
+// divide(a,b)
+let signature_divide_a_b = (
+    paramType_0: asDouble,
+    paramType_1: asDouble,
+    returnType: asDouble
+)
+let interface_divide_a_b = CallableInterface(
+    name: "÷",
+    parameters: [
+        ("a", signature_divide_a_b.paramType_0),
+        ("b", signature_divide_a_b.paramType_1)
+    ],
+    returnType: signature_divide_a_b.returnType
+)
+func call_divide_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_divide_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_divide_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    let result = try divide(a: arg_0, b: arg_1)
+    return try signature_divide_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
 
@@ -150,6 +196,8 @@ func call_testIf_value_ifTrue_ifFalse(command: Command, commandEnv: Env, handler
 
 func stdlib_load(env: Env) throws {
     
+    // TO DO: catch and rethrow as ImportError?
+    
     // TO DO: this adds directly to supplied env rather than creating its own; Q. who should be responsible for creating module namespaces? (and who is responsible for adding modules to a global namespace where scripts can access them); Q. what is naming convention for 3rd-party modules? (e.g. reverse domain), and how will those modules appear in namespace (e.g. flat/custom name or hierarchical names [e.g. `com.foo.module[.handler]`])
     
     // TO DO: loading should never fail (unless there's a module implementation bug, e.g. duplicate name); how practical to guarantee error-free module loading, in which case LIBNAME_load can be non-throwing?
@@ -160,6 +208,8 @@ func stdlib_load(env: Env) throws {
     
     try env.add(interface_add_a_b, call_add_a_b)
     try env.add(interface_subtract_a_b, call_subtract_a_b)
+    try env.add(interface_multiply_a_b, call_multiply_a_b)
+    try env.add(interface_divide_a_b, call_divide_a_b)
     try env.add(interface_show_value, call_show_value)
     try env.add(interface_store_name_value_readOnly, call_store_name_value_readOnly)
     try env.add(interface_defineHandler_name_parameters_returnType_body, call_defineHandler_name_parameters_returnType_body)
