@@ -88,7 +88,7 @@ class Handler: CallableValue { // native handler
     
     let body: Value
     
-    init(_ interface: CallableInterface, _ body: Value) {
+    init(_ interface: CallableInterface, _ body: Value) { // TO DO: Bool option to modify how unmatched arguments are handled: command handlers (`to ACTION(…){…}`) should throw, event handlers (`when EVENT(…){…}`) should silently discard
         self.interface = interface
         self.body = body
     }
@@ -103,6 +103,7 @@ class Handler: CallableValue { // native handler
     
     func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value {
         do {
+            //print("calling \(self):", command)
             let bodyEnv = handlerEnv.child()
             var arguments = command.arguments
             for (parameterName, parameterType) in self.interface.parameters {
@@ -110,8 +111,8 @@ class Handler: CallableValue { // native handler
                 //print("unpacking argument \(parameterName): \(value)")
                 try bodyEnv.set(parameterName, to: parameterType.coerce(value: value, env: commandEnv)) // expand/thunk parameter using command's lexical scope
             }
-            if arguments.count > 0 {
-                print("unconsumed arguments: \(arguments)") // throw TooManyArgumentsError?
+            if arguments.count > 0 { // TO DO: if command handler then throw TooManyArgumentsError; if event handler then discard silently
+                print("TO DO: `\(self.interface.name)` handler did not consume last \(arguments.count) arguments from command: `\(command)`")
             }
             return try type.coerce(value: self.interface.returnType.coerce(value: self.body, env: bodyEnv), env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
         } catch {

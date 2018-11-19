@@ -163,6 +163,13 @@ xxx
 
 code = "[π, 23.4e5, (1+2), “Hello\\nGoodbye”, [1,2,3]]"
 
+
+code = """
+to addOne(n) { n + 1 }
+addOne(3)
+""" // TO DO: parser doesn't handle trailing line breaks yet
+
+
 let lexer = Lexer(code: code, operatorRegistry: ops)
 
 let tokens = lexer.tokenize()

@@ -110,9 +110,9 @@
 			isa = PBXGroup;
 			children = (
 				4FEC2724219BA63100B28A5A /* lexer.swift */,
+				4FEC2726219BA64200B28A5A /* parser.swift */,
 				4FEC2728219DB5DF00B28A5A /* operator.swift */,
 				4FEC272C219E1D7100B28A5A /* parsefunc.swift */,
-				4FEC2726219BA64200B28A5A /* parser.swift */,
 			);
 			path = parser;
 			sourceTree = "<group>";

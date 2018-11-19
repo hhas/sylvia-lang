@@ -3,6 +3,8 @@
 //
 
 
+// TO DO: error base class with chaining capability (Q. what's easiest? passing parent error to initializer, or calling `throw ERROR(…).from(error)`? [might even consider operator override])
+
 /******************************************************************************/
 // implementation bugs
 
@@ -81,21 +83,21 @@ class EnvironmentError: Error, CustomStringConvertible { // abstract base class
 class ValueNotFoundError: EnvironmentError {
 
     override var description: String {
-        return "Can’t find value named “\(self.name)”."
+        return "Can’t find a value named “\(self.name)”."
     }
 }
 
 class ReadOnlyValueError: EnvironmentError {
     
     override var description: String {
-        return "Can’t replace read-only value named “\(self.name)”."
+        return "Can’t replace the non-editable value named “\(self.name)”."
     }
 }
 
 class HandlerNotFoundError: EnvironmentError {
     
     override var description: String {
-        return "Can’t find handler named “\(self.name)”."
+        return "Can’t find a handler named “\(self.name)”."
     }
 }
 
@@ -118,7 +120,7 @@ class HandlerFailedError: Error, CustomStringConvertible {
     }
     
     var description: String {
-        return "Handler \(self.handler.name) failed: \(self.error)"
+        return "Handler ‘\(self.handler.name)’ failed: \(self.error)"
     }
 }
 

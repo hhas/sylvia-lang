@@ -60,17 +60,17 @@ func show(value: Value) { // primitive library function
 /******************************************************************************/
 // state
 
-// signature: defineHandler(name: primitive(text), parameters: default([], parametersList), result: default(anything, type), body: primitive(expression)) returning handler
+// signature: defineCommandHandler(name: primitive(text), parameters: default([], parametersList), result: default(anything, type), body: primitive(expression)) returning handler
 // requires: throws, commandEnv // any required env params are appended to bridging call in standard order (commandEnv,handlerEnv,bodyEnv)
 
 // TO DO: need asParameterList coercion that knows how to parse user-defined parameters list (which may consist of label strings and/or (label,coercion) tuples, and may include optional description strings too)
-func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, body: Value, commandEnv: Env) throws -> Handler {
+func defineCommandHandler(name: String, parameters: [Parameter], returnType: Coercion, body: Value, commandEnv: Env) throws -> Handler {
     let  h = Handler(CallableInterface(name: name, parameters: parameters, returnType: returnType), body)
     try commandEnv.add(h)
     return h
 }
 
-// TO DO: will need separate `to` and `when` (`upon`?) operators/commands for defining native (and primitive?) handlers; the `to ACTION` form (used to implement new commands) should throw on unknown arguments, the `when EVENT` form (used to declare event handlers) should ignore them (this allows event handlers to receive notifications while ignoring any arguments not of interest to them; this'll be of more use once labeled arguments/parameters are supported) (strictly speaking, the `when` form is redundant if handlers accept varargs, e.g. in Python: `def EVENT(*args,**kargs)` will accept and discard unwanted arguments silently; however, it's semantically clearer)
+// TO DO: will need separate `to` and `when` (`upon`?) operators/commands for defining native (and primitive?) handlers; the `to ACTION` form (used to implement new commands) should throw on unknown arguments, the `when EVENT` form (used to declare event handlers) should ignore them (this allows event handlers to receive notifications while ignoring any arguments not of interest to them; this'll be of more use once labeled arguments/parameters are supported) (strictly speaking, the `when` form is redundant if handlers accept varargs, e.g. in Python: `def EVENT(*args,**kargs)` will accept and discard unwanted arguments silently; however, it's semantically clearer); Q. how should event handlers deal with return values (forbid? discard? return? notifications don't normally expect return values, with occasional exceptions, e.g. `shouldCloseDocument` returning true/false to permit/cancel document closing)
 
 // signature: store(name: primitive(text), value: anything, readOnly: default(true, boolean)) returning anything
 // requires: throws, commandEnv
@@ -88,7 +88,7 @@ func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -
 
 // note: while primitive functions can use Thunks for lazily evaluated arguments, it's cheaper just to pass the command's arguments as-is plus the command's environment and evaluate directly
 
-func testIf(value: Bool, ifTrue: Value, ifFalse: Value, commandEnv: Env) throws -> Value {
+func testIf(value: Bool, ifTrue: Value, ifFalse: Value, commandEnv: Env) throws -> Value { // TO DO: eliminate `ifFalse` parameter and return `didNothing` (`noAction`?) if value is false; this allows `if` to be defined as standard `if EXPR BLOCK` operator, which can be arbitrarily chained using `A else B` operator
     return try asAnything.coerce(value: (value ? ifTrue : ifFalse), env: commandEnv)
 }
 
@@ -137,7 +137,7 @@ func loadCoercions(env: Env) throws {
 
 func loadConstants(env: Env) throws {
     try env.set("nothing", to: noValue)
-    try env.set("π", to: piValue)
+    try env.set("π", to: piValue) // Q. should `π` slot always evaluate to `π` symbol (with asTYPE methods converting it to Double when required)? (Swift, Python, AppleScript, etc define `pi` constant as numeric [64-bit float] value, 3.1415…, which is technically correct [enough], but aesthetically less helpful when displayed; Q. what other values might have different symbolic Text vs raw data representations? [currently true/false constants, though those will probably go away])
     
     // not sure if defining true/false constants is a good idea; if using 'emptiness' to signify true/false, having `true`/`false` constants that evaluate to anything other than `true`/`false` is liable to create far more confusion than convenience (one option is to define a formal Boolean value class and use that, but that raises questions on how to coerce it to text - it can't go to "true"/"false", as "false" is non-empty text, so would have to go to "ok"/"" which is unintuitive; another option is to copy Swift's approach where *only* true/false can be used in Boolean contexts, but that doesn't fit well with weak typing behavior; last alternative is to do away with true/false constants below and never speak of them again; note that only empty text and lists should be treated as Boolean false; 1 and 0 would both be true since both are represented as non-empty text, whereas strongly typed languages such as Python can treat 0 as false; the whole point of weak typing being to roundtrip data without changing its meaning even as its representation changes)
     try env.set("true", to: trueValue)

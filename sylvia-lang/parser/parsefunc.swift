@@ -1,9 +1,11 @@
 //
 //  parsefunc.swift
 //
+//
+// custom parsing functions for standard atom, prefix, infix, postfix operators
 
 
-// standard parsing functions for atom, prefix, infix, postfix operators, plus convenience initializers for constructing the corresponding commands
+// convenience initializers for constructing the underlying commands
 
 extension Command {
     
@@ -22,6 +24,7 @@ extension Command {
 }
 
 
+// operator parsing functions (e.g. arithmetic, comparision, coercion, concatenation operators)
 
 func parseAtomOperator(_ parser: Parser, operatorName: String, precedence: Int) throws -> Value {
     return Command(operatorName)

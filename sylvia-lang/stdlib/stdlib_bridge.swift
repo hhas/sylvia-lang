@@ -2,7 +2,7 @@
 //  stdlib_bridge
 //
 
-// TO DO: once language is fully bootstrapped, LIBRARY_bridge.swift files should be 100% code-generated from native interface declarations; hopefully this can be done using existing syntax and operators/commands, the only difference is that when running IDC scripts, FFILib is loaded *instead of* (on top of?) stdlib, redefining the standard `defineHandler` and `store` commands to emit LIBNAME_bridge.swift code instead of modifying env
+// TO DO: once language is fully bootstrapped, LIBRARY_bridge.swift files should be 100% code-generated from native interface declarations; hopefully this can be done using existing syntax and operators/commands, the only difference is that when running IDC scripts, FFILib is loaded *instead of* (on top of?) stdlib, redefining the standard `define…Handler` and `store` commands to emit LIBNAME_bridge.swift code instead of modifying env
 
 /*
  
@@ -129,7 +129,7 @@ let signature_store_name_value_readOnly = (
     returnType: asValue
 )
 let interface_store_name_value_readOnly = CallableInterface(
-    name: "store",
+    name: "store", // TO DO: what name?
     parameters: [("value", signature_store_name_value_readOnly.paramType_0)],
     returnType: signature_store_name_value_readOnly.returnType
 )
@@ -142,26 +142,26 @@ func call_store_name_value_readOnly(command: Command, commandEnv: Env, handler: 
 }
 
 
-// defineHandler(name,parameters,result,body)
-let signature_defineHandler_name_parameters_returnType_body = (
+// defineCommandHandler(name,parameters,result,body)
+let signature_defineCommandHandler_name_parameters_returnType_body = (
     paramType_0: asString,
     paramType_1: AsArray(asString), // TO DO: currently doesn't support coercions
     paramType_2: asValue, // coercion object
     paramType_3: asIs,
     returnType: asValue // TO DO: returning Handler may be a bad idea as it won't be bound to its current context
 )
-let interface_defineHandler_name_parameters_returnType_body = CallableInterface(
-    name: "defineHandler",
-    parameters: [("value", signature_defineHandler_name_parameters_returnType_body.paramType_0)],
-    returnType: signature_defineHandler_name_parameters_returnType_body.returnType
+let interface_defineCommandHandler_name_parameters_returnType_body = CallableInterface(
+    name: "to", // TO DO: what name?
+    parameters: [("value", signature_defineCommandHandler_name_parameters_returnType_body.paramType_0)],
+    returnType: signature_defineCommandHandler_name_parameters_returnType_body.returnType
 )
-func call_defineHandler_name_parameters_returnType_body(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
-    let arg_0 = try signature_defineHandler_name_parameters_returnType_body.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_defineHandler_name_parameters_returnType_body.paramType_1.unbox(value: command.argument(1), env: commandEnv) .map{return(name:$0,type:asValue as Coercion)} // KLUDGE; TO DO: define AsParameter coercion
-    let arg_2 = try signature_defineHandler_name_parameters_returnType_body.paramType_2.unbox(value: command.argument(2), env: commandEnv) as! Coercion // KLUDGE; TO DO: define AsCoercion coercion
-    let arg_3 = try signature_defineHandler_name_parameters_returnType_body.paramType_3.unboxArgument(at: 3, command: command, commandEnv: commandEnv, handler: handler)
-    let result = try defineHandler(name: arg_0, parameters: arg_1, returnType: arg_2, body: arg_3, commandEnv: commandEnv)
-    return try signature_defineHandler_name_parameters_returnType_body.returnType.box(value: result, env: handlerEnv)
+func call_defineCommandHandler_name_parameters_returnType_body(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_defineCommandHandler_name_parameters_returnType_body.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_defineCommandHandler_name_parameters_returnType_body.paramType_1.unbox(value: command.argument(1), env: commandEnv) .map{return(name:$0,type:asValue as Coercion)} // KLUDGE; TO DO: define AsParameter coercion
+    let arg_2 = try signature_defineCommandHandler_name_parameters_returnType_body.paramType_2.unbox(value: command.argument(2), env: commandEnv) as! Coercion // KLUDGE; TO DO: define AsCoercion coercion
+    let arg_3 = try signature_defineCommandHandler_name_parameters_returnType_body.paramType_3.unboxArgument(at: 3, command: command, commandEnv: commandEnv, handler: handler)
+    let result = try defineCommandHandler(name: arg_0, parameters: arg_1, returnType: arg_2, body: arg_3, commandEnv: commandEnv)
+    return try signature_defineCommandHandler_name_parameters_returnType_body.returnType.box(value: result, env: handlerEnv)
 }
 
 
@@ -173,7 +173,7 @@ let signature_testIf_value_ifTrue_ifFalse = (
     returnType: asIs // should check this
 )
 let interface_testIf_value_ifTrue_ifFalse = CallableInterface(
-    name: "testIf",
+    name: "if", // TO DO: what name?
     parameters: [
         ("value", signature_testIf_value_ifTrue_ifFalse.paramType_0),
         ("ifTrue", signature_testIf_value_ifTrue_ifFalse.paramType_1),
@@ -197,7 +197,7 @@ let signature_repeatTimes_count_expr = (
     returnType: asIs // should check this
 )
 let interface_repeatTimes_count_expr = CallableInterface(
-    name: "repeatTimes",
+    name: "repeat", // TO DO: what name?
     parameters: [
         ("count", signature_repeatTimes_count_expr.paramType_0),
         ("expr", signature_repeatTimes_count_expr.paramType_1),
@@ -218,6 +218,8 @@ func call_repeatTimes_count_expr(command: Command, commandEnv: Env, handler: Cal
 
 func stdlib_load(env: Env) throws {
     
+    // TO DO: what about operator aliases? operator-sugared handlers must (currently?) be stored under operator's canonical name, which is not necessarily the same as primitive function's canonical name
+    
     // TO DO: catch and rethrow as ImportError?
     
     // TO DO: this adds directly to supplied env rather than creating its own; Q. who should be responsible for creating module namespaces? (and who is responsible for adding modules to a global namespace where scripts can access them); Q. what is naming convention for 3rd-party modules? (e.g. reverse domain), and how will those modules appear in namespace (e.g. flat/custom name or hierarchical names [e.g. `com.foo.module[.handler]`])
@@ -234,7 +236,7 @@ func stdlib_load(env: Env) throws {
     try env.add(interface_divide_a_b, call_divide_a_b)
     try env.add(interface_show_value, call_show_value)
     try env.add(interface_store_name_value_readOnly, call_store_name_value_readOnly)
-    try env.add(interface_defineHandler_name_parameters_returnType_body, call_defineHandler_name_parameters_returnType_body)
+    try env.add(interface_defineCommandHandler_name_parameters_returnType_body, call_defineCommandHandler_name_parameters_returnType_body)
     try env.add(interface_testIf_value_ifTrue_ifFalse, call_testIf_value_ifTrue_ifFalse)
     try env.add(interface_repeatTimes_count_expr, call_repeatTimes_count_expr)
     

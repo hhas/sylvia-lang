@@ -122,7 +122,7 @@ class Command: Expression {
         do {
         return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, type: type)
         } catch {
-            print("Handler \(handler.name) failed:", error)
+            //print("Handler ‘\(handler.name)’ failed:", error)
             throw error
         }
     }

@@ -9,6 +9,14 @@
 // TO DO: all Value subclasses instantiated by parsefuncs should be defined as constants on a struct which is passed as [optional] argument to parser's initializer; this will allow parser to generate AST trees for multiple purposes: running, debugging, profiling, structure editing, optimizing, cross-compiling (Q. is it enough to provide an instantiable ASTNodes struct, or is it better to define ASTNodes as a protocol? be aware that all attributes need to conform to Value plus appropriate initializer, which is probably best done as `typealias ASTTextNode = Value & TextInterface`)
 
 
+
+// TO DO: what about `parseIfBlock`, `parseIfGroup`, etc for use by custom parse funcs, e.g. `if EXPR BLOCK` operator (note, incidentally, that this could be defined as `if EXPR EXPR`, but that might be risky if `EXPR EXPR` is a special pattern, e.g. `documentFile 1` [shorthand for `documentFiles[1]`, or `documentFile at 1`, or whatever], or `WORD WORD` [invalid identifier sequence, indicative of quoted text body])
+
+// TO DO: what about taking advantage of Markdown heading syntax in annotations (e.g. `«= SECTION =»` `«== SUBSECTION ==»`) to enable developer notes to better describe high-level program structure? (standardizes traditional ad-hoc customs for describing layout and allows code editor's pretty printer to apply literate formatting, as well as fast navigation around large scripts, code folding/executive summary, etc); also decide if developer annotations should be formally 'typed', e.g. `«TODO:…»`, or if they should just employ existing hashtags, e.g. `«#TODO…»` (hashtags have benefit of being open-ended); still need to decide how userdoc annotations are distinguished from other types of annotations (obviously we don't want to leak internal developer notes to end users should author use wrong type, so probably want to use `«…»` for private annotations and `«XXXX…»` for user-visible notes, where `XXXX` is concise but distinctive symbol/word that is unlikely to appear accidentally at start of other annotations, e.g. `«?…»`, where `?` denotes 'help' in both annotations and language syntax [e.g. `COMMAND()?` could put interpreter into exploratory/debug mode when that command is reached, allowing user to view/edit command's current arguments, call stack, target handler[s] documentation/definition, etc, then halt/resume execution when happy])
+
+
+// caution: don't allow `(…,…,…)` as arbitrary evaluation sequence (c.f. blocks), as it's already used as tuple syntax in commands and handlers
+
 import Foundation
 
 
@@ -47,6 +55,7 @@ class Parser {
     func readCommaDelimitedValues(_ isEndToken: ((Token) -> Bool)) throws -> [Value] { // e.g. `[EXPR,EXPR,EXPR]` // cursor should be on opening brace when calling this; on completion, cursor is on closing brace
         // TO DO: needs better error messages; best would be to call Parser.syntaxError(…) with cursor on problem token; it can then add token info, chained exception, etc
         var items = [Value]()
+        //print("reading arglist, this=\(self.this), next=\(self.peek())")
         while !isEndToken(self.peek()) {
             do {
                 items.append(try self.parseExpression()) // this advances onto next token
@@ -82,6 +91,8 @@ class Parser {
             return Text(string)
         case .identifier(value: let name, isQuoted: _): // `NAME`
             if case Token.groupLiteral = self.peek() {  // `NAME(…)`
+                //print("parsing command:", name)
+                let _ = self.next() // advance cursor onto opening `(`
                 return try Command(name, self.readCommaDelimitedValues(isEndOfGroup))
             } else {
                 return Identifier(name)
@@ -98,10 +109,11 @@ class Parser {
                 throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in atom/prefix table.")
             }
         case .lineBreak: // TO DO: how best to process line breaks? // note: if line ends on prefix/infix operator, this will grab remaining operand from subsequent line; we may want to guard against this, or at least limit its scope of action to next line only
-            while case .lineBreak = token {
-                token = self.next()
-            }
-            return try self.parseAtom(token)
+            while case .lineBreak = token { token = self.next() }
+            // TO DO: after skipping line breaks, should next value be annotated with formatting hint for pretty printer?
+            return try self.parseAtom(token) // TO DO: throws syntax error if token is .endOfCode
+        case .endOfCode:
+            throw SyntaxError("endOfCode; TO DO: if preceding expression was at top-level of program then parseScript() should return successfully")
         default:
             throw SyntaxError("Expected expression but found \(token)")
         }
@@ -121,13 +133,10 @@ class Parser {
             }
         case .lineBreak: // TO DO: how best to process line breaks? // note: if line ends on prefix/infix operator, this will grab remaining operand from subsequent line; we may want to guard against this, or at least limit its scope of action to next line only
             var token = token
-            while case .lineBreak = token {
-                token = self.next()
-            }
+            while case .lineBreak = token { token = self.next() }
             return try self.parseOperation(token, leftExpr)
-//        case .itemSeparator: // TO DO: make sure this token has appropriate precedence to ensure parseExpression exits its while look, and delete this case
-//            print("Found item separator (caller is responsible for discarding it); returning current leftexpr:",leftExpr)
-//            return leftExpr
+        case .endOfCode:
+            throw SyntaxError("endOfCode (this is bad: was in middle of reading an operator)")
         default:
             throw SyntaxError("Invalid token after \(leftExpr): \(token)")
         }
@@ -140,7 +149,7 @@ class Parser {
         //print("Parsed atom; now on \(self.this); next is:",self.peek(), "precedence (expression<next):", precedence, "<", self.peek().precedence)
         while precedence < self.peek().precedence { // TO DO:
             left = try self.parseOperation(self.next(), left)
-            print(precedence,"<", self.peek().precedence)
+            //print(precedence,"<", self.peek().precedence)
         }
         //print("ended parseExpression on:",self.this)
         return left
