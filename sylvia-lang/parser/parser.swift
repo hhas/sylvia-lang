@@ -26,20 +26,38 @@ class Parser {
     
     // cursor
     
-    var this: Token { return self.tokens[self.index].type }
+    var this: Token { return self.index < self.tokens.count ? self.tokens[self.index].type : .endOfCode }
     
     // TO DO: might be simpler always to ignore whitespace and set a didSkipWhitespace flag which can be checked when needed (or provide an optional callback hook on ASTNodes struct, allowing clients to subscribe/ignore as they need; or, assuming parsing for execution never requires whitespace knowledge, put discardWhitespace option on Lexer initializer)
     
     func next(ignoringWhitespace: Bool = true) -> Token {
         self.index += 1
         while ignoringWhitespace, self.index < self.tokens.count, case .whitespace(_) = self.tokens[self.index].type { self.index += 1 }
-        return self.index < self.tokens.count ? self.tokens[self.index].type : .endOfCode
+        return self.this
     }
     
     func peek(ignoringWhitespace: Bool = true) -> Token { // options to ignore .whitespace (default is probably true) and .lineBreak
         var index = self.index + 1
         while ignoringWhitespace, index < self.tokens.count, case .whitespace(_) = self.tokens[index].type { index += 1 }
         return index < self.tokens.count ? self.tokens[index].type : .endOfCode
+    }
+    
+    //
+    
+    func readCommaDelimitedValues(_ isEndToken: ((Token) -> Bool)) throws -> [Value] { // e.g. `[EXPR,EXPR,EXPR]` // cursor should be on opening brace when calling this; on completion, cursor is on closing brace
+        // TO DO: needs better error messages; best would be to call Parser.syntaxError(…) with cursor on problem token; it can then add token info, chained exception, etc
+        var items = [Value]()
+        while !isEndToken(self.peek()) {
+            do {
+                items.append(try self.parseExpression()) // this advances onto next token
+            } catch {
+                print("Failed to read item \(items.count+1):", error)
+                throw error
+            }
+            if case Token.itemSeparator = self.next() { () } else { break }
+        }
+        guard isEndToken(self.this) else { throw SyntaxError("Unexpected code after item \(items.count+1): \(self.this)") }
+        return items
     }
     
     // token matching
@@ -53,44 +71,18 @@ class Parser {
             value.annotations.append(annotation) // TO DO: for straightforward evaluation, discard annotations that aren't introspectable (e.g. comments); don't worry about annotating for structure editors, as they'll probably use their own mutable Node objects
             return value
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
-            var result = [Value]()
-            // Swift allows `while case ENUM = EXPR` but not `while !(case ENUM = EXPR)`, so have to use separate `if…break` condition
-            while true {
-                if case Token.listLiteralEnd = self.peek() { break } // (note: if next token is .endOfCode, parseExpression will catch that so don't need to check for it here)
-                result.append(try self.parseExpression())
-            }
-            guard case .listLiteralEnd = self.next() else { throw SyntaxError("Expected “]” but found \(self.this)") }
-            return List(result)
+            return try List(self.readCommaDelimitedValues(isEndOfList))
         case .blockLiteral:     // `{…}`
-            var result = [Value]()
-            while true {
-                if case Token.blockLiteralEnd = self.peek() { break }
-                result.append(try self.parseExpression())
-                // TO DO: if self.peek() [ignoring whitespace] is not blockLiteralEnd or .lineFeed (or .itemSeparator ignoring linefeeds as well for lists)
-            }
-            guard case .blockLiteralEnd = self.next() else { throw SyntaxError("Expected “}” but found \(self.this)") }
-            return Block(result)
+            return try Block(self.readCommaDelimitedValues(isEndOfBlock))
         case .groupLiteral:     // `(…)`
             let value = try self.parseExpression() // TO DO: how should comma separators be treated? (argument lists use them; not sure about precedence groups, e.g. `1 * (foo, 3 + 4)` could be problematic)
-            guard case .blockLiteralEnd = self.next() else { throw SyntaxError("Expected “)” but found \(self.this)") }
+            guard case .groupLiteralEnd = self.next() else { throw SyntaxError("Expected “)” but found \(self.this)") }
             return value
         case .textLiteral(value: let string):
             return Text(string)
         case .identifier(value: let name, isQuoted: _): // `NAME`
-            if case Token.groupLiteral = self.peek() {  // `NAME(…`
-                var arguments = [Value]()
-                while true {
-                    if case Token.groupLiteralEnd = self.next() { break } // advance to first item in argument list, or break if empty
-                    do {
-                        arguments.append(try self.parseExpression())
-                    } catch {
-                        print("Failed to read argument \(arguments.count):", error)
-                        throw error
-                    }
-                    if case Token.itemSeparator = self.peek() { () } else { break } // TO DO: skipIfItemSeparator()->Bool
-                }
-                guard case .groupLiteralEnd = self.next() else { throw SyntaxError("Expected “)” but found \(self.this)") }
-                return Command(name, arguments)
+            if case Token.groupLiteral = self.peek() {  // `NAME(…)`
+                return try Command(name, self.readCommaDelimitedValues(isEndOfGroup))
             } else {
                 return Identifier(name)
             }
@@ -141,16 +133,16 @@ class Parser {
         }
     }
     
-    func parseExpression(_ precedence: Int = 0) throws -> Value { // cursor should be on preceding token when called
+    func parseExpression(_ precedence: Int = 0) throws -> Value { // cursor should be on _preceding_ token when this is called
         let token = self.next()
-       // print("parseExpression reading:",token)
+        //print("parseExpression reading:",token)
         var left = try self.parseAtom(token)
-       // print("Parsed atom; now on \(self.this); next is:",self.peek(), "precedence (expression<next):", precedence, "<", self.peek().precedence)
+        //print("Parsed atom; now on \(self.this); next is:",self.peek(), "precedence (expression<next):", precedence, "<", self.peek().precedence)
         while precedence < self.peek().precedence { // TO DO:
             left = try self.parseOperation(self.next(), left)
-            //print(precedence,"<", self.peek().precedence)
+            print(precedence,"<", self.peek().precedence)
         }
-       // print("ended parseExpression on:",self.this)
+        //print("ended parseExpression on:",self.this)
         return left
     }
     

@@ -176,6 +176,24 @@ enum Token { // TO DO: rename TokenInfo and hold parsed strings (plus formatting
         default:                            return 0
         }
     }
+    
+}
+
+// kludgy workaround for inability to parameterize both operands in `if case ENUM = VALUE`; used by Parser.readCommaDelimitedValues()
+
+// TO DO: put these into TokenInfo tuples along with corresponding "]"/")"/"}"/nil character for error reporting
+
+func isEndOfList(_ token: Token) -> Bool {
+    if case .listLiteralEnd = token { return true } else { return false }
+}
+func isEndOfGroup(_ token: Token) -> Bool {
+    if case .groupLiteralEnd = token { return true } else { return false }
+}
+func isEndOfBlock(_ token: Token) -> Bool {
+    if case .blockLiteralEnd = token { return true } else { return false }
+}
+func isEndOfCode(_ token: Token) -> Bool {
+    if case .endOfCode = token { return true } else { return false }
 }
 
 

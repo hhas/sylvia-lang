@@ -102,6 +102,15 @@ func repeatTimes(count: Int, expr: Value, commandEnv: Env) throws -> Value {
     return result
 }
 
+func repeatWhile(condition: Value, expr: Value, commandEnv: Env) throws -> Value {
+    var result: Value = noValue // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asAnything/asOptional/asDefault should do])
+    while try asBool.unbox(value: condition, env: commandEnv) {
+        result = try asAnything.coerce(value: expr, env: commandEnv)
+    }
+    return result
+}
+
+
 /******************************************************************************/
 // COERCIONS
 /******************************************************************************/
