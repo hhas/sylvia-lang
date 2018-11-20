@@ -101,7 +101,9 @@ let identifierCharacters = CharacterSet.letters.union(CharacterSet(charactersIn:
 let identifierAdditionalCharacters = identifierCharacters.union(digitCharacters)
 
 // number literals
-let signCharacters = CharacterSet(charactersIn: "+-") // TO DO: decide exactly what sign glyphs to include here (be aware that these characters are also in symbolCharacters as they can also be used as arithmetic operators)
+
+let numericSigns = Set(["+", "-"])
+let signCharacters = CharacterSet(charactersIn: numericSigns.joined()) // TO DO: decide exactly what sign glyphs to include here (be aware that these characters are also in symbolCharacters as they can also be used as arithmetic operators)
 let digitCharacters = CharacterSet.decimalDigits // lexer will match decimal and exponent notations itself (note that when stdlib operators are loaded, any +/- symbols before number will be read as a separate .operator; it's up to parser to match unary +/- .operators followed by .number and reduce it to a signed number value for efficiency [note that in AppleScript, multiple +/- symbols before a number are collapsed down by pretty printer])
 let decimalSeparators = CharacterSet(charactersIn: ".")
 let hexadecimalCharacters = digitCharacters.union(CharacterSet(charactersIn: "AaBbCcDdEeFf"))
@@ -169,11 +171,12 @@ enum Token { // TO DO: rename TokenInfo and hold parsed strings (plus formatting
     
     var precedence: Int {
         switch self {
-        case .annotationLiteral:            return 1000 // '«...»'
-        case .itemSeparator: return -3 // TO DO: what should precedences be?
-        case .listLiteralEnd, .blockLiteralEnd, .groupLiteralEnd:                return -2   // ','
-        case .operatorName(let definition): return definition.infix?.precedence ?? 0 // only infix/postfix ops are of relevance (atom/prefix ops do not take a left operand [i.e. leftExpr], so return 0 for those to finish the previous expression and start a new one)
-        default:                            return 0
+        case .annotationLiteral:                                    return 1000 // '«...»'
+        case .itemSeparator:                                        return -3 // TO DO: what should precedences be?
+        case .listLiteralEnd, .blockLiteralEnd, .groupLiteralEnd:   return -2   // ','
+        case .operatorName(let definition):                         return definition.infix?.precedence ?? 0 // only infix/postfix ops are of relevance (atom/prefix ops do not take a left operand [i.e. leftExpr], so return 0 for those to finish the previous expression and start a new one)
+        case .endOfCode:                                            return -99999
+        default:                                                    return 0
         }
     }
     

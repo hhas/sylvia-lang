@@ -12,8 +12,71 @@
 
 // TO DO: consider supporting .nonMutating/.mutatesOnce/.mutating flags for indicating side effects ('mutatesOnce' = idempotent; once called, subsequent identical calls have no additional effect)
 
+/* for FFI syntax, e.g. (assuming `NAME:VALUE` is assignment):
+
+ 
+to '+' (a as primitive number, b as primitive number) returning primitive number {
+ 
+    primitiveFunction:  add
+    operatorParseFunc:  parseInfixOperator
+    aliases:            [add]
+    throws:             true
+    commandEnv:         false
+    handlerEnv:         false
+    bodyEnv:            false
+
+}
+ 
+ Requirements may be declared as assignments within the block. (All requirement declarations should be optional; if omitted, defaults are used.)
+ 
+ 
+ A further improvement would be to parse top-level function declarations of NAMElib.swift, allowing the bound name to be checked and eliminating need for explicit `primitive` operator, and `throws`, `commandEnv`/`handlerEnv`/`bodyEnv` requirements (as these can be determined from Swift func's signature).
+ 
+ (Longer term, requirements section might include an option to extract the Swift function's body to code template suitable for cross-compiler to inline.)
+ 
+*/
+
 
 // auto-generated primitive handler bridging code
+
+
+// positive(a)
+let signature_positive_a = (
+    paramType_0: asDouble,
+    returnType: asDouble
+)
+let interface_positive_a = CallableInterface(
+    name: "positive",
+    parameters: [
+        ("a", signature_positive_a.paramType_0),
+        ],
+    returnType: signature_positive_a.returnType
+)
+func call_positive_a(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_positive_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let result = try positive(a: arg_0)
+    return try signature_positive_a.returnType.box(value: result, env: handlerEnv)
+}
+
+
+// negative(a)
+let signature_negative_a = (
+    paramType_0: asDouble,
+    returnType: asDouble
+)
+let interface_negative_a = CallableInterface(
+    name: "negative",
+    parameters: [
+        ("a", signature_negative_a.paramType_0),
+        ],
+    returnType: signature_negative_a.returnType
+)
+func call_negative_a(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_negative_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let result = try negative(a: arg_0)
+    return try signature_negative_a.returnType.box(value: result, env: handlerEnv)
+}
+
 
 // add(a,b)
 let signature_add_a_b = (
@@ -25,8 +88,8 @@ let interface_add_a_b = CallableInterface( // TO DO: include all documentation, 
     name: "+",
     parameters: [
         ("a", signature_add_a_b.paramType_0),
-        ("b", signature_add_a_b.paramType_1)
-    ],
+        ("b", signature_add_a_b.paramType_1),
+        ],
     returnType: signature_add_a_b.returnType
 )
 func call_add_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
@@ -48,8 +111,8 @@ let interface_subtract_a_b = CallableInterface(
     name: "-",
     parameters: [
         ("a", signature_subtract_a_b.paramType_0),
-        ("b", signature_subtract_a_b.paramType_1)
-    ],
+        ("b", signature_subtract_a_b.paramType_1),
+        ],
     returnType: signature_subtract_a_b.returnType
 )
 func call_subtract_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
@@ -70,8 +133,8 @@ let interface_multiply_a_b = CallableInterface(
     name: "×",
     parameters: [
         ("a", signature_multiply_a_b.paramType_0),
-        ("b", signature_multiply_a_b.paramType_1)
-    ],
+        ("b", signature_multiply_a_b.paramType_1),
+        ],
     returnType: signature_multiply_a_b.returnType
 )
 func call_multiply_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
@@ -92,8 +155,8 @@ let interface_divide_a_b = CallableInterface(
     name: "÷",
     parameters: [
         ("a", signature_divide_a_b.paramType_0),
-        ("b", signature_divide_a_b.paramType_1)
-    ],
+        ("b", signature_divide_a_b.paramType_1),
+        ],
     returnType: signature_divide_a_b.returnType
 )
 func call_divide_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
@@ -111,7 +174,9 @@ let signature_show_value = (
 )
 let interface_show_value = CallableInterface(
     name: "show",
-    parameters: [("value", signature_show_value.paramType_0)],
+    parameters: [
+        ("value", signature_show_value.paramType_0),
+        ],
     returnType: signature_show_value.returnType
 )
 func call_show_value(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
@@ -130,7 +195,9 @@ let signature_store_name_value_readOnly = (
 )
 let interface_store_name_value_readOnly = CallableInterface(
     name: "store", // TO DO: what name?
-    parameters: [("value", signature_store_name_value_readOnly.paramType_0)],
+    parameters: [
+        ("value", signature_store_name_value_readOnly.paramType_0),
+        ],
     returnType: signature_store_name_value_readOnly.returnType
 )
 func call_store_name_value_readOnly(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
@@ -152,7 +219,9 @@ let signature_defineCommandHandler_name_parameters_returnType_body = (
 )
 let interface_defineCommandHandler_name_parameters_returnType_body = CallableInterface(
     name: "to", // TO DO: what name?
-    parameters: [("value", signature_defineCommandHandler_name_parameters_returnType_body.paramType_0)],
+    parameters: [
+        ("value", signature_defineCommandHandler_name_parameters_returnType_body.paramType_0),
+        ],
     returnType: signature_defineCommandHandler_name_parameters_returnType_body.returnType
 )
 func call_defineCommandHandler_name_parameters_returnType_body(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
@@ -177,7 +246,7 @@ let interface_testIf_value_ifTrue_ifFalse = CallableInterface(
     parameters: [
         ("value", signature_testIf_value_ifTrue_ifFalse.paramType_0),
         ("ifTrue", signature_testIf_value_ifTrue_ifFalse.paramType_1),
-        ("ifFalse", signature_testIf_value_ifTrue_ifFalse.paramType_2)
+        ("ifFalse", signature_testIf_value_ifTrue_ifFalse.paramType_2),
     ],
     returnType: signature_testIf_value_ifTrue_ifFalse.returnType
 )
@@ -230,6 +299,8 @@ func stdlib_load(env: Env) throws {
     try loadConstants(env: env)
     try loadCoercions(env: env)
     
+    try env.add(interface_positive_a, call_positive_a)
+    try env.add(interface_negative_a, call_negative_a)
     try env.add(interface_add_a_b, call_add_a_b)
     try env.add(interface_subtract_a_b, call_subtract_a_b)
     try env.add(interface_multiply_a_b, call_multiply_a_b)

@@ -26,20 +26,20 @@ extension Command {
 
 // operator parsing functions (e.g. arithmetic, comparision, coercion, concatenation operators)
 
-func parseAtomOperator(_ parser: Parser, operatorName: String, precedence: Int) throws -> Value {
-    return Command(operatorName)
+func parseAtomOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    return Command(definition.command ?? operatorName)
 }
-func parsePrefixOperator(_ parser: Parser, operatorName: String, precedence: Int) throws -> Value {
-    return Command(operatorName, leftOperand: try parser.parseExpression(precedence))
+func parsePrefixOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    return Command(definition.command ?? operatorName, leftOperand: try parser.parseExpression(definition.precedence))
 }
-func parseInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, precedence: Int) throws -> Value {
-    return Command(operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(precedence))
+func parseInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    return Command(definition.command ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence))
 }
-func parseRightInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, precedence: Int) throws -> Value {
-    return Command(operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(precedence-1))
+func parseRightInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    return Command(definition.command ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence-1))
 }
-func parsePostfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, precedence: Int) throws -> Value {
-    return Command(operatorName, rightOperand: leftExpr)
+func parsePostfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    return Command(definition.command ?? operatorName, rightOperand: leftExpr)
 }
 
 

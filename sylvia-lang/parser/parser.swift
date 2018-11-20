@@ -17,6 +17,9 @@
 
 // caution: don't allow `(…,…,…)` as arbitrary evaluation sequence (c.f. blocks), as it's already used as tuple syntax in commands and handlers
 
+// TO DO: parser doesn't handle trailing line breaks in scripts yet (hopefully just needs .endOfCode to have its own precedence)
+
+
 import Foundation
 
 
@@ -38,7 +41,7 @@ class Parser {
     
     // TO DO: might be simpler always to ignore whitespace and set a didSkipWhitespace flag which can be checked when needed (or provide an optional callback hook on ASTNodes struct, allowing clients to subscribe/ignore as they need; or, assuming parsing for execution never requires whitespace knowledge, put discardWhitespace option on Lexer initializer)
     
-    func next(ignoringWhitespace: Bool = true) -> Token {
+    @discardableResult func next(ignoringWhitespace: Bool = true) -> Token {
         self.index += 1
         while ignoringWhitespace, self.index < self.tokens.count, case .whitespace(_) = self.tokens[self.index].type { self.index += 1 }
         return self.this
@@ -72,7 +75,6 @@ class Parser {
     // token matching
     
     func parseAtom(_ token: Token, _ precedence: Int = 0) throws -> Value {
-        var token = token
         // TO DO: what about .endOfCode? can it occur here?
         switch token {
         case .annotationLiteral(let annotation): // «...» // attaches arbitrary metadata to subsequent node (TO DO: should really behave as postfix, attaching itself to preceding node [except at top level of script/block where it attaches to parent node, e.g. handler docs would appear at top of handler body], although we might need to jig that top-level behavior a bit)
@@ -90,9 +92,8 @@ class Parser {
         case .textLiteral(value: let string):
             return Text(string)
         case .identifier(value: let name, isQuoted: _): // `NAME`
-            if case Token.groupLiteral = self.peek() {  // `NAME(…)`
-                //print("parsing command:", name)
-                let _ = self.next() // advance cursor onto opening `(`
+            if case Token.groupLiteral = self.peek() {  // `NAME (…` (i.e. COMMAND = `NAME GROUP`)
+                self.next() // advance cursor onto "("
                 return try Command(name, self.readCommaDelimitedValues(isEndOfGroup))
             } else {
                 return Identifier(name)
@@ -101,23 +102,29 @@ class Parser {
             let value = Text(string)
             value.annotations.append(Double(string) as Any) // TO DO: annotation API
             return value
-        case .operatorName(value: let name, prefix: let definition, infix: nil) where definition != nil:
+        case .operatorName(value: let name, prefix: let definition, infix: _) where definition != nil:
             switch definition!.parseFunc {
             case .atom(let parseFunc), .prefix(let parseFunc):
-                return try parseFunc(self, name, definition!.precedence) // note: this does not prevent custom parseFuncs reading/not reading next token[s]; thus the distinction between .atom and .prefix (or .infix and .suffix) is informative only; some parsefuncs may even deliberately support both, peeking ahead to determine whether or not a trailing operand is present and outputting the appropriate .atom/.prefix (or .infix/.suffix) Command (although this is frowned on as it means the parsefunc must supply custom commands names itself rather than using canonical name from operator definition, which isn't something [currently/ever?] supported by auto-documentation tools)
+                
+                // TO DO: parseFunc needs full definition: underlying commands should use word names, not symbol names
+                
+                return try parseFunc(self, name, definition!) // note: this does not prevent custom parseFuncs reading/not reading next token[s]; thus the distinction between .atom and .prefix (or .infix and .suffix) is informative only; some parsefuncs may even deliberately support both, peeking ahead to determine whether or not a trailing operand is present and outputting the appropriate .atom/.prefix (or .infix/.suffix) Command (although this is frowned on as it means the parsefunc must supply custom commands names itself rather than using canonical name from operator definition, which isn't something [currently/ever?] supported by auto-documentation tools)
             default: // this should never happen
                 throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in atom/prefix table.")
             }
         case .lineBreak: // TO DO: how best to process line breaks? // note: if line ends on prefix/infix operator, this will grab remaining operand from subsequent line; we may want to guard against this, or at least limit its scope of action to next line only
+            var token = token
             while case .lineBreak = token { token = self.next() }
             // TO DO: after skipping line breaks, should next value be annotated with formatting hint for pretty printer?
             return try self.parseAtom(token) // TO DO: throws syntax error if token is .endOfCode
         case .endOfCode:
-            throw SyntaxError("endOfCode; TO DO: if preceding expression was at top-level of program then parseScript() should return successfully")
+            // TO DO: need to sort out some janky control flow
+            throw SyntaxError("endOfCode; TO DO: FIX: if preceding expression was at top-level of program then parseScript() should have return successfully")
         default:
             throw SyntaxError("Expected expression but found \(token)")
         }
     }
+    
     func parseOperation(_ token: Token, _ leftExpr: Value) throws -> Value {
         switch token {
         case .annotationLiteral(let string): // «...» // attaches arbitrary contents to preceding node as metadata
@@ -127,7 +134,7 @@ class Parser {
             if definition == nil { return try self.parseAtom(token)  }
             switch definition!.parseFunc {
             case .infix(let parseFunc), .postfix(let parseFunc):
-                return try parseFunc(self, leftExpr, name, definition!.precedence)
+                return try parseFunc(self, leftExpr, name, definition!)
             default: // this should never happen
                 throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in infix/postfix table.")
             }
@@ -136,7 +143,7 @@ class Parser {
             while case .lineBreak = token { token = self.next() }
             return try self.parseOperation(token, leftExpr)
         case .endOfCode:
-            throw SyntaxError("endOfCode (this is bad: was in middle of reading an operator)")
+            throw SyntaxError("Expected an operand after the following code but found end of code instead: \(leftExpr)")
         default:
             throw SyntaxError("Invalid token after \(leftExpr): \(token)")
         }

@@ -143,7 +143,7 @@ class BadArgumentError: Error, CustomStringConvertible {
     
     var description: String {
         let parameter = self.handler.interface.parameters[self.index]
-        let argument = self.command.arguments[self.index]
+        let argument = self.command.arguments.count < self.index ? self.command.arguments[self.index] : noValue
         return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)” parameter requires \(type(of:parameter.type)) but received \(type(of:argument)): \(argument)" // TO DO: better type descriptions needed
     }
 }

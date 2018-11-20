@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F60E8CA21A35226009B65F1 /* stdlib_coercions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */; };
 		4FEC2713219A33EF00B28A5A /* expression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270B219A33EE00B28A5A /* expression.swift */; };
 		4FEC2714219A33EF00B28A5A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270C219A33EE00B28A5A /* main.swift */; };
 		4FEC2715219A33EF00B28A5A /* value.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270D219A33EE00B28A5A /* value.swift */; };
@@ -15,7 +16,7 @@
 		4FEC2718219A33EF00B28A5A /* stdlib.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2710219A33EE00B28A5A /* stdlib.swift */; };
 		4FEC2719219A33EF00B28A5A /* error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2711219A33EE00B28A5A /* error.swift */; };
 		4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2712219A33EF00B28A5A /* coercion.swift */; };
-		4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */; };
+		4FEC2721219B8C2700B28A5A /* stdlib_handlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2720219B8C2700B28A5A /* stdlib_handlers.swift */; };
 		4FEC2725219BA63100B28A5A /* lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2724219BA63100B28A5A /* lexer.swift */; };
 		4FEC2727219BA64200B28A5A /* parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2726219BA64200B28A5A /* parser.swift */; };
 		4FEC2729219DB5DF00B28A5A /* operator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2728219DB5DF00B28A5A /* operator.swift */; };
@@ -36,6 +37,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_coercions.swift; sourceTree = "<group>"; };
 		4FEC2701219A33C600B28A5A /* sylvia-lang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "sylvia-lang"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FEC270B219A33EE00B28A5A /* expression.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = expression.swift; sourceTree = "<group>"; };
 		4FEC270C219A33EE00B28A5A /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -46,7 +48,7 @@
 		4FEC2711219A33EE00B28A5A /* error.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = error.swift; sourceTree = "<group>"; };
 		4FEC2712219A33EF00B28A5A /* coercion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = coercion.swift; sourceTree = "<group>"; };
 		4FEC271B219A49C900B28A5A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
-		4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_bridge.swift; sourceTree = "<group>"; };
+		4FEC2720219B8C2700B28A5A /* stdlib_handlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_handlers.swift; sourceTree = "<group>"; };
 		4FEC2724219BA63100B28A5A /* lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = lexer.swift; sourceTree = "<group>"; };
 		4FEC2726219BA64200B28A5A /* parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = parser.swift; sourceTree = "<group>"; };
 		4FEC2728219DB5DF00B28A5A /* operator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = operator.swift; sourceTree = "<group>"; };
@@ -121,8 +123,9 @@
 			isa = PBXGroup;
 			children = (
 				4FEC2710219A33EE00B28A5A /* stdlib.swift */,
-				4FEC2720219B8C2700B28A5A /* stdlib_bridge.swift */,
+				4FEC2720219B8C2700B28A5A /* stdlib_handlers.swift */,
 				4FEC272A219E18B100B28A5A /* stdlib_operators.swift */,
+				4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */,
 			);
 			path = stdlib;
 			sourceTree = "<group>";
@@ -189,7 +192,8 @@
 				4FEC2719219A33EF00B28A5A /* error.swift in Sources */,
 				4FEC2718219A33EF00B28A5A /* stdlib.swift in Sources */,
 				4FEC272B219E18B100B28A5A /* stdlib_operators.swift in Sources */,
-				4FEC2721219B8C2700B28A5A /* stdlib_bridge.swift in Sources */,
+				4FEC2721219B8C2700B28A5A /* stdlib_handlers.swift in Sources */,
+				4F60E8CA21A35226009B65F1 /* stdlib_coercions.swift in Sources */,
 				4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */,
 				4FEC2725219BA63100B28A5A /* lexer.swift in Sources */,
 				4FEC2716219A33EF00B28A5A /* handler.swift in Sources */,

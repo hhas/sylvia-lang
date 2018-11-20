@@ -18,29 +18,41 @@
 // TO DO: to what extent can/should primitive funcs be declared public, allowing optimizing cross-compiler to discard native<->Swift conversions and bypass PrimitiveHandler implementation whenever practical? e.g. `Command("add",[Text("1"),Text("2")])` should cross-compile to `try stdlib.add(a:1,b:2)` (note that even when full reductions can't be done due to insufficient detail/partial type matches, lesser reductions can still be achieved using coercion info from PrimitiveHandler's introspection APIs, e.g. `try asDouble.box(stdlib.add(a:asDouble.unbox(…),b:asDouble.unbox(…)),…)` would save an Env lookup and some function calls, at cost of less precise error messages when a non-numeric value is passed as argument); the final optimization step would be to eliminate the library call entirely and insert templated Swift code directly (this is mostly useful for standard arithmetic and conditional operators, and conditional, loop, and error handling blocks, which are both simple and frequent enough to warrant the extra code generation logic, at least in stdlib)
 
 
+import Darwin
+
+
 /******************************************************************************/
 // HANDLERS
 /******************************************************************************/
 // math
 
-// signature: add(a: primitive(double), b: primitive(double)) returning primitive(double)
+// TO DO: math funcs should use Scalars (union of Int|UInt|Double) (e.g. pinch Scalar struct from entoli) allowing native language to have a single unified `number` type (numeric values might themselves be represented in runtime as Text value annotated with scalar info for efficiency, or as distinct Number values that can be coerced to/from Text) (note that while arithmetic/comparison library funcs will have to work with Scalars in order to handle both ints and floats, Swift code generation could reduce overheads when both arguments are known to be ints, in which case it'll output`a+b`, otherwise `Double(a)+Double(b)`) // for now, use Doubles; eventually there should be a generalized Number type/annotation that encapsulates Int|UInt|Double, and eventually BigInt, Decimal, Quantity, etc
+//
+// TO DO: should math funcs ever throw, or should outOfRange/divideByZero be captured by Scalar?
+//
+// TO DO: check how Int/Double signals out-of-range
+
+
+// signature: exponent(a: primitive(double), b: primitive(double)) returning primitive(double)
 // requires: throws
 
-func add(a: Double, b: Double) throws -> Double { // TO DO: math funcs should use Scalars (union of Int|UInt|Double) (e.g. pinch Scalar struct from entoli) allowing native language to have a single unified `number` type (numeric values might themselves be represented in runtime as Text value annotated with scalar info for efficiency, or as distinct Number values that can be coerced to/from Text) (note that while arithmetic/comparison library funcs will have to work with Scalars in order to handle both ints and floats, Swift code generation could reduce overheads when both arguments are known to be ints, in which case it'll output`a+b`, otherwise `Double(a)+Double(b)`)
-    return a + b // TO DO: check how Double signals out-of-range
-}
+func exponent(a: Double, b: Double) throws -> Double { return pow(a, b) }
+func positive(a: Double) throws -> Double { return +a }
+func negative(a: Double) throws -> Double { return -a }
+func add(a: Double, b: Double) throws -> Double { return a + b }
+func subtract(a: Double, b: Double) throws -> Double { return a - b }
+func multiply(a: Double, b: Double) throws -> Double { return a * b }
+func divide(a: Double, b: Double) throws -> Double { return a / b }
+func div(a: Double, b: Double) throws -> Double { return Double(Int(a / b)) }
+func mod(a: Double, b: Double) throws -> Double { return a.truncatingRemainder(dividingBy: b) }
 
-func subtract(a: Double, b: Double) throws -> Double { // for now, use Doubles; eventually there should be a generalized Number type/annotation that encapsulates Int|UInt|Double, and eventually BigInt, Decimal, Quantity, etc
-    return a - b
-}
-
-func multiply(a: Double, b: Double) throws -> Double {
-    return a * b
-}
-
-func divide(a: Double, b: Double) throws -> Double {
-    return a / b
-}
+// math comparison
+func isLessThan(a: Double, b: Double) throws -> Bool { return a < b }
+func isLessThanOrEqualTo(a: Double, b: Double) throws -> Bool { return a <= b }
+func isEqualTo(a: Double, b: Double) throws -> Bool { return a == b }
+func isNotEqualTo(a: Double, b: Double) throws -> Bool { return a != b }
+func isGreaterThan(a: Double, b: Double) throws -> Bool { return a > b }
+func isGreaterThanOrEqualTo(a: Double, b: Double) throws -> Bool { return a >= b }
 
 
 /******************************************************************************/
@@ -110,36 +122,3 @@ func repeatWhile(condition: Value, expr: Value, commandEnv: Env) throws -> Value
     return result
 }
 
-
-/******************************************************************************/
-// COERCIONS
-/******************************************************************************/
-
-// TO DO: unlike primitive handlers, bridging coercions must be manually implemented in Swift; however, it may be possible to auto-generate the glue code that enables them to be added to stdlib's env and call()-ed from native code with additional constraints, e.g. `list(text,min:1,max:10)`. Currently, Coercion.init() requires constraints to be supplied as Swift values, but 'convenience' bridging initializers could be added via code-generated extensions that perform the requisite unboxing (ideally using extant Coercion classes assuming it doesn't all get ridiculously circular); conversely, Coercion objects should be able to emit their own construction code as both native commands and Swift code, for use in pretty printing and Swift code generation respectively.
-
-
-func loadCoercions(env: Env) throws {
-    try env.add(asAnything)
-    try env.add(asValue)
-    try env.add(asText)
-    try env.add(asBool)
-    try env.add(asDouble)
-    try env.add(asList)
-    try env.add(AsDefault(asAnything, noValue)) // note: AsDefault requires constraint args (type and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
-}
-
-
-/******************************************************************************/
-// CONSTANTS
-/******************************************************************************/
-
-// TO DO: what constants should stdlib define?
-
-func loadConstants(env: Env) throws {
-    try env.set("nothing", to: noValue)
-    try env.set("π", to: piValue) // Q. should `π` slot always evaluate to `π` symbol (with asTYPE methods converting it to Double when required)? (Swift, Python, AppleScript, etc define `pi` constant as numeric [64-bit float] value, 3.1415…, which is technically correct [enough], but aesthetically less helpful when displayed; Q. what other values might have different symbolic Text vs raw data representations? [currently true/false constants, though those will probably go away])
-    
-    // not sure if defining true/false constants is a good idea; if using 'emptiness' to signify true/false, having `true`/`false` constants that evaluate to anything other than `true`/`false` is liable to create far more confusion than convenience (one option is to define a formal Boolean value class and use that, but that raises questions on how to coerce it to text - it can't go to "true"/"false", as "false" is non-empty text, so would have to go to "ok"/"" which is unintuitive; another option is to copy Swift's approach where *only* true/false can be used in Boolean contexts, but that doesn't fit well with weak typing behavior; last alternative is to do away with true/false constants below and never speak of them again; note that only empty text and lists should be treated as Boolean false; 1 and 0 would both be true since both are represented as non-empty text, whereas strongly typed languages such as Python can treat 0 as false; the whole point of weak typing being to roundtrip data without changing its meaning even as its representation changes)
-    try env.set("true", to: trueValue)
-    try env.set("false", to: falseValue)
-}
