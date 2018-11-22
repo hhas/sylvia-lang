@@ -187,5 +187,9 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
 }
 
 
-typealias ScriptAST = Block // TO DO: scripts have some differences to standard `{…}` blocks (e.g. main evaluation entry point[s], no braces or additional indentation when pretty printing), so eventually want to implement as subclass of Block
+class ScriptAST: Block { // TO DO: what should be main entry point[s] for evaluation, node-walking, etc? (note: might want to put public convenience eval entry point on Env, which can provide options for per-line/whole script execution, sharing/creating/copying/persisting environment state as appropriate, c.f. AppleScript OSA component)
+
+    override var description: String { return self.body.map{$0.description}.joined(separator:"\n") }
+
+}
 

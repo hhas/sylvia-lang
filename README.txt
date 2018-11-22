@@ -40,7 +40,7 @@ the language itself, though with rather more distinct datatypes than in Lisp.)
 
 * Primitive & user-defined handlers; parameters can specify coercions (including lazy eval).
 
-* No syntax/parser/REPL.
+* No REPL [yet].
 
 * No documentation.
 

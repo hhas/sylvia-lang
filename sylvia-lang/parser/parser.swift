@@ -21,6 +21,9 @@
 
 // TO DO: consider recognizing `NAME(ARGUMENTS) «?returning TYPE» BLOCK` pattern as named, unbound handler that optionally takes arguments and may declare return type, i.e. a standard closure (in which case `to`/`when` operators are effectively just binding agents, although exact implementation will differ as they won't create a closure for it); difference between this and BLOCK (`{…}`) is that latter is an unnamed closure that takes no arguments; this saves users having to declare and bind a handler before passing it as argument to a command, e.g. `sortList(listOfObjects, key:_(item){item.attributeToSortOn})` (e.g. in Python, either `def NAME(ARGUMENTS):BLOCK` statement or `lambda ARGUMENTS:EXPR` expression must be used); also note that this syntax forbids treating `COMMAND BLOCK` as a command whose last argument is trailing block (c.f. Swift)
 
+// TO DO: parser needs to maintain line count and annotate AST values with file, line, and start+end indexes for use in error messages (non-AST values might also optionally be annotated during debug sessions, enabling introspection tools to determine runtime-created values' origins)
+
+
 
 import Foundation
 
@@ -55,40 +58,67 @@ class Parser {
         return index < self.tokens.count ? self.tokens[index].type : .endOfCode
     }
     
+    func skipLineBreaks() {
+        while case .lineBreak = self.this { self.next() }
+    }
+    
     //
+    
+    func readBlock() throws -> Block {
+        var items = [Value]()
+        self.next()
+        while true {
+            self.skipLineBreaks()
+            if case Token.blockLiteralEnd = self.this { break }
+            items.append(try self.parseExpression(self.this)) // parseExpression starts by advancing 1 token
+            //print("readBlock read line:", items.last!)
+            guard case Token.lineBreak = self.next() else { break }
+            if case Token.blockLiteralEnd = self.this { break }
+        }
+        guard case .blockLiteralEnd = self.this else {
+            throw SyntaxError("Expected expression or end of block but found: \(self.this)")
+        }
+        return Block(items)
+    }
     
     func readCommaDelimitedValues(_ isEndToken: ((Token) -> Bool)) throws -> [Value] { // e.g. `[EXPR,EXPR,EXPR]` // cursor should be on opening brace when calling this; on completion, cursor is on closing brace
         // TO DO: needs better error messages; best would be to call Parser.syntaxError(…) with cursor on problem token; it can then add token info, chained exception, etc
         var items = [Value]()
         //print("reading arglist, this=\(self.this), next=\(self.peek())")
-        while !isEndToken(self.peek()) {
+        while !isEndToken(self.next()) {
             do {
-                items.append(try self.parseExpression()) // this advances onto next token
-            } catch {
+                items.append(try self.parseExpression(self.this)) // this advances onto next token
+            } catch { // TO DO: get rid of this once parser reports error locations
                 print("Failed to read item \(items.count+1):", error)
                 throw error
             }
-            if case Token.itemSeparator = self.next() { () } else { break }
+            if case Token.itemSeparator = self.next() { () } else { break } // TO DO: token type is dependent on block type (current func name is misleading as it's also used for blocks, which contain return-, not comma-, delimited expressions); where commas are used as separators, returns may also be inserted to wrap long lists across multiple lines for readability, so these must be allowed for too [we might restrict position of line breaks to after comma separators only, as dynamically wrapping long expressions to fit display width should really be code editor's job, not pretty printer's]
         }
-        guard isEndToken(self.this) else { throw SyntaxError("Unexpected code after item \(items.count+1): \(self.this)") }
+        guard isEndToken(self.this) else {
+            //print("prev:", self.tokens[self.index-1])
+            //print(self.tokens[self.index..<self.tokens.count].map{$0.type})
+            throw SyntaxError("Unexpected code after item \(items.count+1): \(self.this)")
+        }
         return items
     }
     
     // token matching
     
     func parseAtom(_ token: Token, _ precedence: Int = 0) throws -> Value {
+        //print("parseAtom", token)
         // TO DO: what about .endOfCode? can it occur here?
         switch token {
         case .annotationLiteral(let annotation): // «...» // attaches arbitrary metadata to subsequent node (TO DO: should really behave as postfix, attaching itself to preceding node [except at top level of script/block where it attaches to parent node, e.g. handler docs would appear at top of handler body], although we might need to jig that top-level behavior a bit)
-            let value = try self.parseExpression(token.precedence) // bind like glue // TO DO: is this right? (or should it just call `parseAtom(next(),precedence)`, which avoids possibility of anything having higher precedence than annotations?)
+            self.next()
+            let value = try self.parseExpression(self.this, token.precedence) // bind like glue // TO DO: is this right? (or should it just call `parseAtom(next(),precedence)`, which avoids possibility of anything having higher precedence than annotations?)
             value.annotations.append(annotation) // TO DO: for straightforward evaluation, discard annotations that aren't introspectable (e.g. comments); don't worry about annotating for structure editors, as they'll probably use their own mutable Node objects
             return value
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
             return try List(self.readCommaDelimitedValues(isEndOfList))
         case .blockLiteral:     // `{…}`
-            return try Block(self.readCommaDelimitedValues(isEndOfBlock))
+            return try self.readBlock()
         case .groupLiteral:     // `(…)`
-            let value = try self.parseExpression() // TO DO: how should comma separators be treated? (argument lists use them; not sure about precedence groups, e.g. `1 * (foo, 3 + 4)` could be problematic)
+            let value = try self.parseExpression(self.next()) // TO DO: how should comma separators be treated? (argument lists use them; not sure about precedence groups, e.g. `1 * (foo, 3 + 4)` could be problematic)
             guard case .groupLiteralEnd = self.next() else { throw SyntaxError("Expected “)” but found \(self.this)") }
             return value
         case .textLiteral(value: let string):
@@ -123,11 +153,12 @@ class Parser {
             // TO DO: need to sort out some janky control flow
             throw SyntaxError("endOfCode; TO DO: FIX: if preceding expression was at top-level of program then parseScript() should have return successfully")
         default:
-            throw SyntaxError("Expected expression but found \(token)")
+            throw SyntaxError("parseAtom Expected expression but found \(token)")
         }
     }
     
     func parseOperation(_ token: Token, _ leftExpr: Value) throws -> Value {
+        //print("parseOperation", token)
         switch token {
         case .annotationLiteral(let string): // «...» // attaches arbitrary contents to preceding node as metadata
             leftExpr.annotations.append(string)
@@ -151,12 +182,14 @@ class Parser {
         }
     }
     
-    func parseExpression(_ precedence: Int = 0) throws -> Value { // cursor should be on _preceding_ token when this is called
-        let token = self.next()
+    // parseAtom and parseOperation start on the token they're given; parseExpression does not
+    
+    func parseExpression(_ token: Token, _ precedence: Int = 0) throws -> Value { // cursor should be on _preceding_ token when this is called
         //print("parseExpression reading:",token)
         var left = try self.parseAtom(token)
         //print("Parsed atom; now on \(self.this); next is:",self.peek(), "precedence (expression<next):", precedence, "<", self.peek().precedence)
         while precedence < self.peek().precedence { // TO DO:
+            self.skipLineBreaks()
             left = try self.parseOperation(self.next(), left)
             //print(precedence,"<", self.peek().precedence)
         }
@@ -170,13 +203,16 @@ class Parser {
         guard case .startOfCode = self.this else { throw SyntaxError("Expected start of code but found: \(self.this)") }
         var result = [Value]()
         do {
-        while true {
-            if case .endOfCode = self.peek() { break } // note: can't parameterize Token as some cases have associated values
-            result.append(try self.parseExpression())
-            // TO DO: what delimiters? (.lineBreak)
-        }
-        guard case .endOfCode = self.next() else { throw SyntaxError("Expected end of code but found: \(self.this)") }
-        return ScriptAST(result) // TBH, should swap this around so ScriptAST initializer takes code as argument and lexes and parses it
+            while true {
+                let token = self.next()
+                if case .endOfCode = token { break } // note: can't parameterize Token as some cases have associated values
+                result.append(try self.parseExpression(token))
+                self.skipLineBreaks()
+                //print("parsed top-level expr:", result.last!)
+                // TO DO: what delimiters? (.lineBreak)
+            }
+            guard case .endOfCode = self.next() else { throw SyntaxError("Expected end of code but found: \(self.this)") }
+            return ScriptAST(result) // TBH, should swap this around so ScriptAST initializer takes code as argument and lexes and parses it
         } catch {
             print("Partially parsed script:", result)
             throw error

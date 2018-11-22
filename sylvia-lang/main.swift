@@ -168,7 +168,12 @@ code = """
 
 to addOne(n) { + n + - 1 }
 
-addOne(3)
+if addOne(3) > 0 {
+
+    show ("more")
+
+}
+
 """
 
 
