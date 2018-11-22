@@ -38,6 +38,7 @@
 
 /* Begin PBXFileReference section */
 		4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_coercions.swift; sourceTree = "<group>"; };
+		4F60E8CC21A6DAFB009B65F1 /* sylvia-gen-bridge.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = "sylvia-gen-bridge.py"; sourceTree = "<group>"; };
 		4FEC2701219A33C600B28A5A /* sylvia-lang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "sylvia-lang"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FEC270B219A33EE00B28A5A /* expression.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = expression.swift; sourceTree = "<group>"; };
 		4FEC270C219A33EE00B28A5A /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -67,11 +68,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4F60E8CB21A6DAE8009B65F1 /* tools */ = {
+			isa = PBXGroup;
+			children = (
+				4F60E8CC21A6DAFB009B65F1 /* sylvia-gen-bridge.py */,
+			);
+			path = tools;
+			sourceTree = "<group>";
+		};
 		4FEC26F8219A33C600B28A5A = {
 			isa = PBXGroup;
 			children = (
 				4FEC271B219A49C900B28A5A /* README.txt */,
 				4FEC2703219A33C600B28A5A /* sylvia-lang */,
+				4F60E8CB21A6DAE8009B65F1 /* tools */,
 				4FEC2702219A33C600B28A5A /* Products */,
 			);
 			sourceTree = "<group>";

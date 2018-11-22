@@ -32,9 +32,11 @@ import Darwin
 //
 // TO DO: check how Int/Double signals out-of-range
 
+// TO DO: use Icon-style behavior for comparison operators? this'd allow comparison operations to be chained, e.g. `0 < x <= 10` (on success, returns right-hand operand as-is [this includes empty values]; on failure, returns 'noComparison' flag which causes subequent comparisons to return noComparison as well)
 
-// signature: exponent(a: primitive(double), b: primitive(double)) returning primitive(double)
-// requires: throws
+
+// signature: add(a: primitive(double), b: primitive(double)) returning primitive(double)
+// requirements: throws // TO DO: should `throws` be declared as part of return type: `errorOr(RETURNTYPE)`? (optionally including list of error type[s] where known?)
 
 func exponent(a: Double, b: Double) throws -> Double { return pow(a, b) }
 func positive(a: Double) throws -> Double { return +a }
@@ -47,12 +49,45 @@ func div(a: Double, b: Double) throws -> Double { return Double(Int(a / b)) }
 func mod(a: Double, b: Double) throws -> Double { return a.truncatingRemainder(dividingBy: b) }
 
 // math comparison
-func isLessThan(a: Double, b: Double) throws -> Bool { return a < b }
-func isLessThanOrEqualTo(a: Double, b: Double) throws -> Bool { return a <= b }
-func isEqualTo(a: Double, b: Double) throws -> Bool { return a == b }
-func isNotEqualTo(a: Double, b: Double) throws -> Bool { return a != b }
-func isGreaterThan(a: Double, b: Double) throws -> Bool { return a > b }
-func isGreaterThanOrEqualTo(a: Double, b: Double) throws -> Bool { return a >= b }
+
+// signature: isEqualTo(a: primitive(double), b: primitive(double)) returning primitive(boolean)
+
+func isLessThan(a: Double, b: Double) -> Bool { return a < b }
+func isLessThanOrEqualTo(a: Double, b: Double) -> Bool { return a <= b }
+func isEqualTo(a: Double, b: Double) -> Bool { return a == b }
+func isNotEqualTo(a: Double, b: Double) -> Bool { return a != b }
+func isGreaterThan(a: Double, b: Double) -> Bool { return a > b }
+func isGreaterThanOrEqualTo(a: Double, b: Double) -> Bool { return a >= b }
+
+// Boolean logic
+func NOT(a: Bool) -> Bool { return !a }
+func AND(a: Bool, b: Bool) -> Bool { return a && b }
+func  OR(a: Bool, b: Bool) -> Bool { return a || b }
+func XOR(a: Bool, b: Bool) -> Bool { return a && !b || !a && b }
+
+
+/******************************************************************************/
+// general
+
+// for now, implement for string only; longer term, these should accept optional type:Coercion parameter (e.g. `A eq B as list of caseSensitiveText`) to standardize argument types before comparison, and call type-specific comparison methods on Values (ideally a default type would be inferred where practical, e.g. if it is known that two lists of text are being compared, the default type would be `list(text)`); the goal is to avoid inconsistent behavior during comparisons, particularly lt/le/gt/ge; a typical example would be in sorting a mixed list where comparison behavior changes from item to item according to operand type(s)
+
+// comparison
+func lt(a: String, b: String) throws -> Bool { return a.lowercased() <  b.lowercased() }
+func le(a: String, b: String) throws -> Bool { return a.lowercased() <= b.lowercased() }
+func eq(a: String, b: String) throws -> Bool { return a.lowercased() == b.lowercased() }
+func ne(a: String, b: String) throws -> Bool { return a.lowercased() != b.lowercased() }
+func gt(a: String, b: String) throws -> Bool { return a.lowercased() >  b.lowercased() }
+func ge(a: String, b: String) throws -> Bool { return a.lowercased() >= b.lowercased() }
+
+// concatenation
+func joinValues(a: String, b: String) throws -> String { return a + b }
+
+
+/******************************************************************************/
+// text manipulation
+
+func uppercase(a: String) -> String { return a.uppercased() }
+func lowercase(a: String) -> String { return a.lowercased() }
 
 
 /******************************************************************************/
@@ -76,10 +111,9 @@ func show(value: Value) { // primitive library function
 // requires: throws, commandEnv // any required env params are appended to bridging call in standard order (commandEnv,handlerEnv,bodyEnv)
 
 // TO DO: need asParameterList coercion that knows how to parse user-defined parameters list (which may consist of label strings and/or (label,coercion) tuples, and may include optional description strings too)
-func defineCommandHandler(name: String, parameters: [Parameter], returnType: Coercion, body: Value, commandEnv: Env) throws -> Handler {
+func defineCommandHandler(name: String, parameters: [Parameter], returnType: Coercion, body: Value, commandEnv: Env) throws {
     let  h = Handler(CallableInterface(name: name, parameters: parameters, returnType: returnType), body)
     try commandEnv.add(h)
-    return h
 }
 
 // TO DO: will need separate `to` and `when` (`upon`?) operators/commands for defining native (and primitive?) handlers; the `to ACTION` form (used to implement new commands) should throw on unknown arguments, the `when EVENT` form (used to declare event handlers) should ignore them (this allows event handlers to receive notifications while ignoring any arguments not of interest to them; this'll be of more use once labeled arguments/parameters are supported) (strictly speaking, the `when` form is redundant if handlers accept varargs, e.g. in Python: `def EVENT(*args,**kargs)` will accept and discard unwanted arguments silently; however, it's semantically clearer); Q. how should event handlers deal with return values (forbid? discard? return? notifications don't normally expect return values, with occasional exceptions, e.g. `shouldCloseDocument` returning true/false to permit/cancel document closing)
@@ -100,24 +134,24 @@ func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -
 
 // note: while primitive functions can use Thunks for lazily evaluated arguments, it's cheaper just to pass the command's arguments as-is plus the command's environment and evaluate directly
 
-func testIf(value: Bool, ifTrue: Value, ifFalse: Value, commandEnv: Env) throws -> Value { // TO DO: eliminate `ifFalse` parameter and return `didNothing` (`noAction`?) if value is false; this allows `if` to be defined as standard `if EXPR BLOCK` operator, which can be arbitrarily chained using `A else B` operator
-    return try asAnything.coerce(value: (value ? ifTrue : ifFalse), env: commandEnv)
+func testIf(condition: Bool, body: Value, commandEnv: Env) throws -> Value { // TO DO: eliminate `ifFalse` parameter and return `didNothing` (`noAction`?) if value is false; this allows `if` to be defined as standard `if EXPR BLOCK` operator, which can be arbitrarily chained using `A else B` operator
+    return try condition ? asAnything.coerce(value: body, env: commandEnv) : didNothing
 }
 
-func repeatTimes(count: Int, expr: Value, commandEnv: Env) throws -> Value {
+func repeatTimes(count: Int, body: Value, commandEnv: Env) throws -> Value {
     var count = count
-    var result: Value = noValue
+    var result: Value = didNothing
     while count > 0 {
-        result = try asAnything.coerce(value: expr, env: commandEnv)
+        result = try asAnything.coerce(value: body, env: commandEnv)
         count -= 1
     }
     return result
 }
 
-func repeatWhile(condition: Value, expr: Value, commandEnv: Env) throws -> Value {
-    var result: Value = noValue // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asAnything/asOptional/asDefault should do])
+func repeatWhile(condition: Value, body: Value, commandEnv: Env) throws -> Value {
+    var result: Value = didNothing // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asAnything/asOptional/asDefault should do])
     while try asBool.unbox(value: condition, env: commandEnv) {
-        result = try asAnything.coerce(value: expr, env: commandEnv)
+        result = try asAnything.coerce(value: body, env: commandEnv)
     }
     return result
 }

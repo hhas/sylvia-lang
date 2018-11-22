@@ -431,6 +431,63 @@ class AsThunk<T: BridgingCoercion>: BridgingCoercion {
 
 
 
+class AsParameter: BridgingCoercion {
+    
+    var name: String { return "parameter" }
+    
+    typealias SwiftType = Parameter
+    
+    func coerce(value: Value, env: Env) throws -> Value {
+        return try value.toAny(env: env, type: self) // TO DO: FIX
+    }
+    
+    func unbox(value: Value, env: Env) throws -> SwiftType {
+        let fields: [Value]
+        if let list = value as? List { fields = list.swiftValue } else { fields = [value] } // kludge; we don't want to expand Identifier
+        let type: Coercion
+        switch fields.count {
+        case 1: // name only
+            type = asValue
+        case 2: // name + type
+            type = try asCoercion.unbox(value: fields[1], env: env)
+        default:
+            throw CoercionError(value: value, type: self)
+        }
+        guard let name = (fields[0] as? Text)?.swiftValue else { throw CoercionError(value: value, type: self) }
+        return (name: name, type: type)
+    }
+    
+    func box(value: SwiftType, env: Env) throws -> Value {
+        return List([Text(value.name), value.type])
+    }
+}
+
+
+
+class AsCoercion: BridgingCoercion {
+    
+    var name: String { return "type" }
+    
+    typealias SwiftType = Coercion
+    
+    func coerce(value: Value, env: Env) throws -> Value {
+        return try self.unbox(value: value, env: env)
+    }
+    
+    func unbox(value: Value, env: Env) throws -> SwiftType {
+        guard let result = try value.toAny(env: env, type: self) as? Coercion else {
+            throw CoercionError(value: value, type: self)
+        }
+        return result
+    }
+    
+    func box(value: SwiftType, env: Env) throws -> Value {
+        return value
+    }
+}
+
+
+
 let asValue = AsValue()
 let asText = AsText()
 let asBool = AsBool()
@@ -445,3 +502,6 @@ let asNothing = AsNothing()
 let asAnything = AsAnything()
 
 let asThunk = AsThunk(asAnything)
+
+let asParameter = AsParameter()
+let asCoercion = AsCoercion()

@@ -72,6 +72,9 @@ class Nothing: Value {
 }
 
 
+class DidNothing: Nothing {} // TO DO
+
+
 
 class Text: Value { // TO DO: Scalar?
     
@@ -125,6 +128,7 @@ class List: Value {
 
 
 let noValue = Nothing()
+let didNothing = DidNothing()
 let emptyText = Text("")
 let emptyList = List([])
 

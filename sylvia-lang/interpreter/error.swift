@@ -48,7 +48,7 @@ class CoercionError: Error, CustomStringConvertible {
     }
     
     var description: String {
-        return "Can’t coerce value to \(self.type): \(self.value)"
+        return "Can’t coerce \(Swift.type(of: self.value)) value to \(self.type): \(self.value)"
     }
 }
 
