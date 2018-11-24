@@ -25,9 +25,7 @@ class Env {
     }
     
     func get(_ name: String) throws -> Value {
-        guard let value = self.find(name)?.slot.value else {
-            throw ValueNotFoundError(name: name, env: self)
-        }
+        guard let value = self.find(name)?.slot.value else { throw ValueNotFoundError(name: name, env: self) }
         return value
     }
     

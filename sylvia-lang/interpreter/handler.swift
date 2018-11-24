@@ -116,7 +116,7 @@ class Handler: CallableValue { // native handler
             }
             return try type.coerce(value: self.interface.returnType.coerce(value: self.body, env: bodyEnv), env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
         } catch {
-            throw HandlerFailedError(handler: self, error: error)
+            throw HandlerFailedError(handler: self, command: command).from(error)
         }
     }
 }
@@ -146,7 +146,7 @@ class PrimitiveHandler: CallableValue {
         do{
             return try type.coerce(value: self.call(command, commandEnv, self, handlerEnv, self.interface.returnType), env: commandEnv)
         } catch {
-            throw HandlerFailedError(handler: self, error: error)
+            throw HandlerFailedError(handler: self, command: command).from(error)
         }
     }
 }

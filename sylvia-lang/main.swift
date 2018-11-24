@@ -166,15 +166,15 @@ code = "[π, 23.4e5, (1+2), “Hello\\nGoodbye”, [1,2,3]]"
 
 code = """
 
-to addOne(n) { n + 1 }
+to addOne(n) { n + 1 - x } «This throws ‘ValueNotFoundError: Can’t find a value named “x”.’»
 
 if addOne(3) > 8 {
 
-    show ("4>8")
+    show("4 > 8")
 
 }
 
-if 4≤8{show("4≤8")}
+if 4 ≤ 8 { show("4 ≤ 8") }
 
 """
 
@@ -189,8 +189,11 @@ let tokens = lexer.tokenize()
 let p = Parser(tokens)
 
 do {
+    print("\nPARSE:")
     let s = try p.parseScript()
     print(s)
+    print()
+    print("\nEVAL:")
     let res = try s.run(env: e, type: asAnything)
     print(res)
 } catch {

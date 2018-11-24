@@ -41,11 +41,19 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     // List subclass overrides the following; other values coerce to single-item list/array (V->[V]):
     
     func toList(env: Env, type: AsList) throws -> List {
-        return try List([type.elementType.coerce(value: self, env: env)]) // TO DO: catch NullCoercionError and rethow as permanent CoercionError
+        do {
+            return try List([type.elementType.coerce(value: self, env: env)])
+        } catch is NullCoercionError {
+            throw CoercionError(value: self, type: type.elementType)
+        }
     }
     
     func toArray<E, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
-        return try [type.elementType.unbox(value: self, env: env)] // TO DO: ditto
+        do {
+            return try [type.elementType.unbox(value: self, env: env)]
+        } catch is NullCoercionError {
+            throw CoercionError(value: self, type: type.elementType)
+        }
     }
 }
 
@@ -105,15 +113,33 @@ class List: Value {
     }
     
     override func toList(env: Env, type: AsList) throws -> List {
-        return try List(self.swiftValue.map { try type.elementType.coerce(value: $0, env: env) })
+        return try List(self.swiftValue.map {
+            do {
+                return try type.elementType.coerce(value: $0, env: env)
+            } catch is NullCoercionError {
+                throw CoercionError(value: $0, type: type.elementType)
+            }
+        })
     }
     
     override func toArray<E, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
-        return try self.swiftValue.map { try type.elementType.unbox(value: $0, env: env) } // TO DO: block needs to catch and rethrow NullCoercionError as permanent CoercionError (e.g.. `[nothing]->list(optional(anything))` should return `[nothing]`, but `[nothing]->optional(list(anything))` needs to throw CoercionError, not return `nothing`)
+        return try self.swiftValue.map {
+            do {
+                return try type.elementType.unbox(value: $0, env: env)
+            } catch is NullCoercionError {
+                throw CoercionError(value: $0, type: type.elementType)
+            }
+        }
     }
     
     override func toAny(env: Env, type: Coercion) throws -> Value {
-        return try List(self.swiftValue.map { try type.coerce(value: $0, env: env) }) // TO DO: ditto
+        return try List(self.swiftValue.map {
+            do {
+                return try type.coerce(value: $0, env: env)
+            } catch is NullCoercionError {
+                throw CoercionError(value: $0, type: type)
+            }
+        })
     }
 }
 

@@ -67,8 +67,8 @@ extension BridgingProtocol {
         do {
             return try self.unbox(value: command.argument(index), env: commandEnv)
         } catch {
-            print("Unboxing argument \(index) failed:",error)
-            throw BadArgumentError(command: command, handler: handler, index: index) // TO DO: exception chaining
+            //print("Unboxing argument \(index) failed:",error)
+            throw BadArgumentError(command: command, handler: handler, index: index).from(error)
         }
     }
 }
@@ -477,9 +477,7 @@ class AsCoercion: BridgingCoercion {
     }
     
     func unbox(value: Value, env: Env) throws -> SwiftType {
-        guard let result = try value.toAny(env: env, type: self) as? Coercion else {
-            throw CoercionError(value: value, type: self)
-        }
+        guard let result = try value.toAny(env: env, type: self) as? Coercion else { throw CoercionError(value: value, type: self) }
         return result
     }
     

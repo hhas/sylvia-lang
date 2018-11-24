@@ -26,6 +26,12 @@
 import Foundation
 
 
+struct CodeRange {
+    let start: String.Index
+    let end: String.Index
+}
+
+
 
 class Parser {
     
@@ -39,6 +45,8 @@ class Parser {
     }
     
     // cursor
+    
+    var thisInfo: TokenInfo { return self.index < self.tokens.count ? self.tokens[self.index] : self.tokens.last! }
     
     var this: Token { return self.index < self.tokens.count ? self.tokens[self.index].type : .endOfCode }
     
@@ -110,43 +118,42 @@ class Parser {
     // token matching
     
     func parseAtom(_ precedence: Int = 0) throws -> Value {
-        let token = self.this
+        let tokenInfo = self.thisInfo
+        let token = tokenInfo.type
+        let value: Value
         // TO DO: what about .endOfCode? can it occur here?
         switch token {
         case .annotationLiteral(let annotation): // «...» // attaches arbitrary metadata to subsequent node (TO DO: should really behave as postfix, attaching itself to preceding node [except at top level of script/block where it attaches to parent node, e.g. handler docs would appear at top of handler body], although we might need to jig that top-level behavior a bit)
             self.next()
-            let value = try self.parseExpression(token.precedence) // bind like glue // TO DO: is this right? (or should it just call `parseAtom(precedence)`, which avoids possibility of anything having higher precedence than annotations?)
+            value = try self.parseExpression(token.precedence) // bind like glue // TO DO: is this right? (or should it just call `parseAtom(precedence)`, which avoids possibility of anything having higher precedence than annotations?)
             value.annotations.append(annotation) // TO DO: for straightforward evaluation, discard annotations that aren't introspectable (e.g. comments); don't worry about annotating for structure editors, as they'll probably use their own mutable Node objects
-            return value
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
-            return try List(self.readCommaDelimitedValues(isEndOfList))
+            value = try List(self.readCommaDelimitedValues(isEndOfList))
         case .blockLiteral:     // `{…}`
-            return try self.readBlock()
+            value = try self.readBlock()
         case .groupLiteral:     // `(…)` // precedence group (unlike a command's argument tuple, this must contain exactly 1 expression)
             // caution: don't use `(…,…,…)` as block-style sequence as it's already used as tuple syntax in commands and handlers (OTOH, if commands/handlers take a `{…,…,…}` record value as unary argument c.f. entoli, `(…,…,…)` could be used as block syntax wherever 'block' is *explicitly* allowed as argument type; however, anywhere else it must only work as precedence group, e.g. `(1+2)*3` but not `(foo,1+2)*3`, to avoid introducing potential gotchas)
             self.next() // step over '('
-            let value = try self.parseExpression()
+            value = try self.parseExpression()
             self.next() // step over ')'
             guard case .groupLiteralEnd = self.this else { throw SyntaxError("Expected “)” but found \(self.this)") }
-            return value
         case .textLiteral(value: let string):
-            return Text(string)
+            value = Text(string)
         case .identifier(value: let name, isQuoted: _): // found `NAME`
             if case Token.groupLiteral = self.peek() {  // check for an argument tuple; if found it's a command name, `NAME(…)`, else it's an identifier
                 self.next() // advance cursor onto "("
-                return try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple
+                value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple
             } else {
-                return Identifier(name)
+                value = Identifier(name)
             }
         case .number(value: let string): // TO DO: use Scalar
-            let value = Text(string)
+            value = Text(string)
             value.annotations.append(Double(string) as Any) // TO DO: annotation API
-            return value
         case .operatorName(value: let name, prefix: let definition, infix: _) where definition != nil:
             switch definition!.parseFunc {
             case .atom(let parseFunc), .prefix(let parseFunc):
                 // operator name is passed for convenience, though parsefunc could get .operatorToken itself
-                return try parseFunc(self, name, definition!) // note: this does not prevent custom parseFuncs reading/not reading next token[s]; thus the distinction between .atom and .prefix (or .infix and .suffix) is informative only; some parsefuncs may even deliberately support both, peeking ahead to determine whether or not a trailing operand is present and outputting the appropriate .atom/.prefix (or .infix/.suffix) Command (although this is frowned on as it means the parsefunc must supply custom commands names itself rather than using canonical name from operator definition, which isn't something [currently/ever?] supported by auto-documentation tools)
+                value = try parseFunc(self, name, definition!) // note: this does not prevent custom parseFuncs reading/not reading next token[s]; thus the distinction between .atom and .prefix (or .infix and .suffix) is informative only; some parsefuncs may even deliberately support both, peeking ahead to determine whether or not a trailing operand is present and outputting the appropriate .atom/.prefix (or .infix/.suffix) Command (although this is frowned on as it means the parsefunc must supply custom commands names itself rather than using canonical name from operator definition, which isn't something [currently/ever?] supported by auto-documentation tools)
             default: // this should never happen
                 throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in atom/prefix table.")
             }
@@ -155,27 +162,36 @@ class Parser {
         default:
             throw SyntaxError("parseAtom Expected expression but found \(token)")
         }
+        value.annotations.append(CodeRange(start: tokenInfo.start, end: self.thisInfo.end))
+        return value
     } // important: this should always leave cursor on last token of expression
     
     func parseOperation(_ leftExpr: Value) throws -> Value {
-        let token = self.this
+        let tokenInfo = self.thisInfo
+        let token = tokenInfo.type
+        let value: Value
         switch token {
         case .annotationLiteral(let string): // «...» // attaches arbitrary contents to preceding node as metadata
             leftExpr.annotations.append(string)
-            return leftExpr
+            value = leftExpr
         case .operatorName(value: let name, prefix: _, infix: let definition):
-            if definition == nil { return try self.parseAtom()  } // TO DO: ???
-            switch definition!.parseFunc {
-            case .infix(let parseFunc), .postfix(let parseFunc):
-                return try parseFunc(self, leftExpr, name, definition!)
-            default: // this should never happen
-                throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in infix/postfix table.")
+            if definition == nil {
+                value = try self.parseAtom()// TO DO: ???
+            } else {
+                switch definition!.parseFunc {
+                case .infix(let parseFunc), .postfix(let parseFunc):
+                    value = try parseFunc(self, leftExpr, name, definition!)
+                default: // this should never happen
+                    throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in infix/postfix table.")
+                }
             }
         case .endOfCode:
             throw SyntaxError("Expected an operand after the following code but found end of code instead: \(leftExpr)")
         default:
             throw SyntaxError("Invalid token after \(leftExpr): \(token)")
         }
+        value.annotations.append(CodeRange(start: tokenInfo.start, end: self.thisInfo.end))
+        return value
     } // important: this should always leave cursor on last token of expression
     
     

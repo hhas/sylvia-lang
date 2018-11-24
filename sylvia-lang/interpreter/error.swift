@@ -3,29 +3,47 @@
 //
 
 
-// TO DO: error base class with chaining capability (Q. what's easiest? passing parent error to initializer, or calling `throw ERROR(…).from(error)`? [might even consider operator override])
+// TO DO: should LanguageError subclass Value? (need to decide how native error API will work)
+
+
+class LanguageError: Error, CustomStringConvertible {
+    
+    private(set) var parentError: Error?
+    
+    let _message: String
+    
+    init(_ message: String = "") { // error description provided by calling code, if any
+        self._message = message
+    }
+    
+    var message: String { return self._message } // subclasses may override to construct custom error description
+    
+    func from(_ parentError: Error) -> Error {
+        self.parentError = parentError
+        return self
+    }
+    
+    var description: String {
+        var result = "\(type(of: self)): \(self.message)"
+        if let parentError = self.parentError { result = "\(parentError)\n↳ \(result)" }
+        return result
+    }
+    
+    //var localizedDescription: String { return self.description } // needed?
+}
 
 /******************************************************************************/
 // implementation bugs
 
-class InternalError: Error, CustomStringConvertible {
-    
-    let description: String
-    
-    init(_ message: String) {
-        self.description = "An internal error occurred: \(message)"
-    }
-}
+class InternalError: LanguageError {}
 
 /******************************************************************************/
 // parse error
 
-class SyntaxError: Error, CustomStringConvertible {
+class SyntaxError: LanguageError {
     
-    let description: String
-    
-    init(_ message: String) { // TO DO: need to include parser for error reporting use
-        self.description = "Invalid syntax: \(message)"
+    override init(_ message: String) { // TO DO: need to include parser for error reporting use
+        super.init(message)
     }
 }
 
@@ -33,7 +51,7 @@ class SyntaxError: Error, CustomStringConvertible {
 // coercion errors
 
 
-class CoercionError: Error, CustomStringConvertible {
+class CoercionError: LanguageError {
     
     let value: Value
     let type: Coercion
@@ -41,13 +59,10 @@ class CoercionError: Error, CustomStringConvertible {
     init(value: Value, type: Coercion) {
         self.value = value
         self.type = type
+        super.init()
     }
     
-    var localizedDescription: String { // TO DO: this is NSError throwback; is it needed?
-        return self.description
-    }
-    
-    var description: String {
+    override var message: String {
         return "Can’t coerce \(Swift.type(of: self.value)) value to \(self.type): \(self.value)"
     }
 }
@@ -61,7 +76,7 @@ class NullCoercionError: CoercionError {} // coercing Nothing always throws Null
 /******************************************************************************/
 // environment lookup errors
 
-class EnvironmentError: Error, CustomStringConvertible { // abstract base class
+class EnvironmentError: LanguageError { // abstract base class
     
     let name: String
     let env: Env
@@ -69,34 +84,28 @@ class EnvironmentError: Error, CustomStringConvertible { // abstract base class
     init(name: String, env: Env) {
         self.name = name
         self.env = env
-    }
-    
-    var description: String {
-        fatalError("Subclasses must override `var description`.")
-    }
-    var localizedDescription: String {
-        return self.description
+        super.init()
     }
 }
 
 
 class ValueNotFoundError: EnvironmentError {
 
-    override var description: String {
+    override var message: String {
         return "Can’t find a value named “\(self.name)”."
     }
 }
 
 class ReadOnlyValueError: EnvironmentError {
     
-    override var description: String {
+    override var message: String {
         return "Can’t replace the non-editable value named “\(self.name)”."
     }
 }
 
 class HandlerNotFoundError: EnvironmentError {
     
-    override var description: String {
+    override var message: String {
         return "Can’t find a handler named “\(self.name)”."
     }
 }
@@ -105,45 +114,38 @@ class HandlerNotFoundError: EnvironmentError {
 /******************************************************************************/
 // command evaluation errors
 
-class HandlerFailedError: Error, CustomStringConvertible {
+class HandlerFailedError: LanguageError {
     
     let handler: Callable
-    let error: Error
+    let command: Command
     
-    init(handler: Callable, error: Error) {
+    init(handler: Callable, command: Command) {
         self.handler = handler
-        self.error = error
+        self.command = command
+        super.init()
     }
-    
-    var localizedDescription: String {
-        return self.description
-    }
-    
-    var description: String {
-        return "Handler ‘\(self.handler.name)’ failed: \(self.error)"
+    override var message: String {
+        return "‘\(self.handler.name)’ handler failed on command: \(self.command)"
     }
 }
 
 
-class BadArgumentError: Error, CustomStringConvertible {
+class BadArgumentError: LanguageError {
     
     let command: Command
     let handler: CallableValue
-    let index: Int
+    let index: Int // bad command argument's index
     
     init(command: Command, handler: CallableValue, index: Int) {
         self.command = command
         self.handler = handler
         self.index = index
+        super.init()
     }
     
-    var localizedDescription: String {
-        return self.description
-    }
-    
-    var description: String {
+    override var message: String {
         let parameter = self.handler.interface.parameters[self.index]
-        let argument = self.command.arguments.count < self.index ? self.command.arguments[self.index] : noValue
-        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)” parameter requires \(type(of:parameter.type)) but received \(type(of:argument)): \(argument)" // TO DO: better type descriptions needed
+        let argument = self.index < self.command.arguments.count ? self.command.arguments[self.index] : noValue
+        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter requires \(type(of:parameter.type)) but received \(type(of:argument)): \(argument)" // TO DO: better type descriptions needed
     }
 }

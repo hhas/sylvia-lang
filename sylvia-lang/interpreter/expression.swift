@@ -3,6 +3,8 @@
 //
 //  
 
+// TO DO: need to check null coercion errors are always rethrown at correct point(s) (correction: all errors need to be caught and rethrown [this will take care of null coercion errors too] to provide traceback)
+
 
 // TO DO: is it possible/practical for all toTYPE methods to be added via extension?
 
@@ -17,7 +19,12 @@ class Expression: Value {
     
     internal func safeRun<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
         // we pull our punches here: in theory, casting `value as! T` will never fail as Coercions should always return correct value class, but we guard to be sure (ideally we wouldn't have to use runtime upcasting at all, but trying to implement 100% typesafe runtime APIs for a weak untyped language would almost certainly be an intractable generics hell)
-        let value = try self.run(env: env, type: type)
+        let value: Value
+        do {
+            value = try self.run(env: env, type: type)
+        } catch is NullCoercionError {
+            throw CoercionError(value: self, type: type)
+        }
         guard let result = value as? T else {
             throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)") // presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
         }
@@ -78,7 +85,11 @@ class Identifier: Expression {
     
     override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
         let (value, lexicalEnv) = try self.lookup(env: env)
-        return try type.unbox(value: value, env: lexicalEnv)
+        do {
+            return try type.unbox(value: value, env: lexicalEnv)
+        } catch is NullCoercionError {
+            throw CoercionError(value: self, type: type)
+        }
     }
     
     override func run(env: Env, type: Coercion) throws -> Value {
@@ -112,7 +123,7 @@ class Command: Expression {
     }
     
     override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
-        fatalError()
+        fatalError() // TO DO
     }
     
     override func run(env: Env, type: Coercion) throws -> Value {
@@ -120,7 +131,7 @@ class Command: Expression {
         let (handler, handlerEnv) = try self.lookup(env: env)
         //print("Got Handler \(handler.name):", handler)
         do {
-        return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, type: type)
+            return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, type: type)
         } catch {
             //print("Handler ‘\(handler.name)’ failed:", error)
             throw error
@@ -153,7 +164,11 @@ class Thunk: Expression {
     // evaluating a thunk forces it (unless type specifies AsThunk, in which case it thunks again)
     
     override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
-        return try type.unbox(value: self.force(), env: env)
+        do {
+            return try type.unbox(value: self.force(), env: env)
+        } catch is NullCoercionError {
+            throw CoercionError(value: self, type: type)
+        }
     }
     
     override func run(env: Env, type: Coercion) throws -> Value {
