@@ -24,7 +24,7 @@ class SyntaxError: Error, CustomStringConvertible {
     
     let description: String
     
-    init(_ message: String) {
+    init(_ message: String) { // TO DO: need to include parser for error reporting use
         self.description = "Invalid syntax: \(message)"
     }
 }

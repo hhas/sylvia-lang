@@ -507,3 +507,5 @@ let asThunk = AsThunk(asAnything)
 
 let asParameter = AsParameter()
 let asCoercion = AsCoercion()
+
+let asBlock = asIs // primitive handlers don't really care if an argument is a block or an expression (to/if/repeat/etc operators should check for block syntax themselves), so for now just pass it to the handler body as-is (there's no need to thunk it either, unless the supplied block/expression needs to be retained beyond the handler call in which case it must be captured with the command scope, either by declaring the parameter type asThunk or by calling asThunk.coerce in the handler body)

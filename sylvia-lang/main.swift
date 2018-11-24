@@ -166,13 +166,16 @@ code = "[π, 23.4e5, (1+2), “Hello\\nGoodbye”, [1,2,3]]"
 
 code = """
 
-to addOne(n) { + n + - 1 }
+to addOne(n) { n + 1 }
 
-if addOne(3) > 0 {
+if addOne(3) > 8 {
 
-    show ("more")
+    show ("4>8")
 
 }
+
+if 4≤8{show("4≤8")}
+
 """
 
 

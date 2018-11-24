@@ -23,7 +23,8 @@ func parseNumericSignOperator(_ parser: Parser, operatorName: String, definition
         parser.next()
         return Text(operatorName + number) // TO DO: cache numeric (Scalar) representation
     } else {
-        return Command(definition.command ?? operatorName, leftOperand: try parser.parseExpression(parser.next(), definition.precedence))
+        parser.next()
+        return Command(definition.command ?? operatorName, leftOperand: try parser.parseExpression(definition.precedence))
     }
 }
 
@@ -34,10 +35,11 @@ func parseExpressionAndBlockOperator(_ parser: Parser, operatorName: String, def
     
     
     // TO DO: what about expr type? e.g. in loops and conditionals, any expression that evaluates to true/false (with some exceptions, e.g. blocks should probably be disallowed, and silliness such as `if to HANDLER(){} {}` would ideally be discouraged); Q. what about insisting that opening brace appear on same line as [end of] EXPR - e.g. `if EXPR { LF …` but not `if EXPR LF {…` - in order to reduce room for ambiguous-looking code [see .linebreak discussion in general])
-    
-    let expr = try parser.parseExpression(parser.next(), definition.precedence)
+    parser.next()
+    let expr = try parser.parseExpression(definition.precedence)
     // 2nd operand is required to be a block to avoid syntactic ambiguity (including token patterns such as `WORD WORD` that per-line parsing can use to distinguish probable quoted text from probable code)
-    let block = try parser.parseExpression(parser.next(), definition.precedence) // T|O DO: implement Parser.parseIfBlock, which returns nil if non-block is found, giving caller choice of what to do next [this is preferable to throwing SyntaxError, as errors occuring while parsing contents of block aren't trivially distinguished from error raised when expected block isn't found])
+    parser.next()
+    let block = try parser.parseExpression(definition.precedence) // T|O DO: implement Parser.parseIfBlock, which returns nil if non-block is found, giving caller choice of what to do next [this is preferable to throwing SyntaxError, as errors occuring while parsing contents of block aren't trivially distinguished from error raised when expected block isn't found])
     // TO DO: how best to support 'code' formatting style in error messages? (one option is to treat all error strings as Markdown, and format/escape interpolated values when inserting; may be best to leave this until native 'tagged' text interpolation is implemented, then allow that to be used when constructing error messages in both native and Swift code)
     if !(block is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found: \(block)") } // TO DO: long code needs elided for readability
     return Command(definition.command ?? operatorName, leftOperand: expr, rightOperand: block)
@@ -46,10 +48,14 @@ func parseExpressionAndBlockOperator(_ parser: Parser, operatorName: String, def
 
 func parseHandlerConstructorOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
     // TO DO: handler constructors should use dedicated parsefuncs to read handler signature (we need individual parsefuncs for argument, parameter, and interface signatures; once they're implemented we can call `parseCallableSignature` parsefunc here; for now just require a command)
-    let expr = try parser.parseExpression(parser.next(), definition.precedence)
+    parser.next() // step over 'to'/'when'
+    let expr = try parser.parseExpression() // read handler signature
+    // TO DO: better to use toHandlerSignature coercion here, as it may be a command [if returnType not specified] or it may be a `returning` operator (Q. how should `returning`, which ought to map to command `returning(name(params),returnType)`, produce a signature? on parsing or eval?)
     guard let signature = expr as? Command else { throw SyntaxError("Expected a handler signature after `\(operatorName)`, but found: \(expr)") } // TO DO: as above
-    let block = try parser.parseExpression(parser.next(), definition.precedence) // TO DO: as above
-    if !(block is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found: \(block)") } // TO DO: ditto
+    guard case .blockLiteral = parser.peek() else { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(parser.this)") }
+    parser.next()
+    let block = try parser.parseExpression() // TO DO: as above
+    if !(block is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(type(of:block)): \(block)") } // TO DO: ditto
     return Command(definition.command ?? operatorName, [Text(signature.name), List(signature.arguments.map{Text(($0 as! Identifier).name)}), asAnything, block]) // kludges; TO DO: parseSignature should ensure all parameters and return type are declared correctly (there will be limits to what can be checked at parse time, e.g. `foo(arg as TYPE1) returning TYPE2` signature has no way of knowing if TYPE1 and TYPE2 are actually Coercions or some other Value type - that can only be determined when script is run [although it might be worth doing a superficial check once script's top-level declarations are all available to introspect, and note which ones can/can't be type-checked without running the script; this will be a particular issue if users use existing 'command' handlers to define their own coercions [it might even be an idea to have a separate CoercionHandler that can make hard guarantees about idempotency, side-effects, and halting - e.g. by only allowing other coercion values/coercion commands to be used within handler body, with hard limits on recursion depth in cases where coercions are used, say, to verify XML/JSON/etc data structures received by web interfaces]])
 }
 

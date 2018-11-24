@@ -130,28 +130,28 @@ func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -
 /******************************************************************************/
 // control flow
 
-// TO DO: consider using Icon-style evaluation, where there is only `test` + `ifTrue` parameters, and `didNothing` ('fail') is returned when test is false; that result can then be captured by an `else` operator, or coerced to `nothing` otherwise (advantage of this approach is more granular, composable code; e.g. `else` could also be applied to a `repeatWhile()` command to execute alternative branch if zero iterations are performed)
+// TO DO: implement Icon-like evaluation, where there is only `test` + `action` parameters, and `didNothing` ('fail') is returned when test is false; that result can then be captured by an `else` operator, or coerced to `nothing` otherwise (advantage of this approach is more granular, composable code; e.g. `else` could also be applied to a `repeatWhile()` command to execute alternative branch if zero iterations are performed)
 
 // note: while primitive functions can use Thunks for lazily evaluated arguments, it's cheaper just to pass the command's arguments as-is plus the command's environment and evaluate directly
 
-func testIf(condition: Bool, body: Value, commandEnv: Env) throws -> Value { // TO DO: eliminate `ifFalse` parameter and return `didNothing` (`noAction`?) if value is false; this allows `if` to be defined as standard `if EXPR BLOCK` operator, which can be arbitrarily chained using `A else B` operator
-    return try condition ? asAnything.coerce(value: body, env: commandEnv) : didNothing
+func testIf(condition: Bool, action: Value, commandEnv: Env) throws -> Value {
+    return try condition ? asAnything.coerce(value: action, env: commandEnv) : didNothing
 }
 
-func repeatTimes(count: Int, body: Value, commandEnv: Env) throws -> Value {
+func repeatTimes(count: Int, action: Value, commandEnv: Env) throws -> Value {
     var count = count
     var result: Value = didNothing
     while count > 0 {
-        result = try asAnything.coerce(value: body, env: commandEnv)
+        result = try asAnything.coerce(value: action, env: commandEnv)
         count -= 1
     }
     return result
 }
 
-func repeatWhile(condition: Value, body: Value, commandEnv: Env) throws -> Value {
+func repeatWhile(condition: Value, action: Value, commandEnv: Env) throws -> Value {
     var result: Value = didNothing // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asAnything/asOptional/asDefault should do])
     while try asBool.unbox(value: condition, env: commandEnv) {
-        result = try asAnything.coerce(value: body, env: commandEnv)
+        result = try asAnything.coerce(value: action, env: commandEnv)
     }
     return result
 }

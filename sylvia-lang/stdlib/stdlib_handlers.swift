@@ -754,7 +754,8 @@ func call_defineCommandHandler_name_parameters_returnType_body_commandEnv(comman
         name: arg_0,
         parameters: arg_1,
         returnType: arg_2,
-        body: arg_3,commandEnv: commandEnv
+        body: arg_3,
+        commandEnv: commandEnv
     )
     return noValue
 }
@@ -764,7 +765,7 @@ let signature_store_name_value_readOnly_commandEnv = (
     paramType_0: asString,
     paramType_1: asAnything,
     paramType_2: asBool,
-    returnType: asAnything
+    returnType: asIs
 )
 let interface_store_name_value_readOnly_commandEnv = CallableInterface(
     name: "store",
@@ -782,81 +783,85 @@ func call_store_name_value_readOnly_commandEnv(command: Command, commandEnv: Env
     let result = try store(
         name: arg_0,
         value: arg_1,
-        readOnly: arg_2,commandEnv: commandEnv
+        readOnly: arg_2,
+        commandEnv: commandEnv
     )
     return try signature_store_name_value_readOnly_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
 // testIf(…)
-let signature_testIf_condition_body_commandEnv = (
+let signature_testIf_condition_action_commandEnv = (
     paramType_0: asBool,
-    paramType_1: asAnything,
+    paramType_1: asBlock,
     returnType: asIs
 )
-let interface_testIf_condition_body_commandEnv = CallableInterface(
+let interface_testIf_condition_action_commandEnv = CallableInterface(
     name: "testIf",
     parameters: [
-        ("condition", signature_testIf_condition_body_commandEnv.paramType_0),
-        ("body", signature_testIf_condition_body_commandEnv.paramType_1),
+        ("condition", signature_testIf_condition_action_commandEnv.paramType_0),
+        ("action", signature_testIf_condition_action_commandEnv.paramType_1),
         ],
-    returnType: signature_testIf_condition_body_commandEnv.returnType
+    returnType: signature_testIf_condition_action_commandEnv.returnType
 )
-func call_testIf_condition_body_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
-    let arg_0 = try signature_testIf_condition_body_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_testIf_condition_body_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_testIf_condition_action_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_testIf_condition_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_testIf_condition_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let result = try testIf(
         condition: arg_0,
-        body: arg_1,commandEnv: commandEnv
+        action: arg_1,
+        commandEnv: commandEnv
     )
-    return try signature_testIf_condition_body_commandEnv.returnType.box(value: result, env: handlerEnv)
+    return try signature_testIf_condition_action_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
 // repeatTimes(…)
-let signature_repeatTimes_count_body_commandEnv = (
+let signature_repeatTimes_count_action_commandEnv = (
     paramType_0: asInt,
-    paramType_1: asAnything,
+    paramType_1: asBlock,
     returnType: asIs
 )
-let interface_repeatTimes_count_body_commandEnv = CallableInterface(
+let interface_repeatTimes_count_action_commandEnv = CallableInterface(
     name: "repeatTimes",
     parameters: [
-        ("count", signature_repeatTimes_count_body_commandEnv.paramType_0),
-        ("body", signature_repeatTimes_count_body_commandEnv.paramType_1),
+        ("count", signature_repeatTimes_count_action_commandEnv.paramType_0),
+        ("action", signature_repeatTimes_count_action_commandEnv.paramType_1),
         ],
-    returnType: signature_repeatTimes_count_body_commandEnv.returnType
+    returnType: signature_repeatTimes_count_action_commandEnv.returnType
 )
-func call_repeatTimes_count_body_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
-    let arg_0 = try signature_repeatTimes_count_body_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_repeatTimes_count_body_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_repeatTimes_count_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_repeatTimes_count_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let result = try repeatTimes(
         count: arg_0,
-        body: arg_1,commandEnv: commandEnv
+        action: arg_1,
+        commandEnv: commandEnv
     )
-    return try signature_repeatTimes_count_body_commandEnv.returnType.box(value: result, env: handlerEnv)
+    return try signature_repeatTimes_count_action_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
 // repeatWhile(…)
-let signature_repeatWhile_condition_body_commandEnv = (
+let signature_repeatWhile_condition_action_commandEnv = (
     paramType_0: asAnything,
-    paramType_1: asAnything,
+    paramType_1: asBlock,
     returnType: asIs
 )
-let interface_repeatWhile_condition_body_commandEnv = CallableInterface(
+let interface_repeatWhile_condition_action_commandEnv = CallableInterface(
     name: "repeatWhile",
     parameters: [
-        ("condition", signature_repeatWhile_condition_body_commandEnv.paramType_0),
-        ("body", signature_repeatWhile_condition_body_commandEnv.paramType_1),
+        ("condition", signature_repeatWhile_condition_action_commandEnv.paramType_0),
+        ("action", signature_repeatWhile_condition_action_commandEnv.paramType_1),
         ],
-    returnType: signature_repeatWhile_condition_body_commandEnv.returnType
+    returnType: signature_repeatWhile_condition_action_commandEnv.returnType
 )
-func call_repeatWhile_condition_body_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
-    let arg_0 = try signature_repeatWhile_condition_body_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_repeatWhile_condition_body_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_repeatWhile_condition_action_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {
+    let arg_0 = try signature_repeatWhile_condition_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_repeatWhile_condition_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let result = try repeatWhile(
         condition: arg_0,
-        body: arg_1,commandEnv: commandEnv
+        action: arg_1,
+        commandEnv: commandEnv
     )
-    return try signature_repeatWhile_condition_body_commandEnv.returnType.box(value: result, env: handlerEnv)
+    return try signature_repeatWhile_condition_action_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
 
@@ -897,7 +902,8 @@ func stdlib_load(env: Env) throws {
     try env.add(interface_show_value, call_show_value)
     try env.add(interface_defineCommandHandler_name_parameters_returnType_body_commandEnv, call_defineCommandHandler_name_parameters_returnType_body_commandEnv)
     try env.add(interface_store_name_value_readOnly_commandEnv, call_store_name_value_readOnly_commandEnv)
-    try env.add(interface_testIf_condition_body_commandEnv, call_testIf_condition_body_commandEnv)
-    try env.add(interface_repeatTimes_count_body_commandEnv, call_repeatTimes_count_body_commandEnv)
-    try env.add(interface_repeatWhile_condition_body_commandEnv, call_repeatWhile_condition_body_commandEnv)
+    try env.add(interface_testIf_condition_action_commandEnv, call_testIf_condition_action_commandEnv)
+    try env.add(interface_repeatTimes_count_action_commandEnv, call_repeatTimes_count_action_commandEnv)
+    try env.add(interface_repeatWhile_condition_action_commandEnv, call_repeatWhile_condition_action_commandEnv)
 }
+

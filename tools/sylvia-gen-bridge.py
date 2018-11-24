@@ -2,6 +2,8 @@
 
 # temporary script for generating `LIBNAME_handlers.swift` bridge file
 
+# TO DO: option to generate Swift func stubs as well
+
 signatureParameter = """
 	paramType_««count»»: ««type»»,"""
 
@@ -107,7 +109,8 @@ def renderHandlersBridge(handlers):
 				callReturn=callReturn))
 		loadHandlers.append(format("""
 		try env.add(interface_««primitiveSignatureName»», call_««primitiveSignatureName»»)""", primitiveSignatureName=primitiveSignatureName))
-		
+    
+    # TO DO: write to file
 	print(''.join(defineHandlers))
 	print(format(loaderTemplate, loadHandlers=''.join(loadHandlers)))
 
@@ -144,10 +147,10 @@ handlers = [
 	("lowercase", [("a", "asString")], "asString", []),
 	("show", [("value", "asIs")], "asNothing", []),
 	("defineCommandHandler", [("name", "asString"), ("parameters", "AsArray(asParameter)"), ("returnType", "asCoercion"), ("body", "asIs")], "asNothing", [canError, commandEnv]),
-	("store", [("name", "asString"), ("value", "asAnything"), ("readOnly", "asBool")], "asAnything", [canError, commandEnv]),
-	("testIf", [("condition", "asBool"), ("body", "asAnything")], "asIs", [canError, commandEnv]),
-	("repeatTimes", [("count", "asInt"), ("body", "asAnything")], "asIs", [canError, commandEnv]),
-	("repeatWhile", [("condition", "asAnything"), ("body", "asAnything")], "asIs", [canError, commandEnv]),
+	("store", [("name", "asString"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs", [canError, commandEnv]),
+	("testIf", [("condition", "asBool"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
+	("repeatTimes", [("count", "asInt"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
+	("repeatWhile", [("condition", "asAnything"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
 	]
 
 renderHandlersBridge(handlers)
