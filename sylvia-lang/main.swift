@@ -27,7 +27,7 @@ let sd = Date()
 
 do { // evaluate to List of Text
     /*
-        [“Hello”, “World”] as anything
+        [“Hello”, “World”] as value
         => [“Hello”, “World”]
      */
     let v = List([Text("Hello"), Text("World")])
@@ -175,6 +175,34 @@ if addOne(3) > 8 {
 }
 
 if 4 ≤ 8 { show("4 ≤ 8") }
+
+"""
+
+// TO DO: unprefixed annotations are developer comments; any practical way to determine annotation type, particularly user doc, if it starts with markdown syntax?
+
+code = """
+«foo.sy -- about this script»
+
+«= Section =»
+
+store ("name", "Bob")
+
+«== Subsection ==»
+
+"Hello" & ", " & name & "!"
+
+«some comment»
+"""
+
+
+code = """
+defineHandler("doStuff", [["aNum", optional]], optional, show(aNum), false) «TO DO: how to indicate no return value? (this is a bit awkward as `nothing` value would mean returnType argument was omitted)»
+
+doStuff(123)
+
+«doStuff("df")»
+
+doStuff()
 
 """
 

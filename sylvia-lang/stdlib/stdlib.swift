@@ -3,19 +3,14 @@
 //
 
 /*
- 
  Primitive libraries are implemented as Swift funcs that follow standardized naming and parameter/return conventions; all bridging code is auto-generated. Clean separation of native/bridging/primitive logic has big advantages over Python/Ruby/etc-style modules where primitive functions must perform all their own bridging:
  
-    - faster, simpler, less error-prone development of primitive libraries
+ - faster, simpler, less error-prone development of primitive libraries
  
-    - auto-generated API documentation
+ - auto-generated API documentation
  
-    - optimizing cross-compilation to Swift (e.g. when composing two primitive functions that return/accept same Swift type, boxing/unboxing steps can be skipped)
- 
+ - optimizing cross-compilation to Swift (e.g. when composing two primitive functions that return/accept same Swift type, boxing/unboxing steps can be skipped)
  */
-
-
-// TO DO: to what extent can/should primitive funcs be declared public, allowing optimizing cross-compiler to discard native<->Swift conversions and bypass PrimitiveHandler implementation whenever practical? e.g. `Command("add",[Text("1"),Text("2")])` should cross-compile to `try stdlib.add(a:1,b:2)` (note that even when full reductions can't be done due to insufficient detail/partial type matches, lesser reductions can still be achieved using coercion info from PrimitiveHandler's introspection APIs, e.g. `try asDouble.box(stdlib.add(a:asDouble.unbox(…),b:asDouble.unbox(…)),…)` would save an Env lookup and some function calls, at cost of less precise error messages when a non-numeric value is passed as argument); the final optimization step would be to eliminate the library call entirely and insert templated Swift code directly (this is mostly useful for standard arithmetic and conditional operators, and conditional, loop, and error handling blocks, which are both simple and frequent enough to warrant the extra code generation logic, at least in stdlib)
 
 
 import Darwin
@@ -79,7 +74,7 @@ func ne(a: String, b: String) throws -> Bool { return a.lowercased() != b.lowerc
 func gt(a: String, b: String) throws -> Bool { return a.lowercased() >  b.lowercased() }
 func ge(a: String, b: String) throws -> Bool { return a.lowercased() >= b.lowercased() }
 
-// concatenation
+// concatenation (currently text only but should support collections too)
 func joinValues(a: String, b: String) throws -> String { return a + b }
 
 
@@ -111,8 +106,9 @@ func show(value: Value) { // primitive library function
 // requires: throws, commandEnv // any required env params are appended to bridging call in standard order (commandEnv,handlerEnv,bodyEnv)
 
 // TO DO: need asParameterList coercion that knows how to parse user-defined parameters list (which may consist of label strings and/or (label,coercion) tuples, and may include optional description strings too)
-func defineCommandHandler(name: String, parameters: [Parameter], returnType: Coercion, body: Value, commandEnv: Env) throws {
-    let  h = Handler(CallableInterface(name: name, parameters: parameters, returnType: returnType), body)
+// TO DO: rename `defineHandler` and take extra `options:.command/.event` parameter
+func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, action: Value, isEventHandler: Bool, commandEnv: Env) throws {
+    let  h = Handler(CallableInterface(name: name, parameters: parameters, returnType: returnType), action, isEventHandler)
     try commandEnv.add(h)
 }
 

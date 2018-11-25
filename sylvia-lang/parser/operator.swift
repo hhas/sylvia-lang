@@ -7,13 +7,15 @@
 // - whole-word matching: word-based operator names (e.g. `AND`, `as`) must be bounded by non-word characters (whitespace/punctuation/symbol/linebreak/etc)
 // - longest match: symbol-based operators (e.g. `==`, `&`) can be bounded by anything, including other symbols
 
+// TO DO: operator names are currently case-insensitive, but they should probably be case-sensitive (as we rely on camel case to distinguish word boundaries in multiWordNames) and rely on aliases/editor autocorrect if alternate casing needs to be supported (e.g. `AND` is canonical name as reminder to novices that it is Boolean logic operator, but users may still type it as `and` in which case pretty printer should change it to canonical form)
+
 
 import Foundation
 
 
 
 typealias OperatorName = String
-typealias OperatorDefinition = (name: OperatorName, precedence: Int, parseFunc: ParseFunc, aliases: [OperatorName], command: String?)
+typealias OperatorDefinition = (name: OperatorName, precedence: Int, parseFunc: ParseFunc, aliases: [OperatorName], handlerName: String?)
 
 
 //
@@ -116,7 +118,6 @@ class OperatorRegistry { // once populated, a single OperatorRegistry instance c
     private func add(_ definition: OperatorDefinition, to table: inout OperatorTable) {
         self.add(definition, named: definition.name, to: &table)
         for alias in definition.aliases { self.add(definition, named: alias, to: &table) }
-        if let name = definition.command { self.add(definition, named: name, to: &table) }
     }
 
     private func add(_ definition: OperatorDefinition) {

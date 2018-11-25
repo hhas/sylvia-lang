@@ -47,11 +47,21 @@
 // TO DO: Q. what about layout hinting, so pretty printer can output normalized (correctly indented, regularly spaced) code while still preserving/improving certain aspects of user's code layout (e.g. explicit line wraps within long lists should always appear after item separator commas and before next item)
 
 
- 
+// TO DO: skip first line if it has `#!` prefix
+
+
 import Foundation
 
 
-typealias TokenInfo = (type: Token, start: String.Index, end: String.Index)
+struct TokenInfo: CustomDebugStringConvertible {
+    let type: Token
+    let start: String.Index
+    let end: String.Index
+    
+    var debugDescription: String { return "\(self.start.encodedOffset)…\(self.end.encodedOffset) \(self.type)" }
+    
+    // TO DO: consider always using single-line Lexer, and store line number here as well
+}
 
 
 extension CharacterSet { // convenience extension, allows CharacterSet instances to be matched directly in switch cases
@@ -108,7 +118,6 @@ let identifierCharacters = CharacterSet.letters.union(CharacterSet(charactersIn:
 let identifierAdditionalCharacters = identifierCharacters.union(digitCharacters)
 
 // number literals
-
 let numericSigns = Set(["+", "-"])
 let signCharacters = CharacterSet(charactersIn: numericSigns.joined()) // TO DO: decide exactly what sign glyphs to include here (be aware that these characters are also in symbolCharacters as they can also be used as arithmetic operators)
 let digitCharacters = CharacterSet.decimalDigits // lexer will match decimal and exponent notations itself (note that when stdlib operators are loaded, any +/- symbols before number will be read as a separate .operator; it's up to parser to match unary +/- .operators followed by .number and reduce it to a signed number value for efficiency [note that in AppleScript, multiple +/- symbols before a number are collapsed down by pretty printer])
@@ -161,7 +170,7 @@ enum Token {
     
     // names
     case identifier(value: String, isQuoted: Bool) // .letters // atomic; the lexer automatically reads everything between `'` and corresponding `'`; this allows identifier names that are otherwise masked by operator names to be used in quoted form (e.g. `'AND'(a,b)` = `a AND b`)
-    case operatorName(value: String, prefix: OperatorDefinition?, infix: OperatorDefinition?)
+    case operatorName(value: String, prefix: OperatorDefinition?, infix: OperatorDefinition?) // `value` contains operator's canonical name; should it be the name that appeared in source code? (issue is how to report syntax errors: the error message needs to show the name that appears in source code)
     
     // interstitials (i.e. everything that doesn't appear to be valid code)
     case whitespace(String)
@@ -182,6 +191,7 @@ enum Token {
         }
     }
     
+    // TO DO: method for getting human-readable token type name (e.g. "operator name", "end of list") for use in error messages
 }
 
 // kludgy workaround for inability to parameterize both operands in `if case ENUM = VALUE`; used by Parser.readDelimitedValues()
@@ -376,7 +386,7 @@ class Lexer {
     
     func tokenize() -> [TokenInfo] { // note: tokenization should never fail; any issues should be added to token stream for parsers to worry about // TO DO: ensure original lines of source code can be reconstructed from token stream (that will allow ambiguous quoting in per-line reading to be resolved downstream)
         var start = self.index
-        var result: [TokenInfo] = [(.startOfCode, start, start)]
+        var result: [TokenInfo] = [TokenInfo(type: .startOfCode, start: start, end: start)]
         if self.code != "" {
             // TO DO: backtrack() calls is ugly; consider using separate `var char:Character?` and `func next()->()`
             while let c = self.next() {
@@ -444,11 +454,11 @@ class Lexer {
                 }
                 let end = self.index
                 assert(start < end, "Invalid token (cannot be zero length): \(token)") // only .startOfCode/.endOfCode markers are zero-length
-                result.append((token, start, end))
+                result.append(TokenInfo(type: token, start: start, end: end))
                 start = end
             }
         }
-        result.append((.endOfCode, self.index, self.index))
+        result.append(TokenInfo(type: .endOfCode, start: self.index, end: self.index))
         return result
     }
 }

@@ -149,3 +149,21 @@ class BadArgumentError: LanguageError {
         return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter requires \(type(of:parameter.type)) but received \(type(of:argument)): \(argument)" // TO DO: better type descriptions needed
     }
 }
+
+class UnrecognizedArgumentError: LanguageError {
+    
+    let command: Command
+    let handler: CallableValue
+    
+    init(command: Command, handler: CallableValue) {
+        self.command = command
+        self.handler = handler
+        super.init()
+    }
+    
+    override var message: String {
+        let parameters = self.handler.interface.parameters
+        let arguments = self.command.arguments
+        return "‘\(self.handler.interface.name)’ handler expected \(parameters.count) parameters but received \(arguments.count): \(arguments)"
+    }
+}

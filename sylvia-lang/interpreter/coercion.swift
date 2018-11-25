@@ -84,7 +84,7 @@ extension BridgingProtocol {
 
 class AsValue: BridgingCoercion { // any value *except* `nothing`
     
-    var name: String { return "value" }
+    var name: String { return "value" } // TO DO: rename `typeName`? Q. should this be coercion name only, or should it also include any constraints? (or should name+constraints only appear for value's description, c.f. Command.description)
     
     typealias SwiftType = Value
     
@@ -102,9 +102,9 @@ class AsValue: BridgingCoercion { // any value *except* `nothing`
 }
 
 
-class AsAnything: BridgingCoercion { // any value including `nothing`
+class AsAnything: BridgingCoercion { // any value including `nothing` // TO DO: get rid of this; only `optional`/`default` should accept `nothing`
     
-    var name: String { return "anything" }
+    var name: String { return "optional" }
     
     typealias SwiftType = Value
     
@@ -296,7 +296,7 @@ class AsList: Coercion {
 
 class AsIs: BridgingCoercion { // the value is passed thru as-is, without evaluation; unlike AsThunk, its context (env) is not captured
     
-    var name: String { return "anything" }
+    var name: String { return "optional" }
     
     typealias SwiftType = Value
     
@@ -449,7 +449,7 @@ class AsParameter: BridgingCoercion {
         let type: Coercion
         switch fields.count {
         case 1: // name only
-            type = asValue
+            type = asValue // anything except `nothing` (as that is used for optional params)
         case 2: // name + type
             type = try asCoercion.unbox(value: fields[1], env: env)
         default:

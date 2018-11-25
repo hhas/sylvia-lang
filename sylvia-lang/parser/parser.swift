@@ -4,10 +4,28 @@
 
 // Pratt parser (enhanced recursive descent parser that supports operator fixity and associativity)
 
+
+/* TO DO: each [non-comment/-disable] annotation should bind to an adjacent expression on same line (or to parent block/list/group if nothing else on that line); e.g. annotations on right-end of line should bind left, ignoring punctuation:
+ 
+ 
+    to foo( «one-line summary of handler's purpose»
+            arg1 as TYPE, «1st argument description»
+            arg2 as TYPE «2nd argument description»
+            ) returning TYPE { «result description»
+        «/body code goes here»
+    } «long documentation goes here»
+    «#hashtags #go #here?»
+ 
+ This is going to need some thought, particularly as parser should handle all annotations automatically, skipping/extracting them in peek()/next()'s skip loop and collecting in temporary list, then automatically binding to an AST Value [in parseExpression loop?]
+ 
+ Also need to decide how to distinguish dev comment vs user doc vs disabled code vs section headings vs whatever other semantics users might want to apply. (Editor will want to provide menu options for inserting different types of annotations, and apply formatting+tooltips when pretty printing)
+ */
+
+
 // TO DO: how best to implement incremental parsing e.g. might do per-line parsing, with each Line keeping a count of any opening/closing { }, [ ], ( ), « » blocks and quotes, along with any other hints such as indentation and possible keywords; a block-level analyzer could then attempt to collate lines into balanced blocks, detecting both obvious imbalances (e.g. `{[}]`, `{[[]}`) and more subtle ones (e.g. `{[]{[]}`) and providing best guesses as to where the correction should be made (e.g. given equally indented blocks, `{}{{}{}` the unbalanced `{` is more likely to need the missing `}` inserted before the next `{}`, not at end of script [as a dumber parser would report]; looking for keywords that are commonly expected at top-level or within blocks may also provide hints as to when to discard previous tally as unbalanced and start a new one from top level); TBH, code editor only really needs to keep lines balanced during editing (and flag where imbalanced quotes/braces/etc are detected), and provide basic dictionary-based auto-suggest/-correct/-complete; when balanced, document can be parsed quite coarsely (either in full, or per top-level block); that just leaves the question of tooling for selecting and moving subnodes around, which again could probably be done with basic block balancing followed by a quick re-parse to validate (a really smart editor might try to be more helpful, e.g. ensuring dragging an item into a list literal either replaces an existing item or inserts a comma separator automatically, but not convinced that will really assist more than it irritates; after all, if user wants to assemble invalid code, they should)
 
 
-// TO DO: all Value subclasses instantiated by parsefuncs should be defined as constants on a struct which is passed as [optional] argument to parser's initializer; this will allow parser to generate AST trees for multiple purposes: running, debugging, profiling, structure editing, optimizing, cross-compiling (Q. is it enough to provide an instantiable ASTNodes struct, or is it better to define ASTNodes as a protocol? be aware that all attributes need to conform to Value plus appropriate initializer, which is probably best done as `typealias ASTTextNode = Value & TextInterface`)
+// TO DO: all Value subclasses instantiated by Parser should be defined on a struct passed as optional argument to parser's initializer; this will allow parser to generate AST trees for multiple purposes: running, debugging, profiling, structure editing, optimizing, cross-compiling (Q. is it enough to provide an instantiable ASTNodes struct, or is it better to define ASTNodes as a protocol? be aware that all attributes need to conform to Value plus appropriate initializer, which is probably best done as `typealias ASTTextNode = Value & TextInterface`)
 
 
 
@@ -37,8 +55,9 @@ class Parser {
     
     // TO DO: how do .lineBreak tokens interact with expression parsing? how suitable is recursive implementation for interactive per-line use? (or is better to use line analyzer - which doesn't generate AST, only line-balancing tallys - during editing, and only invoke parser when all tallys balance?)
     
-    let tokens: [TokenInfo]
-    var index = 0
+    private let tokens: [TokenInfo]
+    private var index = 0
+    private var annotations = [TokenInfo]() // TO DO: parser needs to bind extracted annotations to AST nodes automatically (this may be easier once TokenInfo includes line numbers)
     
     init(_ tokens: [TokenInfo]) {
         self.tokens = tokens
@@ -57,6 +76,10 @@ class Parser {
             switch self.tokens[self.index].type {
             case .whitespace(_): self.index += 1
             case .lineBreak where ignoringLineBreaks: self.index += 1
+            case .annotationLiteral(_):
+                print("TO DO: reattach extracted annotation:", self.tokens[self.index])
+                annotations.append(self.tokens[self.index])
+                self.index += 1
             default: loop = false
             }
         }
@@ -68,7 +91,7 @@ class Parser {
         var loop = true
         while loop && index < self.tokens.count {
             switch self.tokens[index].type {
-            case .whitespace(_): index += 1
+            case .whitespace(_), .annotationLiteral(_): index += 1
             case .lineBreak where ignoringLineBreaks: index += 1
             default: loop = false
             }
@@ -99,16 +122,19 @@ class Parser {
     func readCommaDelimitedValues(_ isEndToken: ((Token) -> Bool)) throws -> [Value] { // e.g. `[EXPR,EXPR,EXPR]` // start on '('/'['
         var items = [Value]()
         // TO DO: could do with a sanity test here, but would need to pass an additional isBeginToken callback as there's no way to compare token directly (short of implementing `isCase()` method on it with big old switch block)
-        self.next() // step over '('/'['
-        while !isEndToken(self.this) {
+        self.next() // step over '('/'[' or ','
+        while !isEndToken(self.this) { // check for ')'/']'
             do {
                 items.append(try self.parseExpression()) // this starts on first token of expression and ends on last
             } catch { // TO DO: get rid of this once parser reports error locations
+                print(items)
                 print("Failed to read item \(items.count+1):", error) // DEBUGGING
                 throw error
             }
-            self.next() // move to next token (which should be either comma or ')'/']')
+            self.next() // move to next token, which should be ')'/']' or '/'
+            // TO DO: what about annotations?
             guard case Token.itemSeparator = self.this else { break } // if it's a comma then read next item, else break
+            self.next() // step over ','
         }
         // make sure there's a closing ')'/']'
         guard isEndToken(self.this) else { throw SyntaxError("Unexpected code after item \(items.count) of \(items): \(self.this)") }
@@ -117,16 +143,12 @@ class Parser {
     
     // token matching
     
-    func parseAtom(_ precedence: Int = 0) throws -> Value {
+    private func parseAtom(_ precedence: Int = 0) throws -> Value {
         let tokenInfo = self.thisInfo
         let token = tokenInfo.type
         let value: Value
         // TO DO: what about .endOfCode? can it occur here?
         switch token {
-        case .annotationLiteral(let annotation): // «...» // attaches arbitrary metadata to subsequent node (TO DO: should really behave as postfix, attaching itself to preceding node [except at top level of script/block where it attaches to parent node, e.g. handler docs would appear at top of handler body], although we might need to jig that top-level behavior a bit)
-            self.next()
-            value = try self.parseExpression(token.precedence) // bind like glue // TO DO: is this right? (or should it just call `parseAtom(precedence)`, which avoids possibility of anything having higher precedence than annotations?)
-            value.annotations.append(annotation) // TO DO: for straightforward evaluation, discard annotations that aren't introspectable (e.g. comments); don't worry about annotating for structure editors, as they'll probably use their own mutable Node objects
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
             value = try List(self.readCommaDelimitedValues(isEndOfList))
         case .blockLiteral:     // `{…}`
@@ -136,7 +158,7 @@ class Parser {
             self.next() // step over '('
             value = try self.parseExpression()
             self.next() // step over ')'
-            guard case .groupLiteralEnd = self.this else { throw SyntaxError("Expected “)” but found \(self.this)") }
+            guard case .groupLiteralEnd = self.this else { throw SyntaxError("Expected end of precedence group, “)”, but found: \(self.this)") }
         case .textLiteral(value: let string):
             value = Text(string)
         case .identifier(value: let name, isQuoted: _): // found `NAME`
@@ -158,32 +180,25 @@ class Parser {
                 throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in atom/prefix table.")
             }
         case .endOfCode:
-            throw SyntaxError("endOfCode; TO DO: FIX: if preceding expression was at top-level of program then parseScript() should have return successfully")
+            throw SyntaxError("Expected an expression but found end of code instead.")
         default:
-            throw SyntaxError("parseAtom Expected expression but found \(token)")
+            throw SyntaxError("Expected an expression but found \(token)")
         }
         value.annotations.append(CodeRange(start: tokenInfo.start, end: self.thisInfo.end))
         return value
     } // important: this should always leave cursor on last token of expression
     
-    func parseOperation(_ leftExpr: Value) throws -> Value {
+    private func parseOperation(_ leftExpr: Value) throws -> Value {
         let tokenInfo = self.thisInfo
         let token = tokenInfo.type
         let value: Value
         switch token {
-        case .annotationLiteral(let string): // «...» // attaches arbitrary contents to preceding node as metadata
-            leftExpr.annotations.append(string)
-            value = leftExpr
-        case .operatorName(value: let name, prefix: _, infix: let definition):
-            if definition == nil {
-                value = try self.parseAtom()// TO DO: ???
-            } else {
-                switch definition!.parseFunc {
-                case .infix(let parseFunc), .postfix(let parseFunc):
-                    value = try parseFunc(self, leftExpr, name, definition!)
-                default: // this should never happen
-                    throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in infix/postfix table.")
-                }
+        case .operatorName(value: let name, prefix: _, infix: let definition) where definition != nil:
+            switch definition!.parseFunc {
+            case .infix(let parseFunc), .postfix(let parseFunc):
+                value = try parseFunc(self, leftExpr, name, definition!)
+            default: // this should never happen
+                throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in infix/postfix table.")
             }
         case .endOfCode:
             throw SyntaxError("Expected an operand after the following code but found end of code instead: \(leftExpr)")
@@ -195,7 +210,7 @@ class Parser {
     } // important: this should always leave cursor on last token of expression
     
     
-    func parseExpression(_ precedence: Int = 0, ignoringLineBreaks: Bool = false) throws -> Value { // cursor should be on _preceding_ token when this is called
+    func parseExpression(_ precedence: Int = 0, ignoringLineBreaks: Bool = false) throws -> Value { // cursor should be on _preceding_ token when this is called // TO DO: should this method be responsible for binding extracted annotations to adjacent Values?
         var left = try self.parseAtom()
         while precedence < self.peek(ignoringLineBreaks: ignoringLineBreaks).precedence { // TO DO:
             self.next(ignoringLineBreaks: ignoringLineBreaks) // TO DO: CHECK
@@ -218,7 +233,7 @@ class Parser {
                 // make sure there's a line break
                 guard case .lineBreak = self.this else {
                     if case .endOfCode = self.this { break }
-                    throw SyntaxError("Expected end of line but found: \(self.this)")
+                    throw SyntaxError("Expected end of line but found: \(self.thisInfo)")
                 }
                 self.next(ignoringLineBreaks: true) // skip over line break[s]
             }

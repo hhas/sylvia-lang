@@ -87,10 +87,12 @@ class Handler: CallableValue { // native handler
     let interface: CallableInterface // TO DO: support declaring capability requirements as part of interface (Q. in native code, should capabilities be declared via annotations, or something else?)
     
     let body: Value
+    let isEventHandler: Bool
     
-    init(_ interface: CallableInterface, _ body: Value) { // TO DO: Bool option to modify how unmatched arguments are handled: command handlers (`to ACTION(…){…}`) should throw, event handlers (`when EVENT(…){…}`) should silently discard (Q. should command/event parameter matching behavior be specified as a capability flag? seems like it'd be a good idea to have a single standardized API and syntax, allowing new capability types to be added over time. Per-handler capabilities could prove extremely powerful combined with dynamic sandboxing. e.g. Consider a command shell where user cannot be expected to declare up-front exactly which safety protections/security rights/etc they will require when interacting with machine. As user enters new commands, the shell could list each handler's capability requirements, then confirm all new rights upon user clicking Run; this will be vastly more pleasant to use than, say, 10.14's current UX for approving per-app Apple event IPC, where user may be prompted at multiple points throughout the program's lifetime ['fire and forget' is not an option here].)
+    init(_ interface: CallableInterface, _ body: Value, _ isEventHandler: Bool) { // TO DO: Bool option to modify how unmatched arguments are handled: command handlers (`to ACTION(…){…}`) should throw, event handlers (`when EVENT(…){…}`) should silently discard (Q. should command/event parameter matching behavior be specified as a capability flag? seems like it'd be a good idea to have a single standardized API and syntax, allowing new capability types to be added over time. Per-handler capabilities could prove extremely powerful combined with dynamic sandboxing. e.g. Consider a command shell where user cannot be expected to declare up-front exactly which safety protections/security rights/etc they will require when interacting with machine. As user enters new commands, the shell could list each handler's capability requirements, then confirm all new rights upon user clicking Run; this will be vastly more pleasant to use than, say, 10.14's current UX for approving per-app Apple event IPC, where user may be prompted at multiple points throughout the program's lifetime ['fire and forget' is not an option here].)
         self.interface = interface
         self.body = body
+        self.isEventHandler = isEventHandler
     }
     
     // unbox()/coerce() support; returns BoundHandler capturing both handler and its original handlerEnv; this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
@@ -111,9 +113,7 @@ class Handler: CallableValue { // native handler
                 //print("unpacking argument \(parameterName): \(value)")
                 try bodyEnv.set(parameterName, to: parameterType.coerce(value: value, env: commandEnv)) // expand/thunk parameter using command's lexical scope
             }
-            if arguments.count > 0 { // TO DO: if command handler then throw TooManyArgumentsError; if event handler then discard silently
-                print("TO DO: `\(self.interface.name)` handler did not consume last \(arguments.count) arguments from command: `\(command)`")
-            }
+            if arguments.count > 0 && !self.isEventHandler { throw UnrecognizedArgumentError(command: command, handler: self) }
             return try type.coerce(value: self.interface.returnType.coerce(value: self.body, env: bodyEnv), env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
         } catch {
             throw HandlerFailedError(handler: self, command: command).from(error)

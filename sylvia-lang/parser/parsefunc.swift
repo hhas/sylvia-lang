@@ -70,23 +70,23 @@ extension Command {
 
 func parseAtomOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.next()
-    return Command(definition.command ?? operatorName)
+    return Command(definition.handlerName ?? operatorName)
 }
 func parsePrefixOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.next()
-    return Command(definition.command ?? operatorName, leftOperand: try parser.parseExpression(definition.precedence))
+    return Command(definition.handlerName ?? operatorName, leftOperand: try parser.parseExpression(definition.precedence))
 }
 func parseInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.next()
-    return Command(definition.command ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence))
+    return Command(definition.handlerName ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence))
 }
 func parseRightInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.next()
-    return Command(definition.command ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence-1))
+    return Command(definition.handlerName ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence-1))
 }
 func parsePostfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.next()
-    return Command(definition.command ?? operatorName, rightOperand: leftExpr)
+    return Command(definition.handlerName ?? operatorName, rightOperand: leftExpr)
 }
 
 

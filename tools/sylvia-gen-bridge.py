@@ -4,6 +4,10 @@
 
 # TO DO: option to generate Swift func stubs as well
 
+# TO DO: insert unrecognized argument checks into command handler call_ funcs
+
+# TO DO: insert file comment
+
 signatureParameter = """
 	paramType_««count»»: ««type»»,"""
 
@@ -23,25 +27,25 @@ contextArguments = [
 ] # what else? e.g. external IPC, FS, etc connections?
 
 callReturnIfResult = """
-	return try signature_««primitiveSignatureName»».returnType.box(value: result, env: handlerEnv)"""
+    return try signature_««primitiveSignatureName»».returnType.box(value: result, env: handlerEnv)"""
 
 callReturnIfNoResult = """
-	return noValue"""
+    return noValue"""
 
 handlerTemplate = """
 // ««nativeName»»(…)
 let signature_««primitiveSignatureName»» = (««signatureParameters»»
-	returnType: ««returnType»»
+    returnType: ««returnType»»
 )
 let interface_««primitiveSignatureName»» = CallableInterface(
-	name: "««nativeName»»",
-	parameters: [««interfaceParameters»»
-	],
-	returnType: signature_««primitiveSignatureName»».returnType
+    name: "««nativeName»»",
+    parameters: [««interfaceParameters»»
+    ],
+    returnType: signature_««primitiveSignatureName»».returnType
 )
-func call_««primitiveSignatureName»»(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {««unboxArguments»»	
-	««resultAssignment»»««tryKeyword»»««primitiveFunctionName»»(««callArguments»»
-	)««callReturn»»
+func call_««primitiveSignatureName»»(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, type: Coercion) throws -> Value {««unboxArguments»»
+    ««resultAssignment»»««tryKeyword»»««primitiveFunctionName»»(««callArguments»»
+    )««callReturn»»
 }
 """
 
@@ -49,11 +53,7 @@ loadHandler = """
     try env.add(interface_««primitiveSignatureName»», call_««primitiveSignatureName»»)"""
 
 loaderTemplate = """
-// auto-generated module load function
-
-func stdlib_load(env: Env) throws {
-    try loadConstants(env: env)
-    try loadCoercions(env: env)
+func stdlib_loadHandlers(env: Env) throws {
     ««loadHandlers»»
 }"""
 
@@ -107,8 +107,7 @@ def renderHandlersBridge(handlers):
 				primitiveFunctionName=name, 
 				callArguments=','.join(callArguments), 
 				callReturn=callReturn))
-		loadHandlers.append(format("""
-		try env.add(interface_««primitiveSignatureName»», call_««primitiveSignatureName»»)""", primitiveSignatureName=primitiveSignatureName))
+		loadHandlers.append(format(loadHandler, primitiveSignatureName=primitiveSignatureName))
     
     # TO DO: write to file
 	print(''.join(defineHandlers))
@@ -145,8 +144,13 @@ handlers = [
 	("joinValues", [("a", "asString"), ("b", "asString")], "asString", [canError]),
 	("uppercase", [("a", "asString")], "asString", []),
 	("lowercase", [("a", "asString")], "asString", []),
-	("show", [("value", "asIs")], "asNothing", []),
-	("defineCommandHandler", [("name", "asString"), ("parameters", "AsArray(asParameter)"), ("returnType", "asCoercion"), ("body", "asIs")], "asNothing", [canError, commandEnv]),
+	("show", [("value", "asAnything")], "asNothing", []),
+	("defineHandler", [("name", "asString"),
+                       ("parameters", "AsArray(asParameter)"),
+                       ("returnType", "asCoercion"),
+                       ("action", "asIs"),
+                       ("isEventHandler", "asBool")
+                       ], "asNothing", [canError, commandEnv]),
 	("store", [("name", "asString"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs", [canError, commandEnv]),
 	("testIf", [("condition", "asBool"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
 	("repeatTimes", [("count", "asInt"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
