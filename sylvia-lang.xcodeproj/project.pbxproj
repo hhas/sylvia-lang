@@ -136,9 +136,9 @@
 			children = (
 				4FEC2710219A33EE00B28A5A /* stdlib.swift */,
 				4F60E8CD21AA31C0009B65F1 /* stdlib_load.swift */,
+				4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */,
 				4FEC2720219B8C2700B28A5A /* stdlib_handlers.swift */,
 				4FEC272A219E18B100B28A5A /* stdlib_operators.swift */,
-				4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */,
 			);
 			path = stdlib;
 			sourceTree = "<group>";

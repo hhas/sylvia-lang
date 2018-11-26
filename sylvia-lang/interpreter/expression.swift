@@ -195,7 +195,7 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
     override func run(env: Env, type: Coercion) throws -> Value {
         var result: Value = noValue
         for value in self.body {
-            result = try asAnything.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
+            result = try asResult.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
         }
         return try type.coerce(value: result, env: env)
     }

@@ -48,8 +48,8 @@ class Env {
     }
     
     func add(_ coercion: Coercion) throws { // used by library loader // TO DO: delete this method once coercions implement Callable
-        if self.frame[coercion.name] != nil { throw ReadOnlyValueError(name: coercion.name, env: self) }
-        self.frame[coercion.name] = (readOnly: true, value: coercion)
+        if self.frame[coercion.coercionName] != nil { throw ReadOnlyValueError(name: coercion.coercionName, env: self) }
+        self.frame[coercion.coercionName] = (readOnly: true, value: coercion)
     }
     
     func child() -> Env { // TO DO: what about scope name, global/local, writable flag?

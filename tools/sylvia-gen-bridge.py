@@ -20,6 +20,9 @@ unboxArgument = """
 callArgument = """
 		««paramLabel»»: arg_««count»»""" # combine with context arguments and comma-separate
 
+checkForUnexpectedArguments = """
+    if command.arguments.count > ««parameterCount»» { throw UnrecognizedArgumentError(command: command, handler: handler) }"""
+
 contextArguments = [
 		"commandEnv: commandEnv",
 		"handlerEnv: handlerEnv",
@@ -62,6 +65,7 @@ canError = 'canError'
 commandEnv = 'commandEnv'
 handlerEnv = 'handlerEnv'
 bodyEnv = 'bodyEnv'
+isEventHandler = 'isEventHandler'
 
 
 def format(tpl, **kargs):
@@ -72,26 +76,37 @@ def renderHandlersBridge(handlers):
 	defineHandlers = []
 	loadHandlers = []
 	for name, parameters, returnType, requirements in handlers:
+		# create unique identifier for handler's generated code (e.g. `FUNCTIONNAME_ARG1_ARG2_ARG3`)
 		primitiveSignatureName = [name] + [k for k,v in parameters]
 		if commandEnv in requirements: primitiveSignatureName.append("commandEnv")
 		if handlerEnv in requirements: primitiveSignatureName.append("handlerEnv")
 		primitiveSignatureName = '_'.join(primitiveSignatureName)
 		# TO DO: bodyEnv (also requires extra line to create subenv)
+		# insert code to unbox each argument; collect list of arguments for Swift function call
 		signatureParameters = []
 		interfaceParameters = []
 		unboxArguments = []
 		callArguments = []
+		i = -1
 		for i, (k,v) in enumerate(parameters):
 			signatureParameters.append(format(signatureParameter, count=i, type=v))
 			interfaceParameters.append(format(interfaceParameter, count=i, nativeName=k, primitiveSignatureName=primitiveSignatureName))
 			unboxArguments.append(format(unboxArgument, count=i, primitiveSignatureName=primitiveSignatureName))
 			callArguments.append(format(callArgument, count=i, paramLabel=k))
-	
+		# if it's a command handler, add code to check all arguments supplied by command have been consumed
+		if isEventHandler not in requirements:
+			unboxArguments.append(format(checkForUnexpectedArguments, parameterCount=i+1))
+		# add any additional ('special') arguments for Swift function call
 		if commandEnv in requirements: callArguments.append("\n\t\tcommandEnv: commandEnv")
 		if handlerEnv in requirements: callArguments.append("\n\t\thandlerEnv: handlerEnv")
-	
-		resultAssignment = "" if returnType == "asNothing" else "let result = "
-		callReturn = callReturnIfNoResult if returnType == "asNothing" else format(callReturnIfResult, primitiveSignatureName=primitiveSignatureName)
+		
+		
+		if returnType == "asNoResult":
+			resultAssignment = ""
+			callReturn = callReturnIfNoResult
+		else:
+			resultAssignment = "let result = "
+			callReturn = format(callReturnIfResult, primitiveSignatureName=primitiveSignatureName)
 
 		defineHandlers.append(format(handlerTemplate,
 				nativeName=name, 
@@ -144,17 +159,17 @@ handlers = [
 	("joinValues", [("a", "asString"), ("b", "asString")], "asString", [canError]),
 	("uppercase", [("a", "asString")], "asString", []),
 	("lowercase", [("a", "asString")], "asString", []),
-	("show", [("value", "asAnything")], "asNothing", []),
+	("show", [("value", "asAnythingOrNothing")], "asNoResult", []),
 	("defineHandler", [("name", "asString"),
                        ("parameters", "AsArray(asParameter)"),
                        ("returnType", "asCoercion"),
                        ("action", "asIs"),
                        ("isEventHandler", "asBool")
-                       ], "asNothing", [canError, commandEnv]),
-	("store", [("name", "asString"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs", [canError, commandEnv]),
+                       ], "asNoResult", [canError, commandEnv]),
+	("store", [("name", "asString"), ("value", "asAnythingOrNothing"), ("readOnly", "asBool")], "asIs", [canError, commandEnv]),
 	("testIf", [("condition", "asBool"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
 	("repeatTimes", [("count", "asInt"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
-	("repeatWhile", [("condition", "asAnything"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
+	("repeatWhile", [("condition", "asAnythingOrNothing"), ("action", "asBlock")], "asIs", [canError, commandEnv]),
 	]
 
 renderHandlersBridge(handlers)

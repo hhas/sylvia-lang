@@ -39,30 +39,36 @@ func parseExpressionAndBlockOperator(_ parser: Parser, operatorName: String, def
     let expr = try parser.parseExpression(definition.precedence)
     // 2nd operand is required to be a block to avoid syntactic ambiguity (including token patterns such as `WORD WORD` that per-line parsing can use to distinguish probable quoted text from probable code)
     parser.next()
-    let block = try parser.parseExpression(definition.precedence) // T|O DO: implement Parser.parseIfBlock, which returns nil if non-block is found, giving caller choice of what to do next [this is preferable to throwing SyntaxError, as errors occuring while parsing contents of block aren't trivially distinguished from error raised when expected block isn't found])
+    let action = try parser.parseExpression(definition.precedence) // T|O DO: implement Parser.parseIfBlock, which returns nil if non-block is found, giving caller choice of what to do next [this is preferable to throwing SyntaxError, as errors occuring while parsing contents of block aren't trivially distinguished from error raised when expected block isn't found])
     // TO DO: how best to support 'code' formatting style in error messages? (one option is to treat all error strings as Markdown, and format/escape interpolated values when inserting; may be best to leave this until native 'tagged' text interpolation is implemented, then allow that to be used when constructing error messages in both native and Swift code)
-    if !(block is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found: \(block)") } // TO DO: long code needs elided for readability
-    return Command(definition.handlerName ?? operatorName, leftOperand: expr, rightOperand: block)
+    if !(action is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found: \(action)") } // TO DO: long code needs elided for readability
+    let command = Command(definition.handlerName ?? operatorName, leftOperand: expr, rightOperand: action)
+    command.annotations.append((operatorName: operatorName, definition: definition)) // TO DO: error messages should render this Command using its operator syntax
+    return command
 }
 
 
-// TO DO: implement 2 versions of this and pass command/event flag in command
-func handlerConstructorOperatorParser(_ isEventHandler: Bool) -> ParseFunc.Prefix {
+func handlerConstructorOperatorParser(_ isEventHandler: Bool) -> ParseFunc.Prefix { // used by `to`/`when` operators
     return { (_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value in
-        // TO DO: handler constructors should use dedicated parsefuncs to read handler signature (we need individual parsefuncs for argument, parameter, and interface signatures; once they're implemented we can call `parseCallableSignature` parsefunc here; for now just require a command)
         parser.next() // step over 'to'/'when'
         let expr = try parser.parseExpression() // read handler signature
+        
+        // TO DO: handler constructors should use dedicated parsefuncs to read handler signature (we need individual parsefuncs for argument, parameter, and interface signatures; once they're implemented we can call `parseCallableSignature` parsefunc here; for now just take a Command containing handler and parameter names and pull it apart here, with hardcoded parameter and return types)
         // TO DO: better to use toHandlerSignature coercion here, as it may be a command [if returnType not specified] or it may be a `returning` operator (Q. how should `returning`, which ought to map to command `returning(name(params),returnType)`, produce a signature? on parsing or eval?)
-        guard let signature = expr as? Command else { throw SyntaxError("Expected a handler signature after `\(operatorName)`, but found: \(expr)") } // TO DO: as above
+        guard let signature = expr as? Command else { throw SyntaxError("Expected a handler signature after `\(operatorName)`, but found: \(expr)") }
+        let parameters = signature.arguments.map{Text(($0 as! Identifier).name)}
+        let returnType = asAnythingOrNothing
+        
         guard case .blockLiteral = parser.peek() else { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(parser.this)") }
         parser.next()
-        let block = try parser.parseExpression() // TO DO: as above
-        if !(block is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(type(of:block)): \(block)") } // TO DO: ditto
+        let action = try parser.parseExpression() // TO DO: as above
+        if !(action is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(type(of:action)): \(action)") } // TO DO: ditto
         
         // TO DO: parseSignature should ensure all parameters and return type are declared correctly (there will be limits to what can be checked at parse time, e.g. `foo(arg as TYPE1) returning TYPE2` signature has no way of knowing if TYPE1 and TYPE2 are actually Coercions or some other Value type - that can only be determined when script is run [although it might be worth doing a superficial check once script's top-level declarations are all available to introspect, and note which ones can/can't be type-checked without running the script; this will be a particular issue if users use existing 'command' handlers to define their own coercions [it might even be an idea to have a separate CoercionHandler that can make hard guarantees about idempotency, side-effects, and halting - e.g. by only allowing other coercion values/coercion commands to be used within handler body, with hard limits on recursion depth in cases where coercions are used, say, to verify XML/JSON/etc data structures received by web interfaces]])
-        return Command(definition.handlerName ?? operatorName,
-                       [Text(signature.name), List(signature.arguments.map{Text(($0 as! Identifier).name)}), asAnything, // kludge
-                        block, isEventHandler ? trueValue : falseValue])
+        let command = Command(definition.handlerName ?? operatorName,
+                              [Text(signature.name), List(parameters), returnType, action, isEventHandler ? trueValue : falseValue])
+        command.annotations.append((operatorName: operatorName, definition: definition)) // TO DO: error messages should render this Command using its operator syntax
+        return command
     }
 }
 

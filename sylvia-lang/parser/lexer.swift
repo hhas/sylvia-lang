@@ -23,6 +23,12 @@
  There's no ideal solution to this, although a smart editor should be able to look after much of the details. Just bear in mind the safety implications when using non-literal text as templates.
 */
 
+// Q. should symbols have their own literal syntax (c.f. Ruby Symbol class, which uses `:NAME` syntax), or should they be written as attributes of a global [abstract] 'symbol' namespace (c.f. appscript, which uses `k.NAME`)?
+//
+// $symbolName
+//
+// $.symbolName
+
 
 // Q. any situations where whitespace needs to be known? (e.g. parser should be able to reduce `- 3` [.symbol.number] to `-3` [Value]); what's easiest when reading unbalanced lines
 
@@ -148,7 +154,7 @@ enum Token {
     case endOfCode
     
     // annotations
-    case annotationLiteral(String)  // atomic; the lexer automatically reads everything between `«` and corresponding `»`, including nested annotations; Q. how to use annotations for docstrings, comments, TODO, TOFIX, metainfo, etc? (probably use standard prefixes, e.g. `«?…»` might indicate user documentation, i.e. "help" [or should `«?` be used to indicate notes that appear in debug mode, given `?` operator is used to invoke interactive debug mode?], `«TODO:…»` is self-explanatory, etc)
+    case annotationLiteral(String)  // atomic; the lexer automatically reads everything between `«` and corresponding `»`, including nested annotations; Q. how to use annotations for docstrings, comments, TODO, TOFIX, change notes, metadata, etc? (probably use standard prefixes, e.g. `«?…»` might indicate user documentation, i.e. "help" [or should `«?` be used to indicate notes that appear in debug mode, given `?` operator is used to invoke interactive debug mode?], `«TODO:…»` is self-explanatory, etc); Q. how practical to attach change notes from code versioning system when pretty printing? (TBH, this sort of capability should probably be applied as map/filter/reduce operations between lexer and parser or parser and formatter, or handled by code editor)
     case annotationLiteralEnd       // this will only appear in token stream if not balanced by an earlier .annotationLiteral
     
     // block structures

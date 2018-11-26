@@ -5,6 +5,8 @@
 
 // TO DO: should LanguageError subclass Value? (need to decide how native error API will work)
 
+// TO DO: how to separate user-visible error information from developer-only error information? e.g. stack traces showing command arguments might leak potentially sensitive information (TBH, this probably only becomes a concern when scripts are saved in compiled form)
+
 
 class LanguageError: Error, CustomStringConvertible {
     
@@ -63,14 +65,20 @@ class CoercionError: LanguageError {
     }
     
     override var message: String {
-        return "Can’t coerce \(Swift.type(of: self.value)) value to \(self.type): \(self.value)"
+        return "Can’t coerce the following value from type ‘\(Swift.type(of: self.value))’ to ‘\(self.type)’: \(self.value)"
     }
 }
 
 
 // TO DO: when to promote NullCoercionError to permanent error?
 
-class NullCoercionError: CoercionError {} // coercing Nothing always throws NullCoercionError; this may be caught by AsDefault
+class NullCoercionError: CoercionError {
+    
+    override var message: String {
+        return "Can’t coerce ‘\(self.value)’ to ‘\(self.type)’."
+    }
+    
+} // coercing Nothing always throws NullCoercionError; this may be caught by AsDefault to supply a default value instead (optional parameter)
 
 
 /******************************************************************************/

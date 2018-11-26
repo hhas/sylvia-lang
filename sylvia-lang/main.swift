@@ -31,7 +31,7 @@ do { // evaluate to List of Text
         => [“Hello”, “World”]
      */
     let v = List([Text("Hello"), Text("World")])
-    let t = AsValue()
+    let t = asAnything
     print(try t.coerce(value: v, env: e))
 } catch {
     print(1, error)
@@ -70,7 +70,7 @@ do { // evaluate commands
         => “-3”
      */
     let v = Command("-", [Command("+", [Text("1"), Text("2")]), Text("6")])
-    print(try asAnything.coerce(value: v, env: e)) // "-3" // native
+    print(try asAnythingOrNothing.coerce(value: v, env: e)) // "-3" // native
 } catch {
     print(4, error)
 }
@@ -89,7 +89,7 @@ do { // define and call native handler
                     Command("+", [Text("1"), Identifier("n")]))
     try e.add(h)
     let v = Command("show", [Command("addOne", [Text("3")])])
-    print(try asAnything.coerce(value: v, env: e)) // prints "4" and returns `nothing`
+    print(try asResult.coerce(value: v, env: e)) // prints "4" and returns `nothing`
 } catch {
     print(5, error)
 }
@@ -102,7 +102,7 @@ do { // conditional
      */
     for arg in [trueValue, falseValue] {
         let v = Command("testIf", [arg, Command("show", [Text("yes")]), Command("show", [Text("no")])])
-        print(try asAnything.coerce(value: v, env: e))
+        print(try asResult.coerce(value: v, env: e))
     }
     // optional arguments and return values
     /*
@@ -112,7 +112,7 @@ do { // conditional
      */
     for arg in [trueValue, falseValue, noValue] {
         let v = Command("testIf", [arg, Text("42")])
-        print(try asAnything.coerce(value: v, env: e))
+        print(try asResult.coerce(value: v, env: e))
     }
 } catch {
     print(6, error)
@@ -196,7 +196,7 @@ store ("name", "Bob")
 
 
 code = """
-defineHandler("doStuff", [["aNum", optional]], optional, show(aNum), false) «TO DO: how to indicate no return value? (this is a bit awkward as `nothing` value would mean returnType argument was omitted)»
+defineHandler("doStuff", [["aValue", optional]], noResult, show(aValue), false)
 
 doStuff(123)
 
@@ -222,14 +222,13 @@ do {
     print(s)
     print()
     print("\nEVAL:")
-    let res = try s.run(env: e, type: asAnything)
+    let res = try s.run(env: e, type: asAnythingOrNothing)
     print(res)
 } catch {
     print(error)
 }
 
 //for t in tokens { print((t.start.encodedOffset, t.end.encodedOffset), t.type, "  ⟹", code[t.start..<t.end].debugDescription) }
-
 
 
 
