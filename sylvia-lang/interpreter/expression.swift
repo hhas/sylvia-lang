@@ -15,6 +15,8 @@ class Expression: Value {
     
     // forward all Expression.toTYPE() calls to evaluate()/run()
     
+    override var nominalType: Coercion { return asAnythingOrNothing }
+    
     // Q. if Value is a Protocol and Expression is a protocol, and both have corresponding extensions implementing standard toTYPE methods, how will that compile? (one advantage of protocols over subclassing is that it avoids nasty 'abstract methods' such as those below)
     
     internal func safeRun<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
@@ -23,7 +25,10 @@ class Expression: Value {
         do {
             value = try self.run(env: env, type: type)
         } catch is NullCoercionError {
-            throw CoercionError(value: self, type: type)
+            print("\(self).safeRun(type:\(type)) caught null coercion result.")
+            //throw CoercionError(value: self, type: type)
+            
+            throw NullCoercionError(value: self, type: type)
         }
         guard let result = value as? T else {
             throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)") // presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
@@ -85,16 +90,21 @@ class Identifier: Expression {
     
     override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
         let (value, lexicalEnv) = try self.lookup(env: env)
-        do {
+       // do {
             return try type.unbox(value: value, env: lexicalEnv)
-        } catch is NullCoercionError {
-            throw CoercionError(value: self, type: type)
-        }
+        //} catch is NullCoercionError {
+        //    throw CoercionError(value: self, type: type)
+        //}
     }
     
     override func run(env: Env, type: Coercion) throws -> Value {
         let (value, lexicalEnv) = try self.lookup(env: env)
-        return try type.coerce(value: value, env: lexicalEnv)
+        do {
+            return try type.coerce(value: value, env: lexicalEnv)
+        } catch {
+            print("Identifier `\(self.name)` couldn't coerce following value to `\(type)`: \(value)")
+            throw error
+        }
     }
 }
 

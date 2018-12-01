@@ -22,6 +22,8 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     var description: String { return "«TODO: `\(type(of:self)).description`»" }
     
+    var nominalType: Coercion { fatalError("Not yet implemented: \(type(of:self)).nominalType") }
+    
     // TO DO: implement debugDescription (this should return Swift representation whereas description should return native representation using default formatting)
     
     // TO DO: implement pretty printing API (ideally this would be a general-purpose Visitor API; Q. for rewriting, use read-only visitor API that reconstructs entire AST from scratch, or support read-write? [right now most Value classes' internal state is `let` rather than `private(set)var`])
@@ -65,6 +67,8 @@ class Nothing: Value {
     
     override var description: String { return "nothing" }
     
+    override var nominalType: Coercion { return asNoResult }
+    
     override func toAny(env: Env, type: Coercion) throws -> Value {
         throw NullCoercionError(value: self, type: type)
     }
@@ -88,6 +92,8 @@ class Text: Value { // TO DO: Scalar?
     
     override var description: String { return "“\(self.swiftValue)”" } // TO DO: pretty printing
     
+    override var nominalType: Coercion { return asText }
+    
     // TO DO: need ability to capture raw Swift value in case of numbers, dates, etc; while this could be done in annotations, it might be quicker to have a dedicated private var containing enum of standard raw types we want to cache (.int, .double, .scalar, .date, whatever); another option is for annotations to be linked list/B-tree where entries are ordered according to predefined importance or frequency of use (would need to see how this compares to a dictionary, which should be pretty fast out of the box with interned keys)
     
     private(set) var swiftValue: String // TO DO: restricted mutability; e.g. perform appends in-place only if refcount==1, else copy self and append to that
@@ -105,6 +111,8 @@ class Text: Value { // TO DO: Scalar?
 class List: Value {
     
     override var description: String { return "\(self.swiftValue)" }
+    
+    override var nominalType: Coercion { return asList }
     
     private(set) var swiftValue: [Value]
     

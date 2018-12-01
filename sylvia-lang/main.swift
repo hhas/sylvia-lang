@@ -195,16 +195,34 @@ store ("name", "Bob")
 """
 
 
+// TO DO: optional parameters don't yet work: the AsOptional modifier needs to be carried all the way to the evaluation site, but is currently being applied before then, so isn't around to catch the NullCoercionError that indicates an omitted argument; need to rework double-dispatch API to fix this (this is what happens when you try taking shortcuts on an established design to 'improve efficiency'; yes DD is slow and tends to block the stack, but short of dynamic multimethods [either native or lookup-table-based] it's the only design that can do the job)
 code = """
-defineHandler("doStuff", [["aValue", optional]], noResult, show(aValue), false)
+defineHandler("doStuff", [["aValue", optional]], optional, {aValue}, false)
 
-doStuff(123)
+show(doStuff(123))
 
-«doStuff("df")»
-
-doStuff()
+show(doStuff()) «TO FIX: this should print 'nothing' but fails instead»
 
 """
+
+code = """
+defineHandler("square", [["n", number]], number, {n * n}, false)
+
+show(square(-4)) «prints “16.0”»
+
+show("") «prints “”»
+
+show(square("abc")) «CoercionError: can't coerce text to number»
+
+"""
+
+
+
+
+
+
+// TO DO: should linebreaks be allowed in operations? e.g. `1 LF + LF 2` (this is currently disallowed)
+//code = "\n[\nπ, 23.4e5, \n(\n1+2\n)\n, \n“Hello\\nGoodbye”, [1\n\n,\n\t2,3], «1+\n2»4\n]\n"
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)

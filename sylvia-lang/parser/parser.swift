@@ -122,7 +122,7 @@ class Parser {
     func readCommaDelimitedValues(_ isEndToken: ((Token) -> Bool)) throws -> [Value] { // e.g. `[EXPR,EXPR,EXPR]` // start on '('/'['
         var items = [Value]()
         // TO DO: could do with a sanity test here, but would need to pass an additional isBeginToken callback as there's no way to compare token directly (short of implementing `isCase()` method on it with big old switch block)
-        self.next() // step over '('/'[' or ','
+        self.next(ignoringLineBreaks: true) // step over '('/'[' or ','
         while !isEndToken(self.this) { // check for ')'/']'
             do {
                 items.append(try self.parseExpression()) // this starts on first token of expression and ends on last
@@ -131,10 +131,10 @@ class Parser {
                 print("Failed to read item \(items.count+1):", error) // DEBUGGING
                 throw error
             }
-            self.next() // move to next token, which should be ')'/']' or '/'
+            self.next(ignoringLineBreaks: true) // move to next token, which should be ')'/']' or '/'
             // TO DO: what about annotations?
             guard case Token.itemSeparator = self.this else { break } // if it's a comma then read next item, else break
-            self.next() // step over ','
+            self.next(ignoringLineBreaks: true) // step over ','
         }
         // make sure there's a closing ')'/']'
         guard isEndToken(self.this) else { throw SyntaxError("Unexpected code after item \(items.count) of \(items): \(self.this)") }
@@ -155,9 +155,9 @@ class Parser {
             value = try self.readBlock()
         case .groupLiteral:     // `(…)` // precedence group (unlike a command's argument tuple, this must contain exactly 1 expression)
             // caution: don't use `(…,…,…)` as block-style sequence as it's already used as tuple syntax in commands and handlers (OTOH, if commands/handlers take a `{…,…,…}` record value as unary argument c.f. entoli, `(…,…,…)` could be used as block syntax wherever 'block' is *explicitly* allowed as argument type; however, anywhere else it must only work as precedence group, e.g. `(1+2)*3` but not `(foo,1+2)*3`, to avoid introducing potential gotchas)
-            self.next() // step over '('
+            self.next(ignoringLineBreaks: true) // step over '('
             value = try self.parseExpression()
-            self.next() // step over ')'
+            self.next(ignoringLineBreaks: true) // step over ')'
             guard case .groupLiteralEnd = self.this else { throw SyntaxError("Expected end of precedence group, “)”, but found: \(self.this)") }
         case .textLiteral(value: let string):
             value = Text(string)
@@ -170,7 +170,7 @@ class Parser {
             }
         case .number(value: let string): // TO DO: use Scalar
             value = Text(string)
-            value.annotations.append(Double(string) as Any) // TO DO: annotation API
+            value.annotations.append(try Scalar(string)) // TO DO: annotation API
         case .operatorName(value: let name, prefix: let definition, infix: _) where definition != nil:
             switch definition!.parseFunc {
             case .atom(let parseFunc), .prefix(let parseFunc):

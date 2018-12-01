@@ -104,6 +104,7 @@ class Handler: CallableValue { // native handler
     // called by Command
     
     func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value {
+        let result: Value
         do {
             //print("calling \(self):", command)
             let bodyEnv = handlerEnv.child()
@@ -114,10 +115,14 @@ class Handler: CallableValue { // native handler
                 try bodyEnv.set(parameterName, to: parameterType.coerce(value: value, env: commandEnv)) // expand/thunk parameter using command's lexical scope
             }
             if arguments.count > 0 && !self.isEventHandler { throw UnrecognizedArgumentError(command: command, handler: self) }
-            return try type.coerce(value: self.interface.returnType.coerce(value: self.body, env: bodyEnv), env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
+            print("\(self) evaluating body as \(self.interface.returnType).")
+            result = try self.interface.returnType.coerce(value: self.body, env: bodyEnv)
+            print("…got result: \(result)")
         } catch {
             throw HandlerFailedError(handler: self, command: command).from(error)
         }
+        print("\(self) coercing returned value to requested \(type): \(result)")
+        return try type.coerce(value: result, env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
     }
 }
 

@@ -2,6 +2,12 @@
 //  coercion.swift
 //
 
+/* Notes:
+
+ - Evaluation involves dynamically dispatching on both Value and Coercion subclasses, which is really a job for multimethods, but we make do with double-dispatch where client calls Value which calls Coercion which calls back into Value to obtain the required representation before performing any constraint checks and returning the result. (Current implementation has some bugs due to ill-considered attempt to reduce this call chain.)
+
+ */
+
 
 // important: all coercions should be non-lossy (lossy conversions should be implemented as handlers); there may be some bending of this rule for text<->number conversions (e.g. "3.1" -> 3.1 -> "3.1", though always "foo" -> error), but promoting a value from simpler to more complex type (e.g. "foo" as list -> ["foo"]) should not be reversible by coercion (since accepting an arbitrary-length list would fail if there's <>1 item in it, and requiring a 1-item list is just silly)
 
@@ -335,7 +341,11 @@ class AsOptionalValue: BridgingCoercion { // native optional
         do {
             return try self.type.coerce(value: value, env: env)
         } catch is NullCoercionError {
+            print("\(self) caught null coercion error.\nValue: \(value)")
             return noValue
+        } catch {
+            print("\(self) caught error: \(error)")
+            throw error
         }
     }
     

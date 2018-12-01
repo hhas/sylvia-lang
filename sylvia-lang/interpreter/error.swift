@@ -65,7 +65,7 @@ class CoercionError: LanguageError {
     }
     
     override var message: String {
-        return "Can’t coerce the following value from type ‘\(Swift.type(of: self.value))’ to ‘\(self.type)’: \(self.value)"
+        return "Can’t coerce this \(self.value.nominalType) to \(self.type): \(self.value)"
     }
 }
 
@@ -75,10 +75,38 @@ class CoercionError: LanguageError {
 class NullCoercionError: CoercionError {
     
     override var message: String {
-        return "Can’t coerce ‘\(self.value)’ to ‘\(self.type)’."
+        return "Can’t coerce ‘\(self.value)’ to \(self.type)."
     }
     
 } // coercing Nothing always throws NullCoercionError; this may be caught by AsDefault to supply a default value instead (optional parameter)
+
+
+
+/******************************************************************************/
+
+
+struct ConstraintError: Error, CustomStringConvertible {
+    
+    let value: Any // TO DO: what should this be? (e.g. enum of Value, Scalar, Primitive?)
+    let constraint: Coercion?
+    let message: String? // TO DO: rename message
+    // TO DO: should this also capture env:Scope?
+    
+    init(value: Any, constraint: Coercion? = nil, message: String? = nil) {
+        self.value = value
+        self.constraint = constraint
+        self.message = message
+    }
+    
+    var description: String {
+        return self.message ?? "Not a valid \(self.constraint == nil ? "value" : String(describing: self.constraint!)): \(self.value)"
+    }
+}
+
+
+struct EvaluationError: Error, CustomStringConvertible {
+    let description: String // TO DO: separate message and `var description: String { return "\(type(of:self)): \(self.message)" }`
+}
 
 
 /******************************************************************************/
