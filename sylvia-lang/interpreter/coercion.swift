@@ -71,7 +71,7 @@ extension BridgingProtocol {
     func unboxArgument(at index: Int, command: Command, commandEnv: Env, handler: CallableValue) throws -> SwiftType {
         //print("Unboxing argument \(index)")
         do {
-            return try self.unbox(value: command.argument(index), env: commandEnv)
+            return try self.unbox(value: command.argument(index), env: commandEnv)// TO DO: use evaluate
         } catch {
             //print("Unboxing argument \(index) failed:",error)
             throw BadArgumentError(command: command, handler: handler, index: index).from(error)
@@ -341,10 +341,10 @@ class AsOptionalValue: BridgingCoercion { // native optional
         do {
             return try self.type.coerce(value: value, env: env)
         } catch is NullCoercionError {
-            print("\(self) caught null coercion error.\nValue: \(value)")
+            //print("\(self) caught null coercion error.\nValue: \(value)")
             return noValue
         } catch {
-            print("\(self) caught error: \(error)")
+            //print("\(self) caught error: \(error)")
             throw error
         }
     }

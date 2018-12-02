@@ -17,21 +17,20 @@ class Expression: Value {
     
     override var nominalType: Coercion { return asAnythingOrNothing }
     
-    // Q. if Value is a Protocol and Expression is a protocol, and both have corresponding extensions implementing standard toTYPE methods, how will that compile? (one advantage of protocols over subclassing is that it avoids nasty 'abstract methods' such as those below)
+    //
     
+    // not sure this helps
     internal func safeRun<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
-        // we pull our punches here: in theory, casting `value as! T` will never fail as Coercions should always return correct value class, but we guard to be sure (ideally we wouldn't have to use runtime upcasting at all, but trying to implement 100% typesafe runtime APIs for a weak untyped language would almost certainly be an intractable generics hell)
         let value: Value
         do {
             value = try self.run(env: env, type: type)
-        } catch is NullCoercionError {
+        } catch let e as NullCoercionError { // check
             print("\(self).safeRun(type:\(type)) caught null coercion result.")
             //throw CoercionError(value: self, type: type)
-            
-            throw NullCoercionError(value: self, type: type)
+            throw e
         }
-        guard let result = value as? T else {
-            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)") // presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
+        guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
+            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)")
         }
         return result
     }
@@ -39,11 +38,10 @@ class Expression: Value {
     //
     
     override func toAny(env: Env, type: Coercion) throws -> Value {
-        return try self.safeRun(env: env, type: type)
+        return try self.run(env: env, type: type)
     }
     
     override func toText(env: Env, type: Coercion) throws -> Text {
-        //print("Calling toText on:", self)
         return try self.safeRun(env: env, type: type)
     }
     
@@ -53,16 +51,6 @@ class Expression: Value {
     
     override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
         return try self.evaluate(env: env, type: type)
-    }
-    
-    // subclasses must override the following abstract methods: (TO DO: redefine `Expression` a typealias of ExpressionBase class plus protocol, avoiding need for these nasty 'abstract method' stubs)
-    
-    func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
-        fatalError("Expression subclasses must override \(#function).")
-    }
-    
-    func run(env: Env, type: Coercion) throws -> Value {
-        fatalError("Expression subclasses must override \(#function).")
     }
 }
 
@@ -91,7 +79,7 @@ class Identifier: Expression {
     override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
         let (value, lexicalEnv) = try self.lookup(env: env)
        // do {
-            return try type.unbox(value: value, env: lexicalEnv)
+        return try value.evaluate(env: lexicalEnv, type: type)
         //} catch is NullCoercionError {
         //    throw CoercionError(value: self, type: type)
         //}
@@ -100,7 +88,7 @@ class Identifier: Expression {
     override func run(env: Env, type: Coercion) throws -> Value {
         let (value, lexicalEnv) = try self.lookup(env: env)
         do {
-            return try type.coerce(value: value, env: lexicalEnv)
+            return try value.run(env: lexicalEnv, type: type)
         } catch {
             print("Identifier `\(self.name)` couldn't coerce following value to `\(type)`: \(value)")
             throw error
@@ -168,21 +156,38 @@ class Thunk: Expression {
     }
     
     func force() throws -> Value {
-        return try self.type.coerce(value: self.value, env: self.env)
+        return try self.value.run(env: self.env, type: self.type)
     }
+    
+    override internal func safeRun<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
+        let value: Value
+        do {
+            value = try self.force().run(env: env, type: type) // TO DO: check, fix;
+        } catch is NullCoercionError {
+            print("\(self).safeRun(type:\(type)) caught null coercion result.")
+            //throw CoercionError(value: self, type: type)
+            
+            throw NullCoercionError(value: self, type: type)
+        }
+        guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
+            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)")
+        }
+        return result
+    }
+
     
     // evaluating a thunk forces it (unless type specifies AsThunk, in which case it thunks again)
     
     override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
         do {
-            return try type.unbox(value: self.force(), env: env)
+            return try type.unbox(value: self.force(), env: env) // TO DO: fix
         } catch is NullCoercionError {
             throw CoercionError(value: self, type: type)
         }
     }
     
     override func run(env: Env, type: Coercion) throws -> Value {
-        return try type.coerce(value: self.force(), env: env)
+        return try type.coerce(value: self, env: env)
     }
 
 }
@@ -205,9 +210,9 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
     override func run(env: Env, type: Coercion) throws -> Value {
         var result: Value = noValue
         for value in self.body {
-            result = try asResult.coerce(value: value, env: env) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
+            result = try value.run(env: env, type: asResult) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
         }
-        return try type.coerce(value: result, env: env)
+        return try type.coerce(value: result, env: env) // not quite right
     }
 }
 

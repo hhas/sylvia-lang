@@ -3,9 +3,13 @@
 //
 
 
-// TO DO: should LanguageError subclass Value? (need to decide how native error API will work)
+// TO DO: should LanguageError subclass Value? (yes, as we have enough primitive boxing already, though need to decide how native error API will work)
 
 // TO DO: how to separate user-visible error information from developer-only error information? e.g. stack traces showing command arguments might leak potentially sensitive information (TBH, this probably only becomes a concern when scripts are saved in compiled form)
+
+// TO DO: eventually stack traces should be filterable only to show highlights (typically the initial error, the handler where it occurred, and the topmost command that failed as a result (intermediate trace is of less immediate use and tends to obfuscate the key points, so should be initially hidden by default); in the case of coercion errors, the origins of the Coercion instances may also be described (e.g. as Values typically declared as literals, they should be annotated with their source location); consider using annotations to indicate which error message is which, and provide APIs for working with chained errors
+
+// TO DO: eventually move error raising APIs onto Env, allowing behavior to be customized (e.g. when running in debugger mode, instead of unwinding the stack, a coercion error might suspend execution and activate UI interaction mode where user can inspect, and potentially modify, the problem values, then resume execution from that same point)
 
 
 class LanguageError: Error, CustomStringConvertible {

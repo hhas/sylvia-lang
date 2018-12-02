@@ -57,6 +57,18 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
             throw CoercionError(value: self, type: type.elementType)
         }
     }
+    
+    //
+    
+    // subclasses must override the following abstract methods: (TO DO: redefine `Expression` a typealias of ExpressionBase class plus protocol, avoiding need for these nasty 'abstract method' stubs)
+    
+    func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
+        fatalError("Expression subclasses must override \(#function).")
+    }
+    
+    func run(env: Env, type: Coercion) throws -> Value {
+        return try type.coerce(value: self, env: env)
+    }
 }
 
 
