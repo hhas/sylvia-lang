@@ -60,16 +60,16 @@ class SyntaxError: LanguageError {
 class CoercionError: LanguageError {
     
     let value: Value
-    let type: Coercion
+    let coercion: Coercion
     
-    init(value: Value, type: Coercion) {
+    init(value: Value, coercion: Coercion) {
         self.value = value
-        self.type = type
+        self.coercion = coercion
         super.init()
     }
     
     override var message: String {
-        return "Can’t coerce this \(self.value.nominalType) to \(self.type): \(self.value)"
+        return "Can’t coerce this \(self.value.nominalType) to \(self.coercion): \(self.value)"
     }
 }
 
@@ -79,7 +79,7 @@ class CoercionError: LanguageError {
 class NullCoercionError: CoercionError {
     
     override var message: String {
-        return "Can’t coerce ‘\(self.value)’ to \(self.type)."
+        return "Can’t coerce ‘\(self.value)’ to \(self.coercion)."
     }
     
 } // coercing Nothing always throws NullCoercionError; this may be caught by AsDefault to supply a default value instead (optional parameter)
@@ -186,7 +186,7 @@ class BadArgumentError: LanguageError {
     override var message: String {
         let parameter = self.handler.interface.parameters[self.index]
         let argument = self.index < self.command.arguments.count ? self.command.arguments[self.index] : noValue
-        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter requires \(type(of:parameter.type)) but received \(type(of:argument)): \(argument)" // TO DO: better type descriptions needed
+        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter requires \(type(of:parameter.coercion)) but received \(type(of:argument)): \(argument)" // TO DO: better coercion descriptions needed
     }
 }
 

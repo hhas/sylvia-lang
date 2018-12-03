@@ -13,44 +13,44 @@
 
 class Expression: Value {
     
-    // forward all Expression.toTYPE() calls to evaluate()/run()
+    // forward all Expression.toTYPE() calls to swiftEval()/eval()
     
     override var nominalType: Coercion { return asAnythingOrNothing }
     
     //
     
     // not sure this helps
-    internal func safeRun<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
+    internal func safeRun<T: Value>(env: Env, coercion: Coercion, function: String = #function) throws -> T {
         let value: Value
         do {
-            value = try self.run(env: env, type: type)
+            value = try self.eval(env: env, coercion: coercion)
         } catch let e as NullCoercionError { // check
-            print("\(self).safeRun(type:\(type)) caught null coercion result.")
-            //throw CoercionError(value: self, type: type)
+            print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
+            //throw CoercionError(value: self, coercion: coercion)
             throw e
         }
         guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
-            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)")
+            throw InternalError("\(type(of:self)) \(function) expected \(coercion) coercion to return \(T.self) but got \(type(of: value)): \(value)")
         }
         return result
     }
     
     //
     
-    override func toAny(env: Env, type: Coercion) throws -> Value {
-        return try self.run(env: env, type: type)
+    override func toAny(env: Env, coercion: Coercion) throws -> Value {
+        return try self.eval(env: env, coercion: coercion)
     }
     
-    override func toText(env: Env, type: Coercion) throws -> Text {
-        return try self.safeRun(env: env, type: type)
+    override func toText(env: Env, coercion: Coercion) throws -> Text {
+        return try self.safeRun(env: env, coercion: coercion)
     }
     
-    override func toList(env: Env, type: AsList) throws -> List {
-        return try self.safeRun(env: env, type: type) // ditto
+    override func toList(env: Env, coercion: AsList) throws -> List {
+        return try self.safeRun(env: env, coercion: coercion) // ditto
     }
     
-    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Env, type: T) throws -> T.SwiftType {
-        return try self.evaluate(env: env, type: type)
+    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Env, coercion: T) throws -> T.SwiftType {
+        return try self.swiftEval(env: env, coercion: coercion)
     }
 }
 
@@ -76,23 +76,25 @@ class Identifier: Expression {
         return (slot.value, lexicalEnv)
     }
     
-    override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
+    override func eval(env: Env, coercion: Coercion) throws -> Value {
         let (value, lexicalEnv) = try self.lookup(env: env)
-       // do {
-        return try value.evaluate(env: lexicalEnv, type: type)
-        //} catch is NullCoercionError {
-        //    throw CoercionError(value: self, type: type)
-        //}
-    }
-    
-    override func run(env: Env, type: Coercion) throws -> Value {
-        let (value, lexicalEnv) = try self.lookup(env: env)
+        // TO DO: as above
         do {
-            return try value.run(env: lexicalEnv, type: type)
+            return try value.eval(env: lexicalEnv, coercion: coercion)
         } catch {
-            print("Identifier `\(self.name)` couldn't coerce following value to `\(type)`: \(value)")
+            print("Identifier `\(self.name)` couldn't coerce following value to `\(coercion)`: \(value)")
             throw error
         }
+    }
+    
+    override func swiftEval<T: BridgingCoercion>(env: Env, coercion: T) throws -> T.SwiftType {
+        let (value, lexicalEnv) = try self.lookup(env: env)
+        // TO DO: where should null coercion errors become permanent?
+        //do {
+        return try value.swiftEval(env: lexicalEnv, coercion: coercion)
+        //} catch let error as NullCoercionError {
+        //    throw CoercionError(value: self, coercion: coercion).from(error)
+        //}
     }
 }
 
@@ -120,20 +122,20 @@ class Command: Expression {
         return (handler, lexicalEnv)
     }
     
-    override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
-        fatalError() // TO DO
-    }
-    
-    override func run(env: Env, type: Coercion) throws -> Value {
+    override func eval(env: Env, coercion: Coercion) throws -> Value {
         //print("Calling run on Command:", self)
         let (handler, handlerEnv) = try self.lookup(env: env)
         //print("Got Handler \(handler.name):", handler)
         do {
-            return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, type: type)
+            return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, coercion: coercion)
         } catch {
             //print("Handler ‘\(handler.name)’ failed:", error)
             throw error
         }
+    }
+    
+    override func swiftEval<T: BridgingCoercion>(env: Env, coercion: T) throws -> T.SwiftType {
+        fatalError() // TO DO
     }
 }
 
@@ -147,47 +149,47 @@ class Thunk: Expression {
     
     private let value: Value
     private let env: Env
-    private let type: Coercion
+    private let coercion: Coercion
     
-    init(_ value: Value, env: Env, type: Coercion) {
+    init(_ value: Value, env: Env, coercion: Coercion) {
         self.value = value
         self.env = env
-        self.type = type
+        self.coercion = coercion
     }
     
     func force() throws -> Value {
-        return try self.value.run(env: self.env, type: self.type)
+        return try self.value.eval(env: self.env, coercion: self.coercion)
     }
     
-    override internal func safeRun<T: Value>(env: Env, type: Coercion, function: String = #function) throws -> T {
+    override internal func safeRun<T: Value>(env: Env, coercion: Coercion, function: String = #function) throws -> T {
         let value: Value
         do {
-            value = try self.force().run(env: env, type: type) // TO DO: check, fix;
+            value = try self.force().eval(env: env, coercion: coercion) // TO DO: check, fix;
         } catch is NullCoercionError {
-            print("\(self).safeRun(type:\(type)) caught null coercion result.")
-            //throw CoercionError(value: self, type: type)
+            print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
+            //throw CoercionError(value: self, coercion: coercion)
             
-            throw NullCoercionError(value: self, type: type)
+            throw NullCoercionError(value: self, coercion: coercion)
         }
         guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
-            throw InternalError("\(Swift.type(of:self)) \(function) expected \(type) coercion to return \(T.self) but got \(Swift.type(of: value)): \(value)")
+            throw InternalError("\(type(of:self)) \(function) expected \(coercion) coercion to return \(T.self) but got \(type(of: value)): \(value)")
         }
         return result
     }
 
     
-    // evaluating a thunk forces it (unless type specifies AsThunk, in which case it thunks again)
+    // evaluating a thunk forces it (unless coercion specifies AsThunk, in which case it thunks again)
     
-    override func evaluate<T: BridgingCoercion>(env: Env, type: T) throws -> T.SwiftType {
+    override func swiftEval<T: BridgingCoercion>(env: Env, coercion: T) throws -> T.SwiftType {
         do {
-            return try type.unbox(value: self.force(), env: env) // TO DO: fix
+            return try coercion.unbox(value: self.force(), env: env) // TO DO: fix
         } catch is NullCoercionError {
-            throw CoercionError(value: self, type: type)
+            throw CoercionError(value: self, coercion: coercion)
         }
     }
     
-    override func run(env: Env, type: Coercion) throws -> Value {
-        return try type.coerce(value: self, env: env)
+    override func eval(env: Env, coercion: Coercion) throws -> Value {
+        return try coercion.coerce(value: self, env: env)
     }
 
 }
@@ -207,12 +209,12 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
         self.body = body
     }
     
-    override func run(env: Env, type: Coercion) throws -> Value {
+    override func eval(env: Env, coercion: Coercion) throws -> Value {
         var result: Value = noValue
         for value in self.body {
-            result = try value.run(env: env, type: asResult) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
+            result = try value.eval(env: env, coercion: asResult) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
         }
-        return try type.coerce(value: result, env: env) // not quite right
+        return try coercion.coerce(value: result, env: env) // not quite right
     }
 }
 

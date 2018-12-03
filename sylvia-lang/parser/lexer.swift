@@ -7,7 +7,7 @@
 
 // TO DO: implement 'pipe' symbol (should this be core punctuation or stdlib operator?), allowing commands where result of first is first arg to second to be written in chained rather than nested format; Q. what character to use, e.g. "~", "\", "…", "→" ("->")? e.g. if "\" is used, `bar(foo,1,2)` can be written as `foo()\bar(1,2)` (note: entoli syntax uses semicolon symbol in keeping with English-esque punctuation rules, but sylvia syntax derives from C &co where semicolon has established meaning as statement separator)
 
-// note: for object specifier syntax, it should be practical to use `NAME1:EXPR of NAME2 of NAME3:EXPR` (combined with `thru` operator for by-range specifiers, which take 2 args), or `NAME at EXPR of NAME2 named EXPR of NAME3` (where all reference forms that take a selector value have a dedicated operator), as syntactic sugar for `NAME3.NAME2[EXPR].NAME[EXPR]` (unless `A[B]` is also used as synonym for `A.B`, in which case it'll be `NAME3.NAME2.named(EXPR).NAME[EXPR]`, c.f. nodeautomation). This could actually get us very close to a familiar "AppleScript-ish" syntax (minus all of its defects), e.g. `documentFile at 1 of folder named "Documents" of home`. (Yet another refinement would be for parser to special-case `WORD NUMBER` sequence as shorthand for `WORD[NUMBER]`, reducing need to use `at` operator to non-number selectors only, as that pattern is otherwise syntactically illegal. BTW, AppleScript uses `index`, not `at`, as explicit selector type, though may be better to use `atIndex`, e.g. `documentFile.atIndex(…)`.)
+// note: for object specifier syntax, it should be practical to use `NAME1:EXPR of NAME2 of NAME3:EXPR` (combined with `thru` operator for by-range specifiers, which take 2 args), or `NAME at EXPR of NAME2 named EXPR of NAME3` (where all reference forms that take a selector value have a dedicated operator), as syntactic sugar for `NAME3.NAME2[EXPR].NAME[EXPR]` (unless `A[B]` is also used as synonym for `A.B`, in which case it'll be `NAME3.NAME2.named(EXPR).NAME[EXPR]`, c.f. nodeautomation). This could actually get us very close to a familiar "AppleScript-ish" syntax (minus all of its defects), e.g. `documentFile at 1 of folder named "Documents" of home`. (Yet another refinement would be for parser to special-case `WORD NUMBER` sequence as shorthand for `WORD[NUMBER]`, reducing need to use `at` operator to non-number selectors only, as that pattern is otherwise syntactically illegal. BTW, AppleScript uses `index`, not `at`, as explicit selector coercion, though may be better to use `atIndex`, e.g. `documentFile.atIndex(…)`.)
 
 
 /* TO DO: need to decide between backslash escapes in text and 'tags', e.g. `"Hello,««name»»!"` is arguably easier to understand than `"Hello,\(name)!"`; in turn, character and unicode escapes would be "foo««return»»bar««0u12AB»»" rather than "foo\nbar\u12AB".
@@ -60,11 +60,11 @@ import Foundation
 
 
 struct TokenInfo: CustomDebugStringConvertible {
-    let type: Token
+    let coercion: Token
     let start: String.Index
     let end: String.Index
     
-    var debugDescription: String { return "\(self.start.encodedOffset)…\(self.end.encodedOffset) \(self.type)" }
+    var debugDescription: String { return "\(self.start.encodedOffset)…\(self.end.encodedOffset) \(self.coercion)" }
     
     // TO DO: consider always using single-line Lexer, and store line number here as well
 }
@@ -104,7 +104,7 @@ let quoteDelimiterCharacters = quotedTextDelimiterCharacters.union(quotedIdentif
                                 .union(annotationDelimiterCharacters).union(annotationDelimiterEndCharacters)
 
 let punctuationTokens: [Character:Token] = [
-    "{": .blockLiteral, // while parens could be used for blocks too (lexical context will determine how/when they're evaluated), we're using conservative C-like syntax for familiarity, and using parens for argument/parameter lists and overriding operator precedence only (this leaves us without a literal record [struct] syntax, but we can do without a record type for this exercise)
+    "{": .blockLiteral, // while parens could be used for blocks too (lexical context will determine how/when they're evaluated), we're using conservative C-like syntax for familiarity, and using parens for argument/parameter lists and overriding operator precedence only (this leaves us without a literal record [struct] syntax, but we can do without a record coercion for this exercise)
     "}": .blockLiteralEnd,
     "(": .groupLiteral,
     ")": .groupLiteralEnd,
@@ -197,7 +197,7 @@ enum Token {
         }
     }
     
-    // TO DO: method for getting human-readable token type name (e.g. "operator name", "end of list") for use in error messages
+    // TO DO: method for getting human-readable token coercion name (e.g. "operator name", "end of list") for use in error messages
 }
 
 // kludgy workaround for inability to parameterize both operands in `if case ENUM = VALUE`; used by Parser.readDelimitedValues()
@@ -358,7 +358,7 @@ class Lexer {
         // TO DO: move all this stuff into its own LiteralText enum
         // TO DO: currently uses conventional backslash escapes, but `««EXPR»»` escapes would work better for users
         
-        // TO DO: problem we have here is that in single-line mode the lexer has little idea if it's inside or outside quoted text; it can make some educated guesses on % likelihood by analyzing opening quote type (`“` = probably inside, `”` = probably outside, `"` = either), presence of any backslash escapes (since backslashes are _only_ used inside quoted literals), and/or presence of known words (operator names); this will enable interactive editing tools to better assist user in writing valid code, and can provide more helpful SyntaxErrors when non-interactively parsing scripts for evaluation
+        // TO DO: problem we have here is that in single-line mode the lexer has little idea if it's inside or outside quoted text; it can make some educated guesses on % likelihood by analyzing opening quote coercion (`“` = probably inside, `”` = probably outside, `"` = either), presence of any backslash escapes (since backslashes are _only_ used inside quoted literals), and/or presence of known words (operator names); this will enable interactive editing tools to better assist user in writing valid code, and can provide more helpful SyntaxErrors when non-interactively parsing scripts for evaluation
         var value = ""
         while true {
             // TO DO: consider inverting following charset and subtracting illegal chars, and using readCharacters(ifIn:)
@@ -392,7 +392,7 @@ class Lexer {
     
     func tokenize() -> [TokenInfo] { // note: tokenization should never fail; any issues should be added to token stream for parsers to worry about // TO DO: ensure original lines of source code can be reconstructed from token stream (that will allow ambiguous quoting in per-line reading to be resolved downstream)
         var start = self.index
-        var result: [TokenInfo] = [TokenInfo(type: .startOfCode, start: start, end: start)]
+        var result: [TokenInfo] = [TokenInfo(coercion: .startOfCode, start: start, end: start)]
         if self.code != "" {
             // TO DO: backtrack() calls is ugly; consider using separate `var char:Character?` and `func next()->()`
             while let c = self.next() {
@@ -460,11 +460,11 @@ class Lexer {
                 }
                 let end = self.index
                 assert(start < end, "Invalid token (cannot be zero length): \(token)") // only .startOfCode/.endOfCode markers are zero-length
-                result.append(TokenInfo(type: token, start: start, end: end))
+                result.append(TokenInfo(coercion: token, start: start, end: end))
                 start = end
             }
         }
-        result.append(TokenInfo(type: .endOfCode, start: self.index, end: self.index))
+        result.append(TokenInfo(coercion: .endOfCode, start: self.index, end: self.index))
         return result
     }
 }

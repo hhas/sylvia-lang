@@ -85,7 +85,7 @@ do { // define and call native handler
          « “4.0” »
          => nothing
      */
-    let h = Handler(CallableInterface(name: "addOne", parameters: [(name: "n", type: asDouble)], returnType: asDouble),
+    let h = Handler(CallableInterface(name: "addOne", parameters: [(name: "n", coercion: asDouble)], returnType: asDouble),
                     Command("+", [Text("1"), Identifier("n")]))
     try e.add(h)
     let v = Command("show", [Command("addOne", [Text("3")])])
@@ -178,7 +178,7 @@ if 4 ≤ 8 { show("4 ≤ 8") }
 
 """
 
-// TO DO: unprefixed annotations are developer comments; any practical way to determine annotation type, particularly user doc, if it starts with markdown syntax?
+// TO DO: unprefixed annotations are developer comments; any practical way to determine annotation coercion, particularly user doc, if it starts with markdown syntax?
 
 code = """
 «foo.sy -- about this script»
@@ -196,11 +196,11 @@ store ("name", "Bob")
 
 
 code = """
-defineHandler("doStuff", [["aValue", optional]], optional, {aValue}, false)
+defineHandler("test", [["x", optional]], noResult, show (x), false)
 
-show(doStuff(123))
+show(test(123))
 
-show(doStuff())
+show(test()) «`x` is optional parameter»
 
 """
 
@@ -240,13 +240,13 @@ do {
     print(s)
     print()
     print("\nEVAL:")
-    let res = try s.run(env: e, type: asAnythingOrNothing)
+    let res = try s.eval(env: e, coercion: asAnythingOrNothing)
     print(res)
 } catch {
     print(error)
 }
 
-//for t in tokens { print((t.start.encodedOffset, t.end.encodedOffset), t.type, "  ⟹", code[t.start..<t.end].debugDescription) }
+//for t in tokens { print((t.start.encodedOffset, t.end.encodedOffset), t.coercion, "  ⟹", code[t.start..<t.end].debugDescription) }
 
 
 

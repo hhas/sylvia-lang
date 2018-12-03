@@ -31,11 +31,11 @@
 
 // TO DO: what about `parseIfBlock`, `parseIfGroup`, etc for use by custom parse funcs, e.g. `if EXPR BLOCK` operator (note, incidentally, that this could be defined as `if EXPR EXPR`, but that might be risky if `EXPR EXPR` is a special pattern, e.g. `documentFile 1` [shorthand for `documentFiles[1]`, or `documentFile at 1`, or whatever], or `WORD WORD` [invalid identifier sequence, indicative of quoted text body])
 
-// TO DO: what about taking advantage of Markdown heading syntax in annotations (e.g. `«= SECTION =»` `«== SUBSECTION ==»`) to enable developer notes to better describe high-level program structure? (standardizes traditional ad-hoc customs for describing layout and allows code editor's pretty printer to apply literate formatting, as well as fast navigation around large scripts, code folding/executive summary, etc); also decide if developer annotations should be formally 'typed', e.g. `«TODO:…»`, or if they should just employ existing hashtags, e.g. `«#TODO…»` (hashtags have benefit of being open-ended); still need to decide how userdoc annotations are distinguished from other types of annotations (obviously we don't want to leak internal developer notes to end users should author use wrong type, so probably want to use `«…»` for private annotations and `«XXXX…»` for user-visible notes, where `XXXX` is concise but distinctive symbol/word that is unlikely to appear accidentally at start of other annotations, e.g. `«?…»`, where `?` denotes 'help' in both annotations and language syntax [e.g. `COMMAND()?` could put interpreter into exploratory/debug mode when that command is reached, allowing user to view/edit command's current arguments, call stack, target handler[s] documentation/definition, etc, then halt/resume execution when happy])
+// TO DO: what about taking advantage of Markdown heading syntax in annotations (e.g. `«= SECTION =»` `«== SUBSECTION ==»`) to enable developer notes to better describe high-level program structure? (standardizes traditional ad-hoc customs for describing layout and allows code editor's pretty printer to apply literate formatting, as well as fast navigation around large scripts, code folding/executive summary, etc); also decide if developer annotations should be formally 'typed', e.g. `«TODO:…»`, or if they should just employ existing hashtags, e.g. `«#TODO…»` (hashtags have benefit of being open-ended); still need to decide how userdoc annotations are distinguished from other types of annotations (obviously we don't want to leak internal developer notes to end users should author use wrong coercion, so probably want to use `«…»` for private annotations and `«XXXX…»` for user-visible notes, where `XXXX` is concise but distinctive symbol/word that is unlikely to appear accidentally at start of other annotations, e.g. `«?…»`, where `?` denotes 'help' in both annotations and language syntax [e.g. `COMMAND()?` could put interpreter into exploratory/debug mode when that command is reached, allowing user to view/edit command's current arguments, call stack, target handler[s] documentation/definition, etc, then halt/resume execution when happy])
 
 // TO DO: parser doesn't handle trailing line breaks in scripts yet (hopefully just needs .endOfCode to have its own precedence)
 
-// TO DO: consider recognizing `NAME(ARGUMENTS) «?returning TYPE» BLOCK` pattern as named, unbound handler that optionally takes arguments and may declare return type, i.e. a standard closure (in which case `to`/`when` operators are effectively just binding agents, although exact implementation will differ as they won't create a closure for it); difference between this and BLOCK (`{…}`) is that latter is an unnamed closure that takes no arguments; this saves users having to declare and bind a handler before passing it as argument to a command, e.g. `sortList(listOfObjects, key:_(item){item.attributeToSortOn})` (e.g. in Python, either `def NAME(ARGUMENTS):BLOCK` statement or `lambda ARGUMENTS:EXPR` expression must be used); also note that this syntax forbids treating `COMMAND BLOCK` as a command whose last argument is trailing block (c.f. Swift)
+// TO DO: consider recognizing `NAME(ARGUMENTS) «?returning TYPE» BLOCK` pattern as named, unbound handler that optionally takes arguments and may declare return coercion, i.e. a standard closure (in which case `to`/`when` operators are effectively just binding agents, although exact implementation will differ as they won't create a closure for it); difference between this and BLOCK (`{…}`) is that latter is an unnamed closure that takes no arguments; this saves users having to declare and bind a handler before passing it as argument to a command, e.g. `sortList(listOfObjects, key:_(item){item.attributeToSortOn})` (e.g. in Python, either `def NAME(ARGUMENTS):BLOCK` statement or `lambda ARGUMENTS:EXPR` expression must be used); also note that this syntax forbids treating `COMMAND BLOCK` as a command whose last argument is trailing block (c.f. Swift)
 
 // TO DO: parser needs to maintain line count and annotate AST values with file, line, and start+end indexes for use in error messages (non-AST values might also optionally be annotated during debug sessions, enabling introspection tools to determine runtime-created values' origins)
 
@@ -67,13 +67,13 @@ class Parser {
     
     var thisInfo: TokenInfo { return self.index < self.tokens.count ? self.tokens[self.index] : self.tokens.last! }
     
-    var this: Token { return self.index < self.tokens.count ? self.tokens[self.index].type : .endOfCode }
+    var this: Token { return self.index < self.tokens.count ? self.tokens[self.index].coercion : .endOfCode }
     
     @discardableResult func next(ignoringLineBreaks: Bool = false) -> Token { // TO DO: rename `advance()` and return nothing (while returning a Token may seem convenient, it makes the sequence of operation harder to follow in parser code)
         self.index += 1
         var loop = true
         while loop && self.index < self.tokens.count {
-            switch self.tokens[self.index].type {
+            switch self.tokens[self.index].coercion {
             case .whitespace(_): self.index += 1
             case .lineBreak where ignoringLineBreaks: self.index += 1
             case .annotationLiteral(_):
@@ -90,13 +90,13 @@ class Parser {
         var index = self.index + 1
         var loop = true
         while loop && index < self.tokens.count {
-            switch self.tokens[index].type {
+            switch self.tokens[index].coercion {
             case .whitespace(_), .annotationLiteral(_): index += 1
             case .lineBreak where ignoringLineBreaks: index += 1
             default: loop = false
             }
         }
-        return index < self.tokens.count ? self.tokens[index].type : .endOfCode
+        return index < self.tokens.count ? self.tokens[index].coercion : .endOfCode
     }
     
     //
@@ -145,7 +145,7 @@ class Parser {
     
     private func parseAtom(_ precedence: Int = 0) throws -> Value {
         let tokenInfo = self.thisInfo
-        let token = tokenInfo.type
+        let token = tokenInfo.coercion
         let value: Value
         // TO DO: what about .endOfCode? can it occur here?
         switch token {
@@ -154,7 +154,7 @@ class Parser {
         case .blockLiteral:     // `{…}`
             value = try self.readBlock()
         case .groupLiteral:     // `(…)` // precedence group (unlike a command's argument tuple, this must contain exactly 1 expression)
-            // caution: don't use `(…,…,…)` as block-style sequence as it's already used as tuple syntax in commands and handlers (OTOH, if commands/handlers take a `{…,…,…}` record value as unary argument c.f. entoli, `(…,…,…)` could be used as block syntax wherever 'block' is *explicitly* allowed as argument type; however, anywhere else it must only work as precedence group, e.g. `(1+2)*3` but not `(foo,1+2)*3`, to avoid introducing potential gotchas)
+            // caution: don't use `(…,…,…)` as block-style sequence as it's already used as tuple syntax in commands and handlers (OTOH, if commands/handlers take a `{…,…,…}` record value as unary argument c.f. entoli, `(…,…,…)` could be used as block syntax wherever 'block' is *explicitly* allowed as argument coercion; however, anywhere else it must only work as precedence group, e.g. `(1+2)*3` but not `(foo,1+2)*3`, to avoid introducing potential gotchas)
             self.next(ignoringLineBreaks: true) // step over '('
             value = try self.parseExpression()
             self.next(ignoringLineBreaks: true) // step over ')'
@@ -190,7 +190,7 @@ class Parser {
     
     private func parseOperation(_ leftExpr: Value) throws -> Value {
         let tokenInfo = self.thisInfo
-        let token = tokenInfo.type
+        let token = tokenInfo.coercion
         let value: Value
         switch token {
         case .operatorName(value: let name, prefix: _, infix: let definition) where definition != nil:

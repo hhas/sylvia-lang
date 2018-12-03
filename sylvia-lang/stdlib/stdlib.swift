@@ -9,7 +9,7 @@
  
  - auto-generated API documentation
  
- - optimizing cross-compilation to Swift (e.g. when composing two primitive functions that return/accept same Swift type, boxing/unboxing steps can be skipped)
+ - optimizing cross-compilation to Swift (e.g. when composing two primitive functions that return/accept same Swift coercion, boxing/unboxing steps can be skipped)
  */
 
 
@@ -21,7 +21,7 @@ import Darwin
 /******************************************************************************/
 // math
 
-// TO DO: math funcs should use Scalars (union of Int|UInt|Double) (e.g. pinch Scalar struct from entoli) allowing native language to have a single unified `number` type (numeric values might themselves be represented in runtime as Text value annotated with scalar info for efficiency, or as distinct Number values that can be coerced to/from Text) (note that while arithmetic/comparison library funcs will have to work with Scalars in order to handle both ints and floats, Swift code generation could reduce overheads when both arguments are known to be ints, in which case it'll output`a+b`, otherwise `Double(a)+Double(b)`) // for now, use Doubles; eventually there should be a generalized Number type/annotation that encapsulates Int|UInt|Double, and eventually BigInt, Decimal, Quantity, etc
+// TO DO: math funcs should use Scalars (union of Int|UInt|Double) (e.g. pinch Scalar struct from entoli) allowing native language to have a single unified `number` coercion (numeric values might themselves be represented in runtime as Text value annotated with scalar info for efficiency, or as distinct Number values that can be coerced to/from Text) (note that while arithmetic/comparison library funcs will have to work with Scalars in order to handle both ints and floats, Swift code generation could reduce overheads when both arguments are known to be ints, in which case it'll output`a+b`, otherwise `Double(a)+Double(b)`) // for now, use Doubles; eventually there should be a generalized Number coercion/annotation that encapsulates Int|UInt|Double, and eventually BigInt, Decimal, Quantity, etc
 //
 // TO DO: should math funcs ever throw, or should outOfRange/divideByZero be captured by Scalar?
 //
@@ -31,7 +31,7 @@ import Darwin
 
 
 // signature: add(a: primitive(double), b: primitive(double)) returning primitive(double)
-// requirements: throws // TO DO: should `throws` be declared as part of return type: `errorOr(RETURNTYPE)`? (optionally including list of error type[s] where known?)
+// requirements: throws // TO DO: should `throws` be declared as part of return coercion: `errorOr(RETURNTYPE)`? (optionally including list of error coercion[s] where known?)
 
 func exponent(a: Double, b: Double) throws -> Double { return pow(a, b) }
 func positive(a: Double) throws -> Double { return +a }
@@ -64,7 +64,7 @@ func XOR(a: Bool, b: Bool) -> Bool { return a && !b || !a && b }
 /******************************************************************************/
 // general
 
-// for now, implement for string only; longer term, these should accept optional type:Coercion parameter (e.g. `A eq B as list of caseSensitiveText`) to standardize argument types before comparison, and call type-specific comparison methods on Values (ideally a default type would be inferred where practical, e.g. if it is known that two lists of text are being compared, the default type would be `list(text)`); the goal is to avoid inconsistent behavior during comparisons, particularly lt/le/gt/ge; a typical example would be in sorting a mixed list where comparison behavior changes from item to item according to operand type(s)
+// for now, implement for string only; longer term, these should accept optional coercion:Coercion parameter (e.g. `A eq B as list of caseSensitiveText`) to standardize argument types before comparison, and call coercion-specific comparison methods on Values (ideally a default coercion would be inferred where practical, e.g. if it is known that two lists of text are being compared, the default coercion would be `list(text)`); the goal is to avoid inconsistent behavior during comparisons, particularly lt/le/gt/ge; a typical example would be in sorting a mixed list where comparison behavior changes from item to item according to operand coercion(s)
 
 // comparison
 func lt(a: String, b: String) throws -> Bool { return a.lowercased() <  b.lowercased() }
@@ -88,7 +88,7 @@ func lowercase(a: String) -> String { return a.lowercased() }
 /******************************************************************************/
 // I/O
 
-// TO DO: when working with streams, would it be better for bridging code to pass required pipes to call_NAME functions as explicit arguments? need to give some thought to read/write model: e.g. rather than implicitly accessing stdin/stdout/stderr/FS/network/etc pipes directly (as `print` does here), 'mount' them in local/global namespace as Values which can be manipulated via standard get/set operations (note: the value's 'type' should be inferred where practical, e.g. from filename extension/MIME type where available, or explicitly indicated in `attach` command, enabling appropriate transcoders to be automatically found and used) (TO DO: Q. could coercions be used to attach transcoders, avoiding need for special-purpose command? e.g. `let mountPoint = someURL as atomFeed`; i.e. closer we can keep to AEOM/REST semantics of standard verbs + arbitrary resource types, more consistent, composable, and learnable the whole system will be)
+// TO DO: when working with streams, would it be better for bridging code to pass required pipes to call_NAME functions as explicit arguments? need to give some thought to read/write model: e.g. rather than implicitly accessing stdin/stdout/stderr/FS/network/etc pipes directly (as `print` does here), 'mount' them in local/global namespace as Values which can be manipulated via standard get/set operations (note: the value's 'coercion' should be inferred where practical, e.g. from filename extension/MIME coercion where available, or explicitly indicated in `attach` command, enabling appropriate transcoders to be automatically found and used) (TO DO: Q. could coercions be used to attach transcoders, avoiding need for special-purpose command? e.g. `let mountPoint = someURL as atomFeed`; i.e. closer we can keep to AEOM/REST semantics of standard verbs + arbitrary resource types, more consistent, composable, and learnable the whole system will be)
 
 // signature: show(value: anything)
 // requires: stdout
@@ -99,10 +99,15 @@ func show(value: Value) { // primitive library function
 }
 
 
+func formatCode(value: Value) -> String {
+    return value.description
+}
+
+
 /******************************************************************************/
 // state
 
-// signature: defineCommandHandler(name: primitive(text), parameters: default([], parametersList), result: default(anything, type), body: primitive(expression)) returning handler
+// signature: defineCommandHandler(name: primitive(text), parameters: default([], parametersList), result: default(anything, coercion), body: primitive(expression)) returning handler
 // requires: throws, commandEnv // any required env params are appended to bridging call in standard order (commandEnv,handlerEnv,bodyEnv)
 
 // TO DO: need asParameterList coercion that knows how to parse user-defined parameters list (which may consist of label strings and/or (label,coercion) tuples, and may include optional description strings too)
@@ -131,14 +136,14 @@ func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -
 // note: while primitive functions can use Thunks for lazily evaluated arguments, it's cheaper just to pass the command's arguments as-is plus the command's environment and evaluate directly
 
 func testIf(condition: Bool, action: Value, commandEnv: Env) throws -> Value {
-    return try condition ? asResult.coerce(value: action, env: commandEnv) : didNothing
+    return try condition ? action.eval(env: commandEnv, coercion: asResult) : didNothing
 }
 
 func repeatTimes(count: Int, action: Value, commandEnv: Env) throws -> Value {
     var count = count
     var result: Value = didNothing
     while count > 0 {
-        result = try asResult.coerce(value: action, env: commandEnv)
+        result = try action.eval(env: commandEnv, coercion: asResult)
         count -= 1
     }
     return result
@@ -147,7 +152,7 @@ func repeatTimes(count: Int, action: Value, commandEnv: Env) throws -> Value {
 func repeatWhile(condition: Value, action: Value, commandEnv: Env) throws -> Value {
     var result: Value = didNothing // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asAnythingOrNothing/asOptional/asDefault should do])
     while try asBool.unbox(value: condition, env: commandEnv) {
-        result = try asResult.coerce(value: action, env: commandEnv)
+        result = try action.eval(env: commandEnv, coercion: asResult)
     }
     return result
 }

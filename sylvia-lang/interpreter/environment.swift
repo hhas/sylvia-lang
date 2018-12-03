@@ -11,7 +11,7 @@ class Env {
     
     typealias Slot = (readOnly: Bool, value: Value)
     
-    internal var frame: [String: Slot] // TO DO: what about option to define slot type?
+    internal var frame: [String: Slot] // TO DO: what about option to define slot coercion?
     private let parent: Env?
     
     init(parent: Env? = nil) { // TO DO: read-only flag; if true, child() returns a ReadOnlyEnv that always throws on set(name:value:) (note: this prevents all writes to a scope, e.g. global; might want to use per-slot locks only)

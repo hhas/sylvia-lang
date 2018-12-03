@@ -15,7 +15,7 @@
 //
 //      «:a» '+' «:b»
 //
-//      'to' «: name as primitive(text)» «: parameters as primitive(list of argument)» «optional: 'returning' «: returnType as type» » «: body as block»
+//      'to' «: name as primitive(text)» «: parameters as primitive(list of argument)» «optional: 'returning' «: returnType as coercion» » «: body as block»
 //
 // Eventually this syntax could be used by library code-generator to look up names of existing parse+format functions, or generate custom functions if not found
 

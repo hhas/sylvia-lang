@@ -5,7 +5,7 @@
 
 typealias CallableValue = Value & Callable
 
-typealias Parameter = (name: String, type: Coercion)
+typealias Parameter = (name: String, coercion: Coercion)
 
 
 
@@ -45,7 +45,7 @@ protocol Callable {
     
     var name: String { get }
     
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value
+    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value
 
 }
 
@@ -73,9 +73,9 @@ class BoundHandler: CallableValue { // getting a Handler from an Env creates a c
         self.handlerEnv = handlerEnv
     }
     
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value {
+    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value {
         // note: command name may be different to handler name if handler has been assigned to different slot
-        return try self.handler.call(command: command, commandEnv: commandEnv, handlerEnv: self.handlerEnv, type: type)
+        return try self.handler.call(command: command, commandEnv: commandEnv, handlerEnv: self.handlerEnv, coercion: coercion)
     }
 }
 
@@ -97,13 +97,13 @@ class Handler: CallableValue { // native handler
     
     // unbox()/coerce() support; returns BoundHandler capturing both handler and its original handlerEnv; this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
     
-    override func toAny(env: Env, type: Coercion) throws -> Value {
+    override func toAny(env: Env, coercion: Coercion) throws -> Value {
         return BoundHandler(handler: self, handlerEnv: env)
     }
     
     // called by Command
     
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value {
+    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value {
         let result: Value
         do {
             //print("calling \(self):", command)
@@ -121,15 +121,15 @@ class Handler: CallableValue { // native handler
         } catch {
             throw HandlerFailedError(handler: self, command: command).from(error)
         }
-        //print("\(self) coercing returned value to requested \(type): \(result)")
-        return try type.coerce(value: result, env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
+        //print("\(self) coercing returned value to requested \(coercion): \(result)")
+        return try coercion.coerce(value: result, env: commandEnv) // TO DO: intersect Coercions to avoid double-coercion (Q. not sure what env[s] to use)
     }
 }
 
 
 
 
-typealias PrimitiveCall = (_ command: Command, _ commandEnv: Env, _ handler: CallableValue, _ handlerEnv: Env, _ type: Coercion) throws -> Value
+typealias PrimitiveCall = (_ command: Command, _ commandEnv: Env, _ handler: CallableValue, _ handlerEnv: Env, _ coercion: Coercion) throws -> Value
 
 
 
@@ -146,15 +146,15 @@ class PrimitiveHandler: CallableValue {
         self.swiftFunctionWrapper = swiftFunc
     }
     
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, type: Coercion) throws -> Value {
-        // TO DO: double-coercing returned values (once in self.call() and again in type.coerce()) is a pain, but should mostly go away once Coercions can be intersected (hopefully, intersected Coercions created within static expressions can eventually be memoized, or the AST rewritten by the interpreter to use them in future, avoiding the need to recreate those intersections every time they're used)
+    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value {
+        // TO DO: double-coercing returned values (once in self.call() and again in coercion.coerce()) is a pain, but should mostly go away once Coercions can be intersected (hopefully, intersected Coercions created within static expressions can eventually be memoized, or the AST rewritten by the interpreter to use them in future, avoiding the need to recreate those intersections every time they're used)
         let result: Value
         do {
-            result = try self.swiftFunctionWrapper(command, commandEnv, self, handlerEnv, type) // TO DO: function wrapper currently ignores `type` (it's passed here on assumption that glue code will eventually intersect it with its interface.returnType, but see below TODO)
+            result = try self.swiftFunctionWrapper(command, commandEnv, self, handlerEnv, coercion) // TO DO: function wrapper currently ignores `coercion` (it's passed here on assumption that glue code will eventually intersect it with its interface.returnType, but see below TODO)
         } catch {
             throw HandlerFailedError(handler: self, command: command).from(error)
         }
-        return try type.coerce(value: result, env: commandEnv) // TO DO: double coercion is doubly problematic: type should intersect with interface.returnType to avoid duplication of effort; however running command with asAnythingOrNothing as type invokes `call()` with type:asAnything, so NullCoercionError here needs to propagate back to be handled correctly (Q. is this why there was an atomic `AsAnything[OrNothing]` class before? for now, use `asResult`, which is same thing, to evaluate an expr without specifying a return type). Basically, return types are a giant PITA from implementation POV; idea is that given `foo(bar())`, foo's parameter type is passed to bar handler which can intersect it with its return type and ensure its return value adheres to that, but this requires full type to be passed all the way up to bar handler whereas AsOptional/AsDefault modifiers stay further up the call chain waiting to catch any NullCoercionErrors that propagate back…except those errors have already been caught and rethrown as permanent coercion errors by then; got a vague feeling this might be why kiwi/entoli have an extra layer of dispatch - Value->Coercion->Value - rather than Coercion->Value as is done here, allowing values to have more control over how return types are handled (coerce now vs pass along). This stuff is potentially very powerful and may well be a prerequisite to efficient native->Swift compilation, but is a huge headache to get it exactly right.
+        return try coercion.coerce(value: result, env: commandEnv) // TO DO: double coercion is doubly problematic: coercion should intersect with interface.returnType to avoid duplication of effort; however running command with asAnythingOrNothing as coercion invokes `call()` with coercion:asAnything, so NullCoercionError here needs to propagate back to be handled correctly (Q. is this why there was an atomic `AsAnything[OrNothing]` class before? for now, use `asResult`, which is same thing, to evaluate an expr without specifying a return coercion). Basically, return types are a giant PITA from implementation POV; idea is that given `foo(bar())`, foo's parameter coercion is passed to bar handler which can intersect it with its return coercion and ensure its return value adheres to that, but this requires full coercion to be passed all the way up to bar handler whereas AsOptional/AsDefault modifiers stay further up the call chain waiting to catch any NullCoercionErrors that propagate back…except those errors have already been caught and rethrown as permanent coercion errors by then; got a vague feeling this might be why kiwi/entoli have an extra layer of dispatch - Value->Coercion->Value - rather than Coercion->Value as is done here, allowing values to have more control over how return types are handled (coerce now vs pass along). This stuff is potentially very powerful and may well be a prerequisite to efficient native->Swift compilation, but is a huge headache to get it exactly right.
     }
 }
 
