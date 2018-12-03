@@ -71,7 +71,8 @@ extension BridgingProtocol {
     func unboxArgument(at index: Int, command: Command, commandEnv: Env, handler: CallableValue) throws -> SwiftType {
         //print("Unboxing argument \(index)")
         do {
-            return try self.unbox(value: command.argument(index), env: commandEnv)// TO DO: use evaluate
+            return try self.unbox(value: command.argument(index), env: commandEnv)// TO DO: should use swiftEval
+            //return try command.argument(index).swiftEval(env: Env, coercion: self) // TO DO: …except this doesn't work as swiftEval<T>() can't be inferred
         } catch {
             //print("Unboxing argument \(index) failed:",error)
             throw BadArgumentError(command: command, handler: handler, index: index).from(error)
@@ -89,9 +90,9 @@ extension BridgingProtocol {
 
 
 
-class AsAnything: BridgingCoercion { // any value *except* `nothing`
+class AsValue: BridgingCoercion { // any value *except* `nothing`
     
-    var coercionName: String { return "anything" }
+    var coercionName: String { return "value" }
     
     override var description: String { return self.coercionName }
     
@@ -340,9 +341,8 @@ class AsOptionalValue: BridgingCoercion { // native optional
     func coerce(value: Value, env: Env) throws -> Value {
         do {
             return try self.coercion.coerce(value: value, env: env)
-        } catch is NullCoercionError {
-            //print("\(self) caught null coercion error.\nValue: \(value)")
-            return noValue
+        } catch let error as NullCoercionError {
+            return error.value
         } catch {
             //print("\(self) caught error: \(error)")
             throw error
@@ -380,8 +380,8 @@ class AsOptional<T: BridgingCoercion>: BridgingCoercion { // Swift `Optional` en
     func coerce(value: Value, env: Env) throws -> Value {
         do {
             return try self.coercion.coerce(value: value, env: env)
-        } catch is NullCoercionError {
-            return noValue
+        } catch let error as NullCoercionError {
+            return error.value
         }
     }
     
@@ -474,9 +474,9 @@ class AsIs: BridgingCoercion { // the value is passed thru as-is, without evalua
     }
 }
 
-class AsResult: BridgingCoercion { // any value including `nothing`; used to evaluate expressions
+class AsAnything: BridgingCoercion { // any value including `nothing`; used to evaluate expressions
     
-    var coercionName: String { return "result" }
+    var coercionName: String { return "anything" }
     
     override var description: String { return self.coercionName }
     
@@ -485,8 +485,8 @@ class AsResult: BridgingCoercion { // any value including `nothing`; used to eva
     func coerce(value: Value, env: Env) throws -> Value {
         do {
             return try value.toAny(env: env, coercion: self)
-        } catch is NullCoercionError {
-            return noValue
+        } catch let error as NullCoercionError {
+            return error.value // TO DO: how far should `didNothing` result propagate before being converted to `nothing`/permanent coercion error? it probably shouldn't go beyond an immediate `else` clause, e.g. `(if x action) else (y)` but not `(moreStuff(if x action)) else (y)`; might need to define an additional return type for handlers that can return `didNothing`, and have AsAnything/AsOptional catch and return noValue
         }
     }
     
@@ -522,7 +522,7 @@ class AsParameter: BridgingCoercion {
         let coercion: Coercion
         switch fields.count {
         case 1: // name only
-            coercion = asAnything // anything except `nothing` (as that is used for optional params)
+            coercion = asValue // any value except `nothing` (as that is used for optional params)
         case 2: // name + coercion
             coercion = try asCoercion.unbox(value: fields[1], env: env)
         default:
@@ -563,16 +563,18 @@ class AsCoercion: BridgingCoercion {
 
 class AsNoResult: Coercion { // value is discarded; noValue is returned (used in primitive handler coercion sigs when handler returns no result)
     
-    var coercionName: String { return "noResult" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asAnything`] from 'returns nothing')
+    var coercionName: String { return "noResult" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asValue`] from 'returns nothing')
     
     override var description: String { return self.coercionName }
     
     typealias SwiftType = Value
     
     func coerce(value: Value, env: Env) throws -> Value {
+        let _ = try asOptionalValue.coerce(value: value, env: env)
         return noValue
     }
     func unbox(value: Value, env: Env) throws -> SwiftType {
+        let _ = try asOptionalValue.coerce(value: value, env: env)
         return noValue
     }
     func box(value: SwiftType, env: Env) throws -> Value {
@@ -586,20 +588,20 @@ class AsNoResult: Coercion { // value is discarded; noValue is returned (used in
 
 // basic evaluation
 
-let asAnything = AsAnything() // any value except `nothing`; this is the default parameter coercion for native handlers
-let asAnythingOrNothing = AsOptionalValue(asAnything) // any value or `nothing`; this is the default return coercion for native handlers
+let asValue = AsValue() // any value except `nothing`; this is the default parameter coercion for native handlers
+let asOptionalValue = AsOptionalValue(asValue) // any value or `nothing`; this is the default return coercion for native handlers
 
 let asText = AsText()
 let asBool = AsBool()
 let asInt = AsInt()
 let asDouble = AsDouble()
 let asString = AsString()
-let asList = AsList(asAnything)
+let asList = AsList(asValue)
 
 
 // lazy evaluation
 
-let asThunk = AsThunk(asAnythingOrNothing) // native handlers may use this to declare lazily evaluated parameters
+let asThunk = AsThunk(asOptionalValue) // native handlers may use this to declare lazily evaluated parameters
 
 
 // handler signatures
@@ -612,6 +614,6 @@ let asIs = AsIs() // supplied value is returned as-is, without expanding or thun
 let asBlock = asIs // primitive handlers don't really care if an argument is a block or an expression (to/if/repeat/etc operators should check for block syntax themselves), so for now just pass it to the handler body as-is (there's no need to thunk it either, unless the supplied block/expression needs to be retained beyond the handler call in which case it must be captured with the command scope, either by declaring the parameter coercion asThunk or by calling asThunk.coerce in the handler body)
 
 
-let asResult = AsResult() // used to evaluate expressions where no specific return coercion is required; TO DO: this has a smell but may be unavoidable due to way that AsOptional works
+let asAnything = AsAnything() // used to evaluate expressions where no specific return coercion is required; unlike asOptionalValue, this allows `nothing` to appear nested within lists, e.g. `nothing as optional(value) -> nothing` but `[1,nothing] as optional(value) -> CoercionError`, whereas `[1,nothing] as anything -> [1,nothing]`, `[1,[2,[3,nothing]]] as anything -> [1,[2,[3,nothing]]]`
 
-let asNoResult = AsNoResult() // always returns `nothing`; may be used as handler return value
+let asNoResult = AsNoResult() // expands value to anything, ignoring any result, and always returns `nothing`; used as a handler's return type when no result is given/required

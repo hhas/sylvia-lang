@@ -31,7 +31,7 @@ do { // evaluate to List of Text
         => [“Hello”, “World”]
      */
     let v = List([Text("Hello"), Text("World")])
-    let t = asAnything
+    let t = asValue
     print(try t.coerce(value: v, env: e))
 } catch {
     print(1, error)
@@ -70,7 +70,7 @@ do { // evaluate commands
         => “-3”
      */
     let v = Command("-", [Command("+", [Text("1"), Text("2")]), Text("6")])
-    print(try asAnythingOrNothing.coerce(value: v, env: e)) // "-3" // native
+    print(try asOptionalValue.coerce(value: v, env: e)) // "-3" // native
 } catch {
     print(4, error)
 }
@@ -89,7 +89,7 @@ do { // define and call native handler
                     Command("+", [Text("1"), Identifier("n")]))
     try e.add(h)
     let v = Command("show", [Command("addOne", [Text("3")])])
-    print(try asResult.coerce(value: v, env: e)) // prints "4" and returns `nothing`
+    print(try asAnything.coerce(value: v, env: e)) // prints "4" and returns `nothing`
 } catch {
     print(5, error)
 }
@@ -102,7 +102,7 @@ do { // conditional
      */
     for arg in [trueValue, falseValue] {
         let v = Command("testIf", [arg, Command("show", [Text("yes")]), Command("show", [Text("no")])])
-        print(try asResult.coerce(value: v, env: e))
+        print(try asAnything.coerce(value: v, env: e))
     }
     // optional arguments and return values
     /*
@@ -112,7 +112,7 @@ do { // conditional
      */
     for arg in [trueValue, falseValue, noValue] {
         let v = Command("testIf", [arg, Text("42")])
-        print(try asResult.coerce(value: v, env: e))
+        print(try asAnything.coerce(value: v, env: e))
     }
 } catch {
     print(6, error)
@@ -196,11 +196,11 @@ store ("name", "Bob")
 
 
 code = """
-defineHandler("test", [["x", optional]], noResult, show (x), false)
+defineHandler("test", [["x", optional]], noResult, {show ([1,x]), x}, false)
 
-show(test(123))
+show([2,test(123)])
 
-show(test()) «`x` is optional parameter»
+«show(test()) «`x` is optional parameter»»
 
 """
 
@@ -218,6 +218,11 @@ show(square("abc")) «CoercionError: can't coerce text to number»
 */
 
 
+code = """
+
+if 3 > 5 {"yes"} else {"no"}
+
+"""
 
 
 
@@ -240,7 +245,7 @@ do {
     print(s)
     print()
     print("\nEVAL:")
-    let res = try s.eval(env: e, coercion: asAnythingOrNothing)
+    let res = try s.eval(env: e, coercion: asOptionalValue)
     print(res)
 } catch {
     print(error)

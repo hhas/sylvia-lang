@@ -135,25 +135,35 @@ func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -
 
 // note: while primitive functions can use Thunks for lazily evaluated arguments, it's cheaper just to pass the command's arguments as-is plus the command's environment and evaluate directly
 
+// TO DO: where a handler function evals a value, the handler signature's returnType should propagate up to action.eval(); alternatively, function might encapsulate action in a Value which is returned to the wrapper to force
+
 func testIf(condition: Bool, action: Value, commandEnv: Env) throws -> Value {
-    return try condition ? action.eval(env: commandEnv, coercion: asResult) : didNothing
+    return try condition ? action.eval(env: commandEnv, coercion: asAnything) : didNothing
 }
 
 func repeatTimes(count: Int, action: Value, commandEnv: Env) throws -> Value {
     var count = count
     var result: Value = didNothing
     while count > 0 {
-        result = try action.eval(env: commandEnv, coercion: asResult)
+        result = try action.eval(env: commandEnv, coercion: asAnything)
         count -= 1
     }
     return result
 }
 
 func repeatWhile(condition: Value, action: Value, commandEnv: Env) throws -> Value {
-    var result: Value = didNothing // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asAnythingOrNothing/asOptional/asDefault should do])
+    var result: Value = didNothing // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asOptionalValue/asOptional/asDefault should do])
     while try asBool.unbox(value: condition, env: commandEnv) {
-        result = try action.eval(env: commandEnv, coercion: asResult)
+        result = try action.eval(env: commandEnv, coercion: asAnything)
     }
     return result
 }
+
+
+func elseClause(action: Value, elseAction: Value, commandEnv: Env) throws -> Value { // TO DO: see TODO on AsAnything re. limiting scope of `didNothing` result
+    let result = try action.eval(env: commandEnv, coercion: asAnything)
+    //print("action returned: \(result)")
+    return result is DidNothing ? try elseAction.eval(env: commandEnv, coercion: asAnything) : result
+}
+
 

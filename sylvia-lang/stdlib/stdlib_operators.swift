@@ -57,7 +57,7 @@ func handlerConstructorOperatorParser(_ isEventHandler: Bool) -> ParseFunc.Prefi
         // TO DO: better to use toHandlerSignature coercion here, as it may be a command [if returnType not specified] or it may be a `returning` operator (Q. how should `returning`, which ought to map to command `returning(name(params),returnType)`, produce a signature? on parsing or eval?)
         guard let signature = expr as? Command else { throw SyntaxError("Expected a handler signature after `\(operatorName)`, but found: \(expr)") }
         let parameters = signature.arguments.map{Text(($0 as! Identifier).name)}
-        let returnType = asAnythingOrNothing
+        let returnType = asOptionalValue
         
         guard case .blockLiteral = parser.peek() else { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(parser.this)") }
         parser.next()
@@ -165,8 +165,12 @@ let stdlib_operators: [OperatorDefinition] = [
     ("if",          10, .prefix(parseExpressionAndBlockOperator), [], "testIf"),
     ("repeat",      10, .prefix(parseExpressionAndBlockOperator), [], "repeatTimes"),
     ("while",       10, .prefix(parseExpressionAndBlockOperator), [], "repeatWhile"),
-    ("else",         5, .infix(parseInfixOperator), [], nil),
-    ("catching",     4, .infix(parseInfixOperator), [], nil),
+    
+    // flow control conjunctions
+    ("else",         5, .infix(parseInfixOperator), [], "elseClause"),
+    ("catching",     4, .infix(parseInfixOperator), [], nil), // "defineErrorHandler"?
+    
+    // note: default precedence is 0; punctuation is -ve; annotation is high; infix/postfix ops should come somewhere inbetween (hardcoding precedence as ints is icky, requiring sufficient sized gaps between different operator sets to allow for new operators to be defined inbetween, but will do for now); TO DO: if sticking to ints, consider defining operator precedence as CATEGORYOperatorPrecedence+relativePrecedence, e.g. booleanOperatorPrecedence = 0x00010000, with NOT,AND,XOR,OR having relative precedence of 3,2,1,0 to each other
     
     // TO DO: don't really want to support a `for NAME in EXPR BLOCK` operator as syntax isn't consistent with `OPERATOR EXPR BLOCK` syntax used by other operators; what about supporting `(NAME,…) BLOCK` syntax for lambdas (unnamed callables)? how practical is that? (it likely rules out using `COMMAND BLOCK` pattern to denote a command with trailing block argument [c.f. Swift], but not a huge fan of that anyway [in Swift, `OPERATOR EXPR BLOCK` and `IDENTIFIER TUPLE BLOCK` are frustratingly inconsistent - two incompatible syntaxes for essentially the same job])
     //

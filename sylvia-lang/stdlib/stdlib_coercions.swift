@@ -13,17 +13,19 @@ import Foundation
 
 
 func stdlib_loadCoercions(env: Env) throws {
-    try env.add(asAnything)
+    try env.add(asValue)
     try env.add(asText)
     try env.add(asBool)
     try env.add(asDouble)
     try env.add(asList)
     
     try env.add(asCoercion)
+    
+    try env.add(asAnything)
     try env.add(asNoResult)
     
-    try env.add(asAnythingOrNothing)
-    try env.add(AsDefault(asAnythingOrNothing, noValue)) // note: AsDefault requires constraint args (coercion and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
+    try env.add(asOptionalValue)
+    try env.add(AsDefault(asOptionalValue, noValue)) // note: AsDefault requires constraint args (coercion and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
 }
 
 

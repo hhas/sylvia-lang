@@ -187,7 +187,7 @@ enum Token {
     
     var precedence: Int {
         switch self {
-        case .annotationLiteral:                                    return 1000 // '«...»'
+        case .annotationLiteral:                                    return 100000 // '«...»'
         case .itemSeparator:                                        return -3 // TO DO: what should precedences be?
         case .listLiteralEnd, .blockLiteralEnd, .groupLiteralEnd:   return -2   // ','
         case .operatorName(let definition):                         return definition.infix?.precedence ?? 0 // only infix/postfix ops are of relevance (atom/prefix ops do not take a left operand [i.e. leftExpr], so return 0 for those to finish the previous expression and start a new one)

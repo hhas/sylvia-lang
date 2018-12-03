@@ -688,7 +688,7 @@ func call_lowercase_a(command: Command, commandEnv: Env, handler: CallableValue,
 
 // show(…)
 let signature_show_value = (
-    paramType_0: asAnythingOrNothing,
+    paramType_0: asAnything,
     returnType: asNoResult
 )
 let interface_show_value = CallableInterface(
@@ -709,7 +709,7 @@ func call_show_value(command: Command, commandEnv: Env, handler: CallableValue, 
 
 // formatCode(…)
 let signature_formatCode_value = (
-    paramType_0: asAnythingOrNothing,
+    paramType_0: asOptionalValue,
     returnType: asString
 )
 let interface_formatCode_value = CallableInterface(
@@ -769,7 +769,7 @@ func call_defineHandler_name_parameters_returnType_action_isEventHandler_command
 // store(…)
 let signature_store_name_value_readOnly_commandEnv = (
     paramType_0: asString,
-    paramType_1: asAnythingOrNothing,
+    paramType_1: asOptionalValue,
     paramType_2: asBool,
     returnType: asIs
 )
@@ -850,7 +850,7 @@ func call_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Env,
 
 // repeatWhile(…)
 let signature_repeatWhile_condition_action_commandEnv = (
-    paramType_0: asAnythingOrNothing,
+    paramType_0: asOptionalValue,
     paramType_1: asBlock,
     returnType: asIs
 )
@@ -872,6 +872,32 @@ func call_repeatWhile_condition_action_commandEnv(command: Command, commandEnv: 
 		commandEnv: commandEnv
     )
     return try signature_repeatWhile_condition_action_commandEnv.returnType.box(value: result, env: handlerEnv)
+}
+
+// elseClause(…)
+let signature_elseClause_action_elseAction_commandEnv = (
+    paramType_0: asAnything,
+    paramType_1: asAnything,
+    returnType: asIs
+)
+let interface_elseClause_action_elseAction_commandEnv = CallableInterface(
+    name: "elseClause",
+    parameters: [
+        ("action", signature_elseClause_action_elseAction_commandEnv.paramType_0),
+        ("elseAction", signature_elseClause_action_elseAction_commandEnv.paramType_1),
+    ],
+    returnType: signature_elseClause_action_elseAction_commandEnv.returnType
+)
+func call_elseClause_action_elseAction_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_elseClause_action_elseAction_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_elseClause_action_elseAction_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    let result = try elseClause(
+        action: arg_0,
+        elseAction: arg_1,
+		commandEnv: commandEnv
+    )
+    return try signature_elseClause_action_elseAction_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
 
@@ -912,4 +938,5 @@ func stdlib_loadHandlers(env: Env) throws {
     try env.add(interface_testIf_condition_action_commandEnv, call_testIf_condition_action_commandEnv)
     try env.add(interface_repeatTimes_count_action_commandEnv, call_repeatTimes_count_action_commandEnv)
     try env.add(interface_repeatWhile_condition_action_commandEnv, call_repeatWhile_condition_action_commandEnv)
+    try env.add(interface_elseClause_action_elseAction_commandEnv, call_elseClause_action_elseAction_commandEnv)
 }

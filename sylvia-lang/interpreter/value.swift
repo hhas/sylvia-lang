@@ -94,7 +94,11 @@ class Nothing: Value {
 }
 
 
-class DidNothing: Nothing {} // TO DO
+class DidNothing: Nothing {
+    
+    override var description: String { return "didNothing" }
+    
+}
 
 
 

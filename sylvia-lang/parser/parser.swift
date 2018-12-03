@@ -40,6 +40,8 @@
 // TO DO: parser needs to maintain line count and annotate AST values with file, line, and start+end indexes for use in error messages (non-AST values might also optionally be annotated during debug sessions, enabling introspection tools to determine runtime-created values' origins)
 
 
+// TO DO: if using `NAME:EXPR` for assignment as well as pair operators in argument lists and key-value lists, parser may need to output different Values according to context (StoreValue, LabelledArgument/LabelledParameter, KeyValuePair) as each has different evaluation rules (operator precedence should be higher than comma separator/linebreak, lower than everything else); alternatively, block and argument tuple contexts might apply different coercions to Pair (although that's not ideal in block context as coercions really shouldn't have side effects); in any case, parser will want to distinguish key-value list literals from ordered/unique lists so that it can annotate/use alternative value representation to use Swift Dictionary instead of Array for internal storage
+
 
 import Foundation
 
@@ -103,16 +105,18 @@ class Parser {
     
     func readBlock() throws -> Block { // start on '{'
         guard case .blockLiteral = self.this else { throw InternalError("Parser.readBlock() should start on '{' but is on: \(self.this)") } // sanity check
-        self.next(ignoringLineBreaks: true) // step over '{' to first expression
+        self.next(ignoringLineBreaks: true) // step over '{' to first expression // TO DO: could do with knowing if linebreaks were skipped so that block can be annotated with formatting hints
         var items = [Value]()
         // note: `if case`/`guard case` is awful: it can't take more than one .CASE and isn't a comparison operation so doesn't compose with Boolean tests, so there's no way to say 'if not .CASE then…' or 'if .THISCASE or .THATCASE then…'
         while true {
             if case .blockLiteralEnd = self.this { break }
             items.append(try self.parseExpression(ignoringLineBreaks: false))
             self.next() // advance to first token after expression, which should be either end of block or line break
-            guard case .lineBreak = self.this else { break } // check for line break separator after expression
+            switch self.this {
+            case .lineBreak, .itemSeparator: self.next(ignoringLineBreaks: true) // skip over optional comma separator and/or line break[s] to start of next line // TO DO: need to annotate preceding expression with formatting hints
+            default: break
+            } // check for line break separator after expression
             // (note: if also allowing semicolons as an alternative to line breaks for separating expressions, with no obvious way to do an OR test we'd have to nest a second `guard case .semicolon = self.this else {break}` within the first)
-            self.next(ignoringLineBreaks: true) // skip over line break[s] to start of next line
         }
         // make sure block has closing '}'
         guard case .blockLiteralEnd = self.this else { throw SyntaxError("Expected expression or end of block but found: \(self.this)") }
