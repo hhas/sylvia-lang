@@ -18,7 +18,7 @@
 
 class Value: CustomStringConvertible { // base class for all native values // Q. would it be better for Value to be a protocol + extension? (need to check how multiple extensions that implement same methods are resolved, e.g. if Value extension implements default toTYPE methods)
     
-    lazy var annotations = [Any]() // TO DO: what data structure?
+    lazy var annotations = [Int:Any]() // TO DO: what data structure?
     
     var description: String { return "«TODO: `\(type(of:self)).description`»" }
     
@@ -108,12 +108,15 @@ class Text: Value { // TO DO: Scalar?
     
     override var nominalType: Coercion { return asText }
     
+    internal(set) var scalar: Scalar?
+    
     // TO DO: need ability to capture raw Swift value in case of numbers, dates, etc; while this could be done in annotations, it might be quicker to have a dedicated private var containing enum of standard raw types we want to cache (.int, .double, .scalar, .date, whatever); another option is for annotations to be linked list/B-tree where entries are ordered according to predefined importance or frequency of use (would need to see how this compares to a dictionary, which should be pretty fast out of the box with interned keys)
     
     private(set) var swiftValue: String // TO DO: restricted mutability; e.g. perform appends in-place only if refcount==1, else copy self and append to that
     
-    init(_ swiftValue: String) { // TO DO: what constraints are appropriate here? e.g. nonEmpty, minLength, maxLength, pattern, etc are all possibilities; simplest from API perspective is regexp, although that's also the most complex (unless standard patterns for describing the other constraints - e.g. "."/".+"/"\A.+\Z" are common patterns for indicating 'nonEmpty:true' - are recognized and optimized away)
+    init(_ swiftValue: String, scalar: Scalar? = nil) { // TO DO: what constraints are appropriate here? e.g. nonEmpty, minLength, maxLength, pattern, etc are all possibilities; simplest from API perspective is regexp, although that's also the most complex (unless standard patterns for describing the other constraints - e.g. "."/".+"/"\A.+\Z" are common patterns for indicating 'nonEmpty:true' - are recognized and optimized away)
         self.swiftValue = swiftValue
+        self.scalar = scalar
     }
     
     override func toText(env: Env, coercion: Coercion) throws -> Text {

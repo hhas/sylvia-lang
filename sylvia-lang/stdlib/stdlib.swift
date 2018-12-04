@@ -33,14 +33,14 @@ import Darwin
 // signature: add(a: primitive(double), b: primitive(double)) returning primitive(double)
 // requirements: throws // TO DO: should `throws` be declared as part of return coercion: `errorOr(RETURNTYPE)`? (optionally including list of error coercion[s] where known?)
 
-func exponent(a: Double, b: Double) throws -> Double { return pow(a, b) }
-func positive(a: Double) throws -> Double { return +a }
-func negative(a: Double) throws -> Double { return -a }
-func add(a: Double, b: Double) throws -> Double { return a + b }
-func subtract(a: Double, b: Double) throws -> Double { return a - b }
-func multiply(a: Double, b: Double) throws -> Double { return a * b }
-func divide(a: Double, b: Double) throws -> Double { return a / b }
-func div(a: Double, b: Double) throws -> Double { return Double(Int(a / b)) }
+func exponent(a: Scalar, b: Scalar) throws -> Scalar { return try pow(a, b) }
+func positive(a: Scalar) throws -> Scalar { return a }
+func negative(a: Scalar) throws -> Scalar { return try -a }
+func add(a: Scalar, b: Scalar) throws -> Scalar { return try a + b }
+func subtract(a: Scalar, b: Scalar) throws -> Scalar { return try a - b }
+func multiply(a: Scalar, b: Scalar) throws -> Scalar { return try a * b }
+func divide(a: Scalar, b: Scalar) throws -> Scalar { return try a / b }
+func div(a: Double, b: Double) throws -> Int { return Int(a / b) }
 func mod(a: Double, b: Double) throws -> Double { return a.truncatingRemainder(dividingBy: b) }
 
 // math comparison

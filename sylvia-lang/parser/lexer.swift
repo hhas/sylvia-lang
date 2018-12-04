@@ -172,7 +172,7 @@ enum Token {
     
     // literals
     case textLiteral(value: String)         // atomic; the lexer automatically reads everything between `"` and corresponding `"`, including `\CHARACTER` escapes (curly quotes are also accepted, and are used as standard when pretty printing text literals)
-    case number(value: String)     // .decimal // TO DO: readNumber should also output Int/Double/decimal/fixed point/etc representation (e.g. output Scalar enum rather than String, c.f. entoli's numeric-parser.swift); when implementing UnitTypeRegistry (MeasurementRegistry?) also decide if .measurement(Measurement) should be a distinct Token, or if .number should include a `unit:UnitType?` slot (TBH it's probably worth going the whole hog and having lexer delegate all number reading to dedicated module which can also be used elsewhere, e.g. by numeric coercions and parsing/formatting libraries)
+    case number(value: String, scalar: Scalar)     // .decimal // TO DO: readNumber should also output Int/Double/decimal/fixed point/etc representation (e.g. output Scalar enum rather than String, c.f. entoli's numeric-parser.swift); when implementing UnitTypeRegistry (MeasurementRegistry?) also decide if .measurement(Measurement) should be a distinct Token, or if .number should include a `unit:UnitType?` slot (TBH it's probably worth going the whole hog and having lexer delegate all number reading to dedicated module which can also be used elsewhere, e.g. by numeric coercions and parsing/formatting libraries)
     
     // names
     case identifier(value: String, isQuoted: Bool) // .letters // atomic; the lexer automatically reads everything between `'` and corresponding `'`; this allows identifier names that are otherwise masked by operator names to be used in quoted form (e.g. `'AND'(a,b)` = `a AND b`)
@@ -245,7 +245,7 @@ class Lexer {
         return self.peek()?.unicodeScalars.first
     }
     
-    func next() -> Character? {
+    @discardableResult func next() -> Character? {
         if self.index < self.code.endIndex {
             let c = self.code[self.index]
             self.index = self.code.index(after: self.index)
@@ -283,11 +283,12 @@ class Lexer {
     
     private func readUnknown(_ value: String, description: String = "unknown characters") -> Token {
         var value = value
-        if let p = self.next() { // TO DO: FIX: this needs to continue consuming up to next valid boundary char (quote delimiter, punctuation, or white space)
+        while let p: Character = self.peek(), !boundaryCharacters.contains(p.unicodeScalars.first!) { // continue consuming up to next valid boundary char (quote delimiter, punctuation, or white space)
             value.append(p)
+            self.next()
         }
-        print("Found unknown: \(value.debugDescription)") // TO DO
-        return .unknown(description: description)
+//        print("Found unknown: \(value.debugDescription)") // TO DO
+        return .unknown(description: "\(description): \(value)")
     }
     
     private func readCharacters(ifIn characterSet: CharacterSet) -> String {
@@ -308,12 +309,12 @@ class Lexer {
     
     //
     
-    private func readNumber(allowHexadecimal: Bool = true, allowDecimal: Bool = true, allowExponent: Bool = true) -> Token { // TO DO: move this to reusable standalone function for canonical number parsing/coercing (might even be an idea to put it on Scalar, similar to how OperatorRegistry works)
-        // TO DO: .number enum should include number format (integer/decimal/hexadecimal/exponent) (this is less of an issue if readNumber() emits Scalar/Quantity values, as those can include literal format themselves)
+    func readNumber(allowHexadecimal: Bool = true, allowDecimal: Bool = true, allowExponent: Bool = true) -> Token {
         // note: if `allowHexidecimal` is true and a hexidecimal number (e.g. "0x12AB") is matched, allowDecimal and allowExponent are treated as false
         // first char is already known to be either a digit or a +/- symbol that is followed by a digit // TO DO: can't assume this
         var value = ""
-        if let c = self.next(ifIn: signCharacters) { value.append(c) } // read +/- sign, if any
+        var scalar: Scalar
+        if let sign = self.next(ifIn: signCharacters) { value.append(sign) } // read +/- sign, if any
         // TO DO: eventually could match known currency symbols here, returning appropriate 'currency' token (in addition to capturing $/€/etc currency symbol, currency values would also use fixed point/decimal storage instead of Float/Double)
         let digits = self.readCharacters(ifIn: digitCharacters) // read the digits
         if digits == "" { return self.readUnknown(value, description: "missing number") } // (or return .unknown if there weren't any)
@@ -321,33 +322,72 @@ class Lexer {
         // peek at next char to decide what to do next
         if let p: Unicode.Scalar = self.peek() {
             // TO DO: `0u…` codepoint matching (this should consume one or more whitespace-delimited UTF-8 code points, e.g. `0u34 0u12A 0u34BC56` and return corresponding `.codepointText(String)` token; this will be particularly useful if/when quoted text changes from using backslash escapes to 'tag' interpolation, and more reusable than `\u0123` escape sequences that only work within literals)
+            
+            // TO DO: `0b…` for binary numbers?
+            
             if allowHexadecimal && hexadecimalSeparators.contains(p) && ["-0", "0", "+0"].contains(value) { // found "0x"
                 value.append(self.next()!) // append the 'x' character // TO DO: normalize for readability (lowercase 'x', uppercase A-F)
                 let digits = self.readCharacters(ifIn: hexadecimalCharacters) // get all hexadecimal digits after the '0x'
                 if digits == "" { return self.readUnknown(value, description: "missing hexadecimal value after \(value.debugDescription)") }
                 value += digits
+                if let n = Int(digits, radix: 16) {
+                    scalar = .integer(n, radix: 16)
+                } else {
+                    scalar = .overflow(value, Int.self) // TO DO: consider using .floatingPoint, with approximate:true flag
+                }
             } else {
+                var isInteger = true
+                var exponent: Scalar?
                 if allowDecimal && decimalSeparators.contains(p) { // read the fractional part, if found
+                    isInteger = false
                     value.append(self.next()!)
                     let digits = self.readCharacters(ifIn: digitCharacters) // get all digits after the '.'
                     if digits == "" { return self.readUnknown(value, description: "missing digits after \(value.debugDescription)") }
                     value += digits
                 }
                 if allowExponent, let c = self.next(ifIn: exponentSeparators) { // read the exponent part, if found
+                    isInteger = false
                     value.append(c)
                     switch readNumber(allowHexadecimal: false, allowDecimal: false, allowExponent: false) {
-                    case .number(let exponent):
-                        value += exponent // TO DO: what about normalizing the exponent (c.f. AppleScript), e.g. `2e4` -> "2.0E+4"? or is that too pedantic
+                    case .number(let exponentString, let scalarExponent):
+                        value += exponentString // TO DO: what about normalizing the exponent (c.f. AppleScript), e.g. `2e4` -> "2.0E+4"? or is that too pedantic
+                        exponent = scalarExponent
                     default:
                         return .unknown(description: "missing digits after \(value.debugDescription)")
+                    }
+                }
+                if isInteger {
+                    if let n = Int(digits) {
+                        scalar = .integer(n, radix: 10)
+                    } else {
+                        scalar = .overflow(value, Int.self) // TO DO: consider using .floatingPoint, with approximate:true flag
+                    }
+                } else {
+                    if let n = Double(value) {
+                        scalar = .floatingPoint(n)
+                        if let e = exponent {
+                            do {
+                                scalar = try pow(scalar, e)
+                            } catch {
+                                scalar = .overflow(value, Double.self)
+                            }
+                        }
+                    } else {
+                        scalar = .overflow(value, Int.self) // TO DO: consider using .double, with approximate:true flag
                     }
                 }
                 if !self.isEndOfWord {
                     // TO DO: while currency prefixes are a pain, unit suffixes (e.g. `mm`, `g`) are somewhat easier to deal with, so implement a UnitTypeRegistry (similar to OperatorRegistry) that readNumber() can hand off lexing to here
                 }
             }
+        } else {
+            if let n = Int(value) {
+                scalar = .integer(n, radix: 10)
+            } else {
+                scalar = .invalid(value)
+            }
         }
-        return self.isEndOfWord ? .number(value: value) : self.readUnknown(value, description: "unexpected characters after \(value.debugDescription)")
+        return self.isEndOfWord ? .number(value: value, scalar: scalar) : self.readUnknown(value, description: "a number with unrecognized characters at the end")
     }
     
     // caution tokenize() calls readQuotedText() and readQuotedIdentifer() after consuming the opening quote itself, e.g. given script `"ABC"`, readQuotedText() begins at `A` and continues until the closing quote/end of code is reached; the closing quote is also discarded, or .unknown returned if it wasn't found

@@ -8,9 +8,9 @@
 
 // exponent(…)
 let signature_exponent_a_b = (
-    paramType_0: asDouble,
-    paramType_1: asDouble,
-    returnType: asDouble 
+    paramType_0: asScalar,
+    paramType_1: asScalar,
+    returnType: asScalar
 )
 let interface_exponent_a_b = CallableInterface(
     name: "exponent",
@@ -33,8 +33,8 @@ func call_exponent_a_b(command: Command, commandEnv: Env, handler: CallableValue
 
 // positive(…)
 let signature_positive_a = (
-    paramType_0: asDouble,
-    returnType: asDouble 
+    paramType_0: asScalar,
+    returnType: asScalar
 )
 let interface_positive_a = CallableInterface(
     name: "positive",
@@ -54,8 +54,8 @@ func call_positive_a(command: Command, commandEnv: Env, handler: CallableValue, 
 
 // negative(…)
 let signature_negative_a = (
-    paramType_0: asDouble,
-    returnType: asDouble 
+    paramType_0: asScalar,
+    returnType: asScalar
 )
 let interface_negative_a = CallableInterface(
     name: "negative",
@@ -75,16 +75,16 @@ func call_negative_a(command: Command, commandEnv: Env, handler: CallableValue, 
 
 // add(…)
 let signature_add_a_b = (
-    paramType_0: asDouble,
-    paramType_1: asDouble,
-    returnType: asDouble 
+    paramType_0: asScalar,
+    paramType_1: asScalar,
+    returnType: asScalar
 )
 let interface_add_a_b = CallableInterface(
     name: "add",
     parameters: [
         ("a", signature_add_a_b.paramType_0),
         ("b", signature_add_a_b.paramType_1),
-    ],
+        ],
     returnType: signature_add_a_b.returnType
 )
 func call_add_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
@@ -100,9 +100,9 @@ func call_add_a_b(command: Command, commandEnv: Env, handler: CallableValue, han
 
 // subtract(…)
 let signature_subtract_a_b = (
-    paramType_0: asDouble,
-    paramType_1: asDouble,
-    returnType: asDouble 
+    paramType_0: asScalar,
+    paramType_1: asScalar,
+    returnType: asScalar
 )
 let interface_subtract_a_b = CallableInterface(
     name: "subtract",
@@ -125,9 +125,9 @@ func call_subtract_a_b(command: Command, commandEnv: Env, handler: CallableValue
 
 // multiply(…)
 let signature_multiply_a_b = (
-    paramType_0: asDouble,
-    paramType_1: asDouble,
-    returnType: asDouble 
+    paramType_0: asScalar,
+    paramType_1: asScalar,
+    returnType: asScalar
 )
 let interface_multiply_a_b = CallableInterface(
     name: "multiply",
@@ -150,9 +150,9 @@ func call_multiply_a_b(command: Command, commandEnv: Env, handler: CallableValue
 
 // divide(…)
 let signature_divide_a_b = (
-    paramType_0: asDouble,
-    paramType_1: asDouble,
-    returnType: asDouble 
+    paramType_0: asScalar,
+    paramType_1: asScalar,
+    returnType: asScalar
 )
 let interface_divide_a_b = CallableInterface(
     name: "divide",
@@ -177,7 +177,7 @@ func call_divide_a_b(command: Command, commandEnv: Env, handler: CallableValue, 
 let signature_div_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
-    returnType: asDouble 
+    returnType: asInt
 )
 let interface_div_a_b = CallableInterface(
     name: "div",
@@ -902,7 +902,6 @@ func call_elseClause_action_elseAction_commandEnv(command: Command, commandEnv: 
 
 
 func stdlib_loadHandlers(env: Env) throws {
-    
     try env.add(interface_exponent_a_b, call_exponent_a_b)
     try env.add(interface_positive_a, call_positive_a)
     try env.add(interface_negative_a, call_negative_a)

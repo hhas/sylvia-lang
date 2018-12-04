@@ -19,20 +19,21 @@ class Expression: Value {
     
     //
     
-    // not sure this helps; need to check if/where Expression.toTYPE() methods could be called, given that they implement their own eval entry points
+    // not sure this helps (also hits speed); need to check if/where Expression.toTYPE() methods could be called, given that they implement their own eval entry points
     internal func safeRun<T: Value>(env: Env, coercion: Coercion, function: String = #function) throws -> T {
         let value: Value
-        do {
+       // do {
             value = try self.eval(env: env, coercion: coercion)
-        } catch let e as NullCoercionError { // check
-            print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
-            //throw CoercionError(value: self, coercion: coercion)
-            throw e
-        }
-        guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
-            throw InternalError("\(type(of:self)) \(function) expected \(coercion) coercion to return \(T.self) but got \(type(of: value)): \(value)")
-        }
-        return result
+       // } catch let e as NullCoercionError { // check
+       //     print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
+        //    //throw CoercionError(value: self, coercion: coercion)
+       //     throw e
+       // }
+        return value as! T
+        //guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
+        //    throw InternalError("\(type(of:self)) \(function) expected \(coercion) coercion to return \(T.self) but got \(type(of: value)): \(value)")
+        //}
+        //return result
     }
     
     //

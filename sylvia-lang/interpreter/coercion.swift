@@ -134,6 +134,30 @@ class AsString: BridgingCoercion { // Q. what about constraints?
 }
 
 
+class AsScalar: BridgingCoercion {
+    
+    var coercionName: String { return "number" }
+    
+    override var description: String { return self.coercionName }
+    
+    typealias SwiftType = Scalar
+    
+    func coerce(value: Value, env: Env) throws -> Value {
+        let result = try value.toText(env: env, coercion: self)
+        let _ = try result.toScalar()
+        return result
+    }
+    
+    func unbox(value: Value, env: Env) throws -> SwiftType {
+        return try value.toText(env: env, coercion: self).toScalar()
+    }
+    
+    func box(value: SwiftType, env: Env) throws -> Value {
+        return Text(value.literalRepresentation(), scalar: value)
+    }
+}
+
+
 class AsInt: BridgingCoercion {
     
     var coercionName: String { return "wholeNumber" }
@@ -169,19 +193,30 @@ class AsDouble: BridgingCoercion {
     
     func coerce(value: Value, env: Env) throws -> Value {
         let result = try value.toText(env: env, coercion: self)
+        do {
+            let _ = try result.toScalar().toDouble()
+        } catch {
+            throw CoercionError(value: value, coercion: self)
+        }
         // TO DO: implement `Value.toScalar()` method? or do all text-to-number/date/whatever conversion work in Coercion methods (Q. what about quantities, dates, URLs, and other data nominally represented as text?)
-        guard let number = Double(result.swiftValue) else { throw CoercionError(value: value, coercion: self) } // note: this only validates; it doesn't rewrite (Q. should it return `Text(String(n))`?)
-        result.annotations.append(number) // TO DO
+//        guard let number = Double(result.swiftValue) else {  } // note: this only validates; it doesn't rewrite (Q. should it return `Text(String(n))`?)
         return result
     }
     
     func unbox(value: Value, env: Env) throws -> SwiftType {
-        guard let n = try Double(value.toText(env: env, coercion: self).swiftValue) else { throw CoercionError(value: value, coercion: self) }
+        //guard let n = try Double(value.toText(env: env, coercion: self).swiftValue) else { throw CoercionError(value: value, coercion: self) }
+        let result = try value.toText(env: env, coercion: self)
+        let n: Double
+        do {
+            n = try result.toScalar().toDouble()
+        } catch {
+            throw CoercionError(value: value, coercion: self)
+        }
         return n
     }
     
     func box(value: SwiftType, env: Env) throws -> Value {
-        return Text(String(value))
+        return Text(String(value), scalar: Scalar(value))
     }
 }
 
@@ -593,6 +628,7 @@ let asOptionalValue = AsOptionalValue(asValue) // any value or `nothing`; this i
 
 let asText = AsText()
 let asBool = AsBool()
+let asScalar = AsScalar()
 let asInt = AsInt()
 let asDouble = AsDouble()
 let asString = AsString()
