@@ -22,6 +22,9 @@
  */
 
 
+// TO DO: how practical to capture a bad token and continue parsing to see what comes next? (this might not involve full parser, just lexer with balancing counters); as extension to this, given an unrecognized/unsupported token pattern, what about delegating to a lookup table of client-supplied parsefuncs, e.g. `IDENTIFIER INTEGER` might be custom matched as syntactic shorthand for `IDENTIFIER at INTEGER`, e.g. `paragraph 1 of document 1` -> `paragraph at 1 of document at 1` (or `paragraph index 1 of document index 1` in AS longhand syntax); this wouldn't be quite as flexible as AS, e.g. `paragraph i` wouldn't work (since `i` is an identifier, the `at` selector form needs to be explicit to distinguish reliably from typo, plus weaker typing requires more explicit disambiguation by operator choice [c.f. Perl and Mac::Glue, where numbers and text could not be distinguished by datatype])
+
+
 // TO DO: how best to implement incremental parsing e.g. might do per-line parsing, with each Line keeping a count of any opening/closing { }, [ ], ( ), « » blocks and quotes, along with any other hints such as indentation and possible keywords; a block-level analyzer could then attempt to collate lines into balanced blocks, detecting both obvious imbalances (e.g. `{[}]`, `{[[]}`) and more subtle ones (e.g. `{[]{[]}`) and providing best guesses as to where the correction should be made (e.g. given equally indented blocks, `{}{{}{}` the unbalanced `{` is more likely to need the missing `}` inserted before the next `{}`, not at end of script [as a dumber parser would report]; looking for keywords that are commonly expected at top-level or within blocks may also provide hints as to when to discard previous tally as unbalanced and start a new one from top level); TBH, code editor only really needs to keep lines balanced during editing (and flag where imbalanced quotes/braces/etc are detected), and provide basic dictionary-based auto-suggest/-correct/-complete; when balanced, document can be parsed quite coarsely (either in full, or per top-level block); that just leaves the question of tooling for selecting and moving subnodes around, which again could probably be done with basic block balancing followed by a quick re-parse to validate (a really smart editor might try to be more helpful, e.g. ensuring dragging an item into a list literal either replaces an existing item or inserts a comma separator automatically, but not convinced that will really assist more than it irritates; after all, if user wants to assemble invalid code, they should)
 
 
@@ -226,16 +229,17 @@ class Parser {
         var result = [Value]()
         self.advance(ignoringLineBreaks: true)
         do {
-            while true {
-                if case .endOfCode = self.this { break } // infernal uncomposable `if case` syntax
+            readLine: while true {
                 result.append(try self.parseExpression())
-                self.advance(ignoringLineBreaks: false) // TO DO: check if an annotation can be first token after end of expression; if so, will need some extra checks here to parse and attach it to preceding expression
-                // make sure there's a line break // TO DO: unlike {…} block, this doesn't allow comma as expression separator—should this change?
-                guard case .lineBreak = self.this else {
-                    if case .endOfCode = self.this { break }
+                self.advance(ignoringLineBreaks: false) // move to first token after expression
+                switch self.this {
+                case .lineBreak, .itemSeparator:
+                    self.advance(ignoringLineBreaks: true) // skip over comma separator and/or line break[s]
+                case .endOfCode:
+                    break readLine
+                default:
                     throw SyntaxError("Expected end of line but found: \(self.thisInfo)")
                 }
-                self.advance(ignoringLineBreaks: true) // skip over line break[s]
             }
             guard case .endOfCode = self.this else { throw SyntaxError("Expected end of code but found: \(self.this)") }
             return ScriptAST(result) // TBH, should swap this around so ScriptAST initializer takes code as argument and lexes and parses it

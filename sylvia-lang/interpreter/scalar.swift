@@ -6,7 +6,10 @@
 import Darwin
 
 
-enum Scalar { // represents an integer (as Swift Int) or decimal (as Swift Double) number; numbers that are valid but too large to represent using standard Swift types are held as strings
+// TO DO: Text values can represent Scalar, Quantity, Currency, Date/Time; what else? how best to cache? (Scalar has its own ivar for efficiency; other values may go in `attributes`)
+
+
+enum Scalar { // represents an integer (as Swift Int) or decimal (as Swift Double) number; numbers that are valid but too large to represent using standard Swift types are held as strings // TO DO: BigNum support (e.g. https://github.com/mkrd/Swift-Big-Integer)
     
     case integer(Int, radix: Int)
     case floatingPoint(Double)
@@ -39,18 +42,22 @@ enum Scalar { // represents an integer (as Swift Int) or decimal (as Swift Doubl
     
     func toInt() throws -> Int {
         switch self {
-        case .integer(let n, _):                        return n
-        case .floatingPoint(let n) where n.truncatingRemainder(dividingBy: 1) == 0:    return Int(n)
-        case .overflow(_, let t) where t is Int.Type:   throw ConstraintError(value: self, message: "Number is too large to use: \(self.literalRepresentation())")
-        default:                                        throw ConstraintError(value: self, message: "Not a whole number: \(self.literalRepresentation())")
+        case .integer(let n, _): return n
+        case .floatingPoint(let n) where n.truncatingRemainder(dividingBy: 1) == 0:
+            if n >= Double(Int.min) && n <= Double(Int.max) { return Int(n) }
+            throw ConstraintError(value: self, message: "Number is not in allowed range: \(self.literalRepresentation())") // TO DO: what name, arguments?
+        case .overflow(_, let t) where t is Int.Type:
+            throw ConstraintError(value: self, message: "Number is not in allowed range: \(self.literalRepresentation())")
+        default:
+            throw ConstraintError(value: self, message: "Not a whole number: \(self.literalRepresentation())")
         }
     }
     
     func toDouble() throws -> Double {
         switch self {
-        case .integer(let n, _):    return Double(n)
+        case .integer(let n, _): return Double(n)
         case .floatingPoint(let n): return n
-        default:                    throw ConstraintError(value: self, message: "Number is too large to use: \(self.literalRepresentation())")
+        default: throw ConstraintError(value: self, message: "Number is too large to use: \(self.literalRepresentation())")
         }
     }
     
@@ -59,12 +66,12 @@ enum Scalar { // represents an integer (as Swift Int) or decimal (as Swift Doubl
     
     private func _toInt(_ min: Int, _ max: Int) throws -> Int {
         let n = try self.toInt()
-        if n < min || n > max { throw ConstraintError(value: self, message: "Whole number is too large to use: \(self.literalRepresentation())") }
+        if n < min || n > max { throw ConstraintError(value: self, message: "Number is not in allowed range: \(self.literalRepresentation())") }
         return n
     }
     private func _toUInt(_ max: UInt) throws -> UInt {
         let n = try self.toInt()
-        if n < 0 || UInt(n) > max { throw ConstraintError(value: self, message: "Whole number is too large to use: \(self.literalRepresentation())") }
+        if n < 0 || UInt(n) > max { throw ConstraintError(value: self, message: "Number is not in allowed range: \(self.literalRepresentation())") }
         return UInt(n)
     }
     

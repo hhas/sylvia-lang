@@ -10,11 +10,11 @@
 // note: for object specifier syntax, it should be practical to use `NAME1:EXPR of NAME2 of NAME3:EXPR` (combined with `thru` operator for by-range specifiers, which take 2 args), or `NAME at EXPR of NAME2 named EXPR of NAME3` (where all reference forms that take a selector value have a dedicated operator), as syntactic sugar for `NAME3.NAME2[EXPR].NAME[EXPR]` (unless `A[B]` is also used as synonym for `A.B`, in which case it'll be `NAME3.NAME2.named(EXPR).NAME[EXPR]`, c.f. nodeautomation). This could actually get us very close to a familiar "AppleScript-ish" syntax (minus all of its defects), e.g. `documentFile at 1 of folder named "Documents" of home`. (Yet another refinement would be for parser to special-case `WORD NUMBER` sequence as shorthand for `WORD[NUMBER]`, reducing need to use `at` operator to non-number selectors only, as that pattern is otherwise syntactically illegal. BTW, AppleScript uses `index`, not `at`, as explicit selector coercion, though may be better to use `atIndex`, e.g. `documentFile.atIndex(…)`.)
 
 
-/* TO DO: need to decide between backslash escapes in text and 'tags', e.g. `"Hello,««name»»!"` is arguably easier to understand than `"Hello,\(name)!"`; in turn, character and unicode escapes would be "foo««return»»bar««0u12AB»»" rather than "foo\nbar\u12AB".
+/* TO DO: text literals should use `««EXPR»»` "tags", not backslash escapes, for character substitution and interpolation; e.g. `"Hello,««name»»!"` is arguably easier to understand than `"Hello,\(name)!"`; in turn, character and unicode escapes would be "foo««linebreak»»bar««0u12AB»»" rather than "foo\nbar\u12AB". Note that `linebreak`, `tab`, etc would need to be defined as non-maskable identifiers/atom operators in stdlib, and `case digitCharacters` in Lexer.tokenize() (or Lexer.readNumber?) will have to recognize `0uCODE…` syntax (this should use UTF-8 notation, so multiple codepoints will need written as `0uAAAA 0uBBBB 0uCCCC` and combined into one Text token by lexer, with formatting annotation). Q. what limits should be placed on interpolated EXPR when interpolating literal strings, e.g. by evaluating it in restricted Env? (e.g. Side-effects really should be disallowed. One option would be to whitelist stdlib handlers as being safe and relevant for this task; alternatively, allow any stdlib handler but error if any try to perform side effects.) It's probably best to have a single set of rules/limitations for both literal interpolation and text templating (where the format string is supplied at runtime) to avoid confusing users; the only difference would be in how custom identifiers and handlers are made available in latter case. (Whereas string literals can be automatically allowed to any symbol in their lexical scope, a runtime templating function would need all custom resources explicitly passed in, e.g. assuming an Env instance is used to represent a custom object, it would need read locks to permit client code to access its own handlers but not those of its parent scopes, while still allowing those handlers to access parent scopes themselves, plus write locks so that client code can't change anything.)
  
- [note: rest of this comment assumes `{EXPR}` escapes, but for sake of regexp compatibility it would be best to avoid using any character already reserved by PCRE; thus `««…»»` is looking likeliest; BTW, the same escape sequences might be employed in annotations, particularly those used as userdoc annotations, where ability for docs to introspect handler's interface, e.g. for parameter types, further reduces unnecessary duplication of information]
+ ««…»» escape sequences might also be employed in [some] annotations, particularly those used as userdoc annotations, allowing docstrings to insert info taken directly from handler's interface, e.g. parameter/return type, instead of user rekeying that info manually (the whole point of declaring handler interfaces being to minimize such duplication of information).
  
- Interpolation rules would be to insert text (including numbers and dates) as-is, while lists, etc would use their literal representation. To insert literal text, use `"Hello,{code(name)}!"`. (Obviously, there are risks attached to providing the interpolator full access to all loaded commands and operators, so some sort of language-level sandboxing should be imposed. readQuotedText will also need to do punctuation and quote balancing to determine where the interpolated block ends.)
+ Interpolation rules would be to insert text (which includes numbers and dates) as-is, e.g. `"Hello ««name»»!"` -> "Hello Bob!", while lists, etc would automatically use their literal representation. To insert literal representation of text, use `code(EXPR)`, e.g. `"Hello ««code(name)»»!"` -> "Hello “Bob”!". (Obviously, there are risks attached to providing the interpolator full access to all loaded commands and operators, so some sort of language-level sandboxing should be imposed. readQuotedText will also need to do punctuation and quote balancing to determine where the interpolated block ends.)
  
  Another benefit of this approach is that it can be easily adapted for use as general templating engines (obviously this'd require ability to attach automatic codecs, e.g. for HTML templating, default behavior would be to install a code that auto-converts all `&<>"'` chars in a given Text value to HTML entities automatically, and also to accept `RawHTML(Text)` values which bypasses the escape and inserts HTML code directly [this will require care in design to ensure programs can't be spoofed into wrapping Text in RawHTML to slip untrusted text into an HTML document as HTML code]).
  
@@ -25,9 +25,9 @@
 
 // Q. should symbols have their own literal syntax (c.f. Ruby Symbol class, which uses `:NAME` syntax), or should they be written as attributes of a global [abstract] 'symbol' namespace (c.f. appscript, which uses `k.NAME`)?
 //
-// $symbolName
+// ~name
 //
-// $.symbolName
+// k.name
 
 
 // Q. any situations where whitespace needs to be known? (e.g. parser should be able to reduce `- 3` [.symbol.number] to `-3` [Value]); what's easiest when reading unbalanced lines
@@ -181,7 +181,7 @@ enum Token {
     // interstitials (i.e. everything that doesn't appear to be valid code)
     case whitespace(String)
     case symbol(Character)     // any symbols that are are not recognized as operators // TO DO: or just use .unknown?
-    case unknown(description: String) // any characters that are not otherwise recognized
+    case unknown(description: String) // any characters that are not otherwise recognized // TO DO: this should also capture matched part, if any (e.g. number), and unknown part (e.g. unknown suffix), allowing tools to provide better assistance (each part might also have its own description text, e.g. for display in editor tooltips, and the whole lot can be automatically composed into complete error message)
     case illegal // TO DO: currently unused; decide how invalid unicode chars are handled (see also CharacterSet.illegalCharacters); for now, everything just gets stuffed into `unknown`
     
     
@@ -197,7 +197,7 @@ enum Token {
         }
     }
     
-    // TO DO: method for getting human-readable token coercion name (e.g. "operator name", "end of list") for use in error messages
+    // TO DO: `var tokenDescription:String` that describes what each token is (for use in syntax error messages, GUI editor tooltips, etc)
 }
 
 // kludgy workaround for inability to parameterize both operands in `if case ENUM = VALUE`; used by Parser.readDelimitedValues()
@@ -282,13 +282,13 @@ class Lexer {
     }
     
     private func readUnknown(_ value: String, description: String = "unknown characters") -> Token {
-        var value = value
+        var suffix = ""
         while let p: Character = self.peek(), !boundaryCharacters.contains(p.unicodeScalars.first!) { // continue consuming up to next valid boundary char (quote delimiter, punctuation, or white space)
-            value.append(p)
+            suffix.append(p)
             self.next()
         }
 //        print("Found unknown: \(value.debugDescription)") // TO DO
-        return .unknown(description: "\(description): \(value)")
+        return .unknown(description: "\(description): \(value)\(suffix)")
     }
     
     private func readCharacters(ifIn characterSet: CharacterSet) -> String {
@@ -328,7 +328,7 @@ class Lexer {
             if allowHexadecimal && hexadecimalSeparators.contains(p) && ["-0", "0", "+0"].contains(value) { // found "0x"
                 value.append(self.next()!) // append the 'x' character // TO DO: normalize for readability (lowercase 'x', uppercase A-F)
                 let digits = self.readCharacters(ifIn: hexadecimalCharacters) // get all hexadecimal digits after the '0x'
-                if digits == "" { return self.readUnknown(value, description: "missing hexadecimal value after \(value.debugDescription)") }
+                if digits == "" { return self.readUnknown(value, description: "missing hexadecimal value after \(value.description)") }
                 value += digits
                 if let n = Int(digits, radix: 16) {
                     scalar = .integer(n, radix: 16)
@@ -342,7 +342,7 @@ class Lexer {
                     isInteger = false
                     value.append(self.next()!)
                     let digits = self.readCharacters(ifIn: digitCharacters) // get all digits after the '.'
-                    if digits == "" { return self.readUnknown(value, description: "missing digits after \(value.debugDescription)") }
+                    if digits == "" { return self.readUnknown(value, description: "missing digits after \(value.description)") }
                     value += digits
                 }
                 if allowExponent, let c = self.next(ifIn: exponentSeparators) { // read the exponent part, if found
@@ -353,7 +353,7 @@ class Lexer {
                         value += exponentString // TO DO: what about normalizing the exponent (c.f. AppleScript), e.g. `2e4` -> "2.0E+4"? or is that too pedantic
                         exponent = scalarExponent
                     default:
-                        return .unknown(description: "missing digits after \(value.debugDescription)")
+                        return .unknown(description: "missing digits after \(value.description)")
                     }
                 }
                 if isInteger {

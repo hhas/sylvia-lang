@@ -1,6 +1,5 @@
 //
 //  annotation.swift
-//  sylvia-lang
 //
 
 

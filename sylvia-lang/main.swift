@@ -77,11 +77,11 @@ do { // evaluate commands
 
 do { // define and call native handler
     /*
-         to addOne(n as number) returning number {
+         to add_one(n as number) returning number {
             1 + n
          }
      
-         show(addOne(3))
+         show(add_one(3))
          « “4.0” »
          => nothing
      */
@@ -97,18 +97,9 @@ do { // define and call native handler
 
 do { // conditional
     /*
-     testIf(value: "ok", ifTrue: show("yes"), ifFalse: show("no"))  // prints "yes"
-     testIf(value: "", ifTrue: show("yes"), ifFalse: show("no"))    // prints "no"
-     */
-    for arg in [trueValue, falseValue] {
-        let v = Command("testIf", [arg, Command("show", [Text("yes")]), Command("show", [Text("no")])])
-        print(try asAnything.coerce(value: v, env: e))
-    }
-    // optional arguments and return values
-    /*
-     testIf(value: "ok", ifTrue: "42")      // returns "42"
-     testIf(value: "", ifTrue: "42"))       // returns `nothing`
-     testIf(value: nothing, ifTrue: "42"))  // returns `nothing`
+     test_if(value: "ok", action: "42")      // returns "42"
+     test_if(value: "", action: "42"))       // returns `nothing`
+     test_if(value: nothing, action: "42"))  // returns `nothing`
      */
     for arg in [trueValue, falseValue, noValue] {
         let v = Command("testIf", [arg, Text("42")])
@@ -165,9 +156,9 @@ code = "[π, 23.4e5, (1+2), “Hello\\nGoodbye”, [1,2,3]]"
 
 code = """
 
-to addOne(n) { n + 1 - x } «This throws ‘ValueNotFoundError: Can’t find a value named “x”.’»
+to add_one(n) { n + 1 - x } «This throws ‘ValueNotFoundError: Can’t find a value named “x”.’»
 
-if addOne(3) > 8 {
+if add_one(3) > 8 {
 
     show("4 > 8")
 
@@ -195,7 +186,7 @@ store ("name", "Bob")
 
 
 code = """
-defineHandler("test", [["x", optional]], noResult, {show ([1,x]), x}, false)
+define_handler("test", [["x", optional]], no_result, {show ([1,x]), x}, false)
 
 show([2,test(123)])
 
@@ -205,7 +196,7 @@ show([2,test(123)])
 
 /*
 code = """
-defineHandler("square", [["n", number]], number, {n * n}, false)
+define_handler("square", [["n", number]], number, {n * n}, false)
 
 show(square(-4)) «prints “16.0”»
 
@@ -225,13 +216,31 @@ if 3 > 5 {"yes"} else {"no"}
 
 
 
-code = " repeat 1000000 { 11.4 + 2 * 3 }" // 1M multiply&sum calculations = ~1.2sec (release build) vs ~0.3sec in AppleScript
+code = """
 
-code = " (0x1234ABCDxyz) + 1"
+to add_one (n) { n + 1 - x }
+
+store ("x", -33)
+store ("y", add_one (3))
+
+if y > 8 {
+
+    show ("4 > 8")
+    y
+}
+
+"""
 
 
-// TO DO: should linebreaks be allowed in operations? e.g. `1 LF + LF 2` (this is currently disallowed)
+
+//code = " repeat 1000000 { 11.4 + 2 * 3 }" // 1M multiply&sum calculations = ~1.2sec (release build) vs ~0.3sec in AppleScript
+
+//code = " (0x1234ABCDxyz) + 1"
+
+
 //code = "\n[\nπ, 23.4e5, \n(\n1+2\n)\n, \n“Hello\\nGoodbye”, [1\n\n,\n\t2,3], «1+\n2»4\n]\n"
+
+code = "Store (“n”, 2), [item (-2) of [5,6,7,8], item (N) of [5,6,7,8]]" // [7, 6]
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
@@ -244,10 +253,11 @@ let tokens = lexer.tokenize()
 let p = Parser(tokens)
 
 do {
+    print("\nCODE:")
+    print(code)
     print("\nPARSE:")
     let s = try p.parseScript()
     print(s)
-    print()
     print("\nEVAL:")
     let res = try s.eval(env: e, coercion: asOptionalValue)
     print(res)

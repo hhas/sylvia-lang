@@ -3,11 +3,6 @@
 //
 
 
-typealias CallableValue = Value & Callable
-
-typealias Parameter = (name: String, coercion: Coercion)
-
-
 
 
 enum EnvType { // used in primitive libraries; indicates what, if any, environment[s] the handler needs to access (module, body, and/or caller) in order to perform its work
@@ -17,43 +12,6 @@ enum EnvType { // used in primitive libraries; indicates what, if any, environme
     case commandEnv
     // TO DO: include read-only/write-only/read-write flags? this can be used to determine [some] side-effects, which might in turn be used by runtime to memoize outputs (e.g. for performance, or to enable backtracking in 'debugger' mode), or in user docs to indicate scope of action (unfortunately, Swift/Cocoa doesn't provide a mechanism to indicate other side effects, e.g. file read/write, so that sort of metainfo would have to be supplied by module developer on trust)
 }
-
-
-struct CallableInterface: CustomDebugStringConvertible {
-    // describes a handler interface; used for introspection, and also for argument/result coercions in NativeHandler
-    
-    // note: for simplicity, parameters are positional only; ideally they should also support labelling (but requires more complex unpacking algorithm to match labeled/unlabeled command arguments to labeled parameters, particularly when args are omitted from anywhere other than end of arg list)
-    
-    let name: String
-    let parameters: [Parameter]
-    let returnType: Coercion
-    
-    var debugDescription: String { return "<CallableInterface: \(self.signature)>" }
-    
-    var signature: String { return "\(self.name)\(self.parameters) returning \(self.returnType)" } // quick-n-dirty; TO DO: format as native syntax
-    
-    // TO DO: how should handlers' Value.description appear? (showing signature alone is ambiguous as it's indistinguishable from a command; what about "SIGNATURE{…}"? or "«handler SIGNATURE»"? [i.e. annotation syntax could be used to represent opaque/external values as well as attached metadata])
-    
-    // TO DO: what about documentation?
-    // TO DO: what about meta-info (categories, hashtags, module location, dependencies, etc)?
-}
-
-
-protocol Callable {
-    
-    var interface: CallableInterface { get }
-    
-    var name: String { get }
-    
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value
-
-}
-
-extension Callable {
-    
-    var name: String { return self.interface.name }
-}
-
 
 
 
@@ -66,21 +24,21 @@ class BoundHandler: CallableValue { // getting a Handler from an Env creates a c
     override var description: String { return self.interface.signature } // TO DO: how best to implement `var description` on handlers? (cleanest solution is to add it automatically via a protocol extension to Callable, though that will require reworking Value.description first); for now, just kludge it onto each handler class
     
     private let handler: Callable
-    private let handlerEnv: Env
+    private let handlerEnv: Scope
     
-    init(handler: Callable, handlerEnv: Env) {
+    init(handler: Callable, handlerEnv: Scope) {
         self.handler = handler
         self.handlerEnv = handlerEnv
     }
     
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value {
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         // note: command name may be different to handler name if handler has been assigned to different slot
         return try self.handler.call(command: command, commandEnv: commandEnv, handlerEnv: self.handlerEnv, coercion: coercion)
     }
 }
 
 
-class Handler: CallableValue { // native handler
+class NativeHandler: CallableValue {
     
     override var description: String { return self.interface.signature }
     
@@ -95,15 +53,15 @@ class Handler: CallableValue { // native handler
         self.isEventHandler = isEventHandler
     }
     
-    // unbox()/coerce() support; returns BoundHandler capturing both handler and its original handlerEnv; this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
+    // unbox()/coerce() support; returns BoundHandler capturing both handler and its original handlerEnv (i.e. a closure); this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
     
-    override func toAny(env: Env, coercion: Coercion) throws -> Value {
+    override func toAny(env: Scope, coercion: Coercion) throws -> Value {
         return BoundHandler(handler: self, handlerEnv: env)
     }
     
     // called by Command
     
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value {
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         let result: Value
         do {
             //print("calling \(self):", command)
@@ -129,7 +87,7 @@ class Handler: CallableValue { // native handler
 
 
 
-typealias PrimitiveCall = (_ command: Command, _ commandEnv: Env, _ handler: CallableValue, _ handlerEnv: Env, _ coercion: Coercion) throws -> Value
+typealias PrimitiveCall = (_ command: Command, _ commandEnv: Scope, _ handler: CallableValue, _ handlerEnv: Scope, _ coercion: Coercion) throws -> Value
 
 
 
@@ -146,7 +104,7 @@ class PrimitiveHandler: CallableValue {
         self.swiftFunctionWrapper = swiftFunc
     }
     
-    func call(command: Command, commandEnv: Env, handlerEnv: Env, coercion: Coercion) throws -> Value {
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         // TO DO: double-coercing returned values (once in self.call() and again in coercion.coerce()) is a pain, but should mostly go away once Coercions can be intersected (hopefully, intersected Coercions created within static expressions can eventually be memoized, or the AST rewritten by the interpreter to use them in future, avoiding the need to recreate those intersections every time they're used)
         let result: Value
         do {

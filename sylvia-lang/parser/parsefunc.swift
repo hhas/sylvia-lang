@@ -95,3 +95,21 @@ func parsePostfixOperator(_ parser: Parser, leftExpr: Value, operatorName: Strin
 
 
 // TO DO: how best to parse handler definitions? `'to' NAME '(' [PARAM [',' PARAM]*]? ')' ['returning' TYPE] BLOCK`; is it worth making `returning` an infix operator in its own right? (if not, bear in mind it will appear in token stream as an .identifer)
+
+
+
+// parse prefix operator with two right-hand operands: an expression and a block (e.g. `if EXPR BLOCK`)
+
+func parsePostfixOperatorWithBlock(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    // TO DO: what about expr coercion? e.g. in loops and conditionals, any expression that evaluates to true/false (with some exceptions, e.g. blocks should probably be disallowed, and silliness such as `if to HANDLER(){} {}` would ideally be discouraged); Q. what about insisting that opening brace appear on same line as [end of] EXPR - e.g. `if EXPR { LF …` but not `if EXPR LF {…` - in order to reduce room for ambiguous-looking code [see .linebreak discussion in general])
+    parser.advance()
+    let expr = try parser.parseExpression(definition.precedence)
+    // 2nd operand is required to be a block to avoid syntactic ambiguity (including token patterns such as `WORD WORD` that per-line parsing can use to distinguish probable quoted text from probable code)
+    parser.advance()
+    let action = try parser.parseExpression(definition.precedence) // T|O DO: implement Parser.parseIfBlock, which returns nil if non-block is found, giving caller choice of what to do next [this is preferable to throwing SyntaxError, as errors occuring while parsing contents of block aren't trivially distinguished from error raised when expected block isn't found])
+    // TO DO: how best to support 'code' formatting style in error messages? (one option is to treat all error strings as Markdown, and format/escape interpolated values when inserting; may be best to leave this until native 'tagged' text interpolation is implemented, then allow that to be used when constructing error messages in both native and Swift code)
+    if !(action is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found: \(action)") } // TO DO: long code needs elided for readability
+    let command = Command(definition.handlerName ?? operatorName, leftOperand: expr, rightOperand: action)
+    command.annotations[operatorAnnotation] = (operatorName: operatorName, definition: definition) // TO DO: error messages should render this Command using its operator syntax
+    return command
+}

@@ -13,6 +13,8 @@
 
 // TO DO: assuming Value supports flexible annotating (i.e. per-value dict/struct rather than hardcoded vars), parser should attach source code range to each AST node for use in generating error messages, tracebacks, GUI editor code highlighting (c.f. OSAScriptError), etc
 
+// TO DO: also consider supporting tuple syntax in multiple assignments, return values. (Note that `return` could be defined solely as a command, in which case the parens are mandatory there anyway, or as a prefix operator with custom parsefunc that accepts either tuple syntax or single EXPR. Likewise, an assignment operator can use a custom parsefunc to accept either `TUPLE of IDENTIFIER` or `IDENTIFIER`.) Using tuple syntax for command arguments only is wasteful and lacks symmetry (technically every command is a unary operator `f x -> y`; it just so happens that the argument type is always a tuple, but this is purely to avoid syntactic ambiguity), although we probably want to avoid arbitrary use
+
 
 // abstract base class
 
@@ -30,19 +32,19 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     // double-dispatch methods; these are called by Coercion.swiftEval()/eval() methods; they should not be called directly
     
-    func toAny(env: Env, coercion: Coercion) throws -> Value { // collection subclasses override this to recursively evaluate items
+    func toAny(env: Scope, coercion: Coercion) throws -> Value { // collection subclasses override this to recursively evaluate items
         return self
     }
     
     // concrete subclasses must override the following as appropriate
     
-    func toText(env: Env, coercion: Coercion) throws -> Text { // re. coercion parameter: Coercion is assumed to be AsText, but may be AsString or other coercion as long as its coerce() method returns Text (would be good to get this strongly typed, but need to decide inheritance hierarchy for Coercion types)
+    func toText(env: Scope, coercion: Coercion) throws -> Text { // re. coercion parameter: Coercion is assumed to be AsText, but may be AsString or other coercion as long as its coerce() method returns Text (would be good to get this strongly typed, but need to decide inheritance hierarchy for Coercion types)
         throw CoercionError(value: self, coercion: coercion)
     }
     
     // coerce atomic values to 1-item list/array
     
-    func toList(env: Env, coercion: AsList) throws -> List {
+    func toList(env: Scope, coercion: AsList) throws -> List {
         do {
             return try List([self.eval(env: env, coercion: coercion.elementType)])
         } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
@@ -50,7 +52,7 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
         }
     }
     
-    func toArray<E, T: AsArray<E>>(env: Env, coercion: T) throws -> T.SwiftType {
+    func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         do {
             return try [self.swiftEval(env: env, coercion: coercion.elementType)] //[coercion.elementType.unbox(value: self, env: env)]
         } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
@@ -60,11 +62,11 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     // main entry points for native/bridging evaluation
     
-    func eval(env: Env, coercion: Coercion) throws -> Value {
+    func eval(env: Scope, coercion: Coercion) throws -> Value {
         return try coercion.coerce(value: self, env: env)
     }
     
-    func swiftEval<T: BridgingCoercion>(env: Env, coercion: T) throws -> T.SwiftType {
+    func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
         return try coercion.unbox(value: self, env: env)
     }
 }
@@ -79,16 +81,16 @@ class Nothing: Value {
     
     override var nominalType: Coercion { return asNoResult }
     
-    override func toAny(env: Env, coercion: Coercion) throws -> Value {
+    override func toAny(env: Scope, coercion: Coercion) throws -> Value {
         throw NullCoercionError(value: self, coercion: coercion)
     }
-    override func toText(env: Env, coercion: Coercion) throws -> Text {
+    override func toText(env: Scope, coercion: Coercion) throws -> Text {
         throw NullCoercionError(value: self, coercion: coercion)
     }
-    override func toList(env: Env, coercion: AsList) throws -> List {
+    override func toList(env: Scope, coercion: AsList) throws -> List {
         throw NullCoercionError(value: self, coercion: coercion)
     }
-    override func toArray<E, T: AsArray<E>>(env: Env, coercion: T) throws -> T.SwiftType {
+    override func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         throw NullCoercionError(value: self, coercion: coercion)
     }
 }
@@ -119,13 +121,13 @@ class Text: Value { // TO DO: Scalar?
         self.scalar = scalar
     }
     
-    override func toText(env: Env, coercion: Coercion) throws -> Text {
+    override func toText(env: Scope, coercion: Coercion) throws -> Text {
         return self
     }
 }
 
 
-class List: Value {
+class List: Value { // TO DO: how best to represent ordered (Array) vs key-value (Dictionary) vs unique (Set) lists? subclasses? internal enum?
     
     override var description: String { return "\(self.swiftValue)" }
     
@@ -137,7 +139,7 @@ class List: Value {
         self.swiftValue = swiftValue
     }
     
-    override func toAny(env: Env, coercion: Coercion) throws -> Value {
+    override func toAny(env: Scope, coercion: Coercion) throws -> Value {
         return try List(self.swiftValue.map {
             do {
                 return try $0.eval(env: env, coercion: coercion)
@@ -147,7 +149,7 @@ class List: Value {
         })
     }
     
-    override func toList(env: Env, coercion: AsList) throws -> List {
+    override func toList(env: Scope, coercion: AsList) throws -> List {
         return try List(self.swiftValue.map {
             do {
                 return try $0.eval(env: env, coercion: coercion.elementType)
@@ -157,7 +159,7 @@ class List: Value {
         })
     }
     
-    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Env, coercion: T) throws -> T.SwiftType {
+    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         return try self.swiftValue.map {
             do {
                 return try $0.swiftEval(env: env, coercion: coercion.elementType)

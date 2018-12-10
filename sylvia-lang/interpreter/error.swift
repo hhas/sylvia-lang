@@ -48,7 +48,7 @@ class InternalError: LanguageError {}
 
 class SyntaxError: LanguageError {
     
-    override init(_ message: String) { // TO DO: need to include parser for error reporting use
+    override init(_ message: String) { // TO DO: need to include parser for error reporting use; TO DO: more granular API that takes expected token description, found token, and position (what about previous token?)
         super.init(message)
     }
 }
@@ -113,15 +113,34 @@ struct EvaluationError: Error, CustomStringConvertible {
 }
 
 
+
+
+
+class UnrecognizedAttributeError: LanguageError {
+    let name: String
+    let value: Value
+    
+    init(name: String, value: Value) {
+        self.name = name
+        self.value = value
+    }
+    
+    override var message: String {
+        return "Can’t find an attribute named “\(self.name)” on the following \(self.value.nominalType): \(self.value)"
+    }
+}
+
+
+
 /******************************************************************************/
 // environment lookup errors
 
 class EnvironmentError: LanguageError { // abstract base class
     
     let name: String
-    let env: Env
+    let env: Scope
     
-    init(name: String, env: Env) {
+    init(name: String, env: Scope) {
         self.name = name
         self.env = env
         super.init()

@@ -20,7 +20,7 @@ let interface_exponent_a_b = CallableInterface(
     ],
     returnType: signature_exponent_a_b.returnType
 )
-func call_exponent_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_exponent_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_exponent_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_exponent_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -43,7 +43,7 @@ let interface_positive_a = CallableInterface(
     ],
     returnType: signature_positive_a.returnType
 )
-func call_positive_a(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_positive_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_positive_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try positive(
@@ -64,7 +64,7 @@ let interface_negative_a = CallableInterface(
     ],
     returnType: signature_negative_a.returnType
 )
-func call_negative_a(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_negative_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_negative_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try negative(
@@ -73,21 +73,21 @@ func call_negative_a(command: Command, commandEnv: Env, handler: CallableValue, 
     return try signature_negative_a.returnType.box(value: result, env: handlerEnv)
 }
 
-// add(…)
+// +(…)
 let signature_add_a_b = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
 let interface_add_a_b = CallableInterface(
-    name: "add",
+    name: "+",
     parameters: [
         ("a", signature_add_a_b.paramType_0),
         ("b", signature_add_a_b.paramType_1),
-        ],
+    ],
     returnType: signature_add_a_b.returnType
 )
-func call_add_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_add_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_add_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_add_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -98,21 +98,21 @@ func call_add_a_b(command: Command, commandEnv: Env, handler: CallableValue, han
     return try signature_add_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// subtract(…)
+// -(…)
 let signature_subtract_a_b = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
 let interface_subtract_a_b = CallableInterface(
-    name: "subtract",
+    name: "-",
     parameters: [
         ("a", signature_subtract_a_b.paramType_0),
         ("b", signature_subtract_a_b.paramType_1),
     ],
     returnType: signature_subtract_a_b.returnType
 )
-func call_subtract_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_subtract_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_subtract_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_subtract_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -123,21 +123,21 @@ func call_subtract_a_b(command: Command, commandEnv: Env, handler: CallableValue
     return try signature_subtract_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// multiply(…)
+// *(…)
 let signature_multiply_a_b = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
 let interface_multiply_a_b = CallableInterface(
-    name: "multiply",
+    name: "*",
     parameters: [
         ("a", signature_multiply_a_b.paramType_0),
         ("b", signature_multiply_a_b.paramType_1),
     ],
     returnType: signature_multiply_a_b.returnType
 )
-func call_multiply_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_multiply_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_multiply_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_multiply_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -148,21 +148,21 @@ func call_multiply_a_b(command: Command, commandEnv: Env, handler: CallableValue
     return try signature_multiply_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// divide(…)
+// /(…)
 let signature_divide_a_b = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
 let interface_divide_a_b = CallableInterface(
-    name: "divide",
+    name: "/",
     parameters: [
         ("a", signature_divide_a_b.paramType_0),
         ("b", signature_divide_a_b.paramType_1),
     ],
     returnType: signature_divide_a_b.returnType
 )
-func call_divide_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_divide_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_divide_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_divide_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -177,7 +177,7 @@ func call_divide_a_b(command: Command, commandEnv: Env, handler: CallableValue, 
 let signature_div_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
-    returnType: asInt
+    returnType: asDouble
 )
 let interface_div_a_b = CallableInterface(
     name: "div",
@@ -187,7 +187,7 @@ let interface_div_a_b = CallableInterface(
     ],
     returnType: signature_div_a_b.returnType
 )
-func call_div_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_div_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_div_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_div_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -212,7 +212,7 @@ let interface_mod_a_b = CallableInterface(
     ],
     returnType: signature_mod_a_b.returnType
 )
-func call_mod_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_mod_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_mod_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_mod_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -223,21 +223,21 @@ func call_mod_a_b(command: Command, commandEnv: Env, handler: CallableValue, han
     return try signature_mod_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// isLessThan(…)
+// <(…)
 let signature_isLessThan_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
 let interface_isLessThan_a_b = CallableInterface(
-    name: "isLessThan",
+    name: "<",
     parameters: [
         ("a", signature_isLessThan_a_b.paramType_0),
         ("b", signature_isLessThan_a_b.paramType_1),
     ],
     returnType: signature_isLessThan_a_b.returnType
 )
-func call_isLessThan_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_isLessThan_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isLessThan_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isLessThan_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -248,21 +248,21 @@ func call_isLessThan_a_b(command: Command, commandEnv: Env, handler: CallableVal
     return try signature_isLessThan_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// isLessThanOrEqualTo(…)
+// <=(…)
 let signature_isLessThanOrEqualTo_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
 let interface_isLessThanOrEqualTo_a_b = CallableInterface(
-    name: "isLessThanOrEqualTo",
+    name: "<=",
     parameters: [
         ("a", signature_isLessThanOrEqualTo_a_b.paramType_0),
         ("b", signature_isLessThanOrEqualTo_a_b.paramType_1),
     ],
     returnType: signature_isLessThanOrEqualTo_a_b.returnType
 )
-func call_isLessThanOrEqualTo_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_isLessThanOrEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isLessThanOrEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isLessThanOrEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -273,21 +273,21 @@ func call_isLessThanOrEqualTo_a_b(command: Command, commandEnv: Env, handler: Ca
     return try signature_isLessThanOrEqualTo_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// isEqualTo(…)
+// ==(…)
 let signature_isEqualTo_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
 let interface_isEqualTo_a_b = CallableInterface(
-    name: "isEqualTo",
+    name: "==",
     parameters: [
         ("a", signature_isEqualTo_a_b.paramType_0),
         ("b", signature_isEqualTo_a_b.paramType_1),
     ],
     returnType: signature_isEqualTo_a_b.returnType
 )
-func call_isEqualTo_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_isEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -298,21 +298,21 @@ func call_isEqualTo_a_b(command: Command, commandEnv: Env, handler: CallableValu
     return try signature_isEqualTo_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// isNotEqualTo(…)
+// !=(…)
 let signature_isNotEqualTo_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
 let interface_isNotEqualTo_a_b = CallableInterface(
-    name: "isNotEqualTo",
+    name: "!=",
     parameters: [
         ("a", signature_isNotEqualTo_a_b.paramType_0),
         ("b", signature_isNotEqualTo_a_b.paramType_1),
     ],
     returnType: signature_isNotEqualTo_a_b.returnType
 )
-func call_isNotEqualTo_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_isNotEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isNotEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isNotEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -323,21 +323,21 @@ func call_isNotEqualTo_a_b(command: Command, commandEnv: Env, handler: CallableV
     return try signature_isNotEqualTo_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// isGreaterThan(…)
+// >(…)
 let signature_isGreaterThan_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
 let interface_isGreaterThan_a_b = CallableInterface(
-    name: "isGreaterThan",
+    name: ">",
     parameters: [
         ("a", signature_isGreaterThan_a_b.paramType_0),
         ("b", signature_isGreaterThan_a_b.paramType_1),
     ],
     returnType: signature_isGreaterThan_a_b.returnType
 )
-func call_isGreaterThan_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_isGreaterThan_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isGreaterThan_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isGreaterThan_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -348,21 +348,21 @@ func call_isGreaterThan_a_b(command: Command, commandEnv: Env, handler: Callable
     return try signature_isGreaterThan_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// isGreaterThanOrEqualTo(…)
+// >=(…)
 let signature_isGreaterThanOrEqualTo_a_b = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
 let interface_isGreaterThanOrEqualTo_a_b = CallableInterface(
-    name: "isGreaterThanOrEqualTo",
+    name: ">=",
     parameters: [
         ("a", signature_isGreaterThanOrEqualTo_a_b.paramType_0),
         ("b", signature_isGreaterThanOrEqualTo_a_b.paramType_1),
     ],
     returnType: signature_isGreaterThanOrEqualTo_a_b.returnType
 )
-func call_isGreaterThanOrEqualTo_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_isGreaterThanOrEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isGreaterThanOrEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isGreaterThanOrEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -385,7 +385,7 @@ let interface_NOT_a = CallableInterface(
     ],
     returnType: signature_NOT_a.returnType
 )
-func call_NOT_a(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_NOT_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_NOT_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = NOT(
@@ -408,7 +408,7 @@ let interface_AND_a_b = CallableInterface(
     ],
     returnType: signature_AND_a_b.returnType
 )
-func call_AND_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_AND_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_AND_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_AND_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -433,7 +433,7 @@ let interface_OR_a_b = CallableInterface(
     ],
     returnType: signature_OR_a_b.returnType
 )
-func call_OR_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_OR_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_OR_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_OR_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -458,7 +458,7 @@ let interface_XOR_a_b = CallableInterface(
     ],
     returnType: signature_XOR_a_b.returnType
 )
-func call_XOR_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_XOR_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_XOR_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_XOR_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -483,7 +483,7 @@ let interface_lt_a_b = CallableInterface(
     ],
     returnType: signature_lt_a_b.returnType
 )
-func call_lt_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_lt_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_lt_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_lt_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -508,7 +508,7 @@ let interface_le_a_b = CallableInterface(
     ],
     returnType: signature_le_a_b.returnType
 )
-func call_le_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_le_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_le_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_le_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -533,7 +533,7 @@ let interface_eq_a_b = CallableInterface(
     ],
     returnType: signature_eq_a_b.returnType
 )
-func call_eq_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_eq_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_eq_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_eq_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -558,7 +558,7 @@ let interface_ne_a_b = CallableInterface(
     ],
     returnType: signature_ne_a_b.returnType
 )
-func call_ne_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_ne_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_ne_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_ne_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -583,7 +583,7 @@ let interface_gt_a_b = CallableInterface(
     ],
     returnType: signature_gt_a_b.returnType
 )
-func call_gt_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_gt_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_gt_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_gt_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -608,7 +608,7 @@ let interface_ge_a_b = CallableInterface(
     ],
     returnType: signature_ge_a_b.returnType
 )
-func call_ge_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_ge_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_ge_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_ge_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -619,21 +619,21 @@ func call_ge_a_b(command: Command, commandEnv: Env, handler: CallableValue, hand
     return try signature_ge_a_b.returnType.box(value: result, env: handlerEnv)
 }
 
-// joinValues(…)
+// &(…)
 let signature_joinValues_a_b = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asString
 )
 let interface_joinValues_a_b = CallableInterface(
-    name: "joinValues",
+    name: "&",
     parameters: [
         ("a", signature_joinValues_a_b.paramType_0),
         ("b", signature_joinValues_a_b.paramType_1),
     ],
     returnType: signature_joinValues_a_b.returnType
 )
-func call_joinValues_a_b(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_joinValues_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_joinValues_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_joinValues_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -656,7 +656,7 @@ let interface_uppercase_a = CallableInterface(
     ],
     returnType: signature_uppercase_a.returnType
 )
-func call_uppercase_a(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_uppercase_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_uppercase_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = uppercase(
@@ -677,7 +677,7 @@ let interface_lowercase_a = CallableInterface(
     ],
     returnType: signature_lowercase_a.returnType
 )
-func call_lowercase_a(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_lowercase_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_lowercase_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = lowercase(
@@ -698,7 +698,7 @@ let interface_show_value = CallableInterface(
     ],
     returnType: signature_show_value.returnType
 )
-func call_show_value(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_show_value(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_show_value.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     show(
@@ -707,19 +707,19 @@ func call_show_value(command: Command, commandEnv: Env, handler: CallableValue, 
     return noValue
 }
 
-// formatCode(…)
+// format_code(…)
 let signature_formatCode_value = (
     paramType_0: asOptionalValue,
     returnType: asString
 )
 let interface_formatCode_value = CallableInterface(
-    name: "formatCode",
+    name: "format_code",
     parameters: [
         ("value", signature_formatCode_value.paramType_0),
     ],
     returnType: signature_formatCode_value.returnType
 )
-func call_formatCode_value(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_formatCode_value(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_formatCode_value.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = formatCode(
@@ -728,7 +728,7 @@ func call_formatCode_value(command: Command, commandEnv: Env, handler: CallableV
     return try signature_formatCode_value.returnType.box(value: result, env: handlerEnv)
 }
 
-// defineHandler(…)
+// define_handler(…)
 let signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv = (
     paramType_0: asString,
     paramType_1: AsArray(asParameter),
@@ -738,17 +738,17 @@ let signature_defineHandler_name_parameters_returnType_action_isEventHandler_com
     returnType: asNoResult
 )
 let interface_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv = CallableInterface(
-    name: "defineHandler",
+    name: "define_handler",
     parameters: [
         ("name", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_0),
         ("parameters", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_1),
-        ("returnType", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_2),
+        ("return_type", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_2),
         ("action", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_3),
-        ("isEventHandler", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_4),
+        ("is_event_handler", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_4),
     ],
     returnType: signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.returnType
 )
-func call_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let arg_2 = try signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_2.unboxArgument(at: 2, command: command, commandEnv: commandEnv, handler: handler)
@@ -782,7 +782,7 @@ let interface_store_name_value_readOnly_commandEnv = CallableInterface(
     ],
     returnType: signature_store_name_value_readOnly_commandEnv.returnType
 )
-func call_store_name_value_readOnly_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_store_name_value_readOnly_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_store_name_value_readOnly_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_store_name_value_readOnly_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let arg_2 = try signature_store_name_value_readOnly_commandEnv.paramType_2.unboxArgument(at: 2, command: command, commandEnv: commandEnv, handler: handler)
@@ -796,21 +796,21 @@ func call_store_name_value_readOnly_commandEnv(command: Command, commandEnv: Env
     return try signature_store_name_value_readOnly_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
-// testIf(…)
+// if(…)
 let signature_testIf_condition_action_commandEnv = (
     paramType_0: asBool,
     paramType_1: asBlock,
     returnType: asIs
 )
 let interface_testIf_condition_action_commandEnv = CallableInterface(
-    name: "testIf",
+    name: "if",
     parameters: [
         ("condition", signature_testIf_condition_action_commandEnv.paramType_0),
         ("action", signature_testIf_condition_action_commandEnv.paramType_1),
     ],
     returnType: signature_testIf_condition_action_commandEnv.returnType
 )
-func call_testIf_condition_action_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_testIf_condition_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_testIf_condition_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_testIf_condition_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -822,21 +822,21 @@ func call_testIf_condition_action_commandEnv(command: Command, commandEnv: Env, 
     return try signature_testIf_condition_action_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
-// repeatTimes(…)
+// repeat(…)
 let signature_repeatTimes_count_action_commandEnv = (
     paramType_0: asInt,
     paramType_1: asBlock,
     returnType: asIs
 )
 let interface_repeatTimes_count_action_commandEnv = CallableInterface(
-    name: "repeatTimes",
+    name: "repeat",
     parameters: [
         ("count", signature_repeatTimes_count_action_commandEnv.paramType_0),
         ("action", signature_repeatTimes_count_action_commandEnv.paramType_1),
     ],
     returnType: signature_repeatTimes_count_action_commandEnv.returnType
 )
-func call_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_repeatTimes_count_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_repeatTimes_count_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -848,21 +848,21 @@ func call_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Env,
     return try signature_repeatTimes_count_action_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
-// repeatWhile(…)
+// while(…)
 let signature_repeatWhile_condition_action_commandEnv = (
     paramType_0: asOptionalValue,
     paramType_1: asBlock,
     returnType: asIs
 )
 let interface_repeatWhile_condition_action_commandEnv = CallableInterface(
-    name: "repeatWhile",
+    name: "while",
     parameters: [
         ("condition", signature_repeatWhile_condition_action_commandEnv.paramType_0),
         ("action", signature_repeatWhile_condition_action_commandEnv.paramType_1),
     ],
     returnType: signature_repeatWhile_condition_action_commandEnv.returnType
 )
-func call_repeatWhile_condition_action_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_repeatWhile_condition_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_repeatWhile_condition_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_repeatWhile_condition_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -874,21 +874,21 @@ func call_repeatWhile_condition_action_commandEnv(command: Command, commandEnv: 
     return try signature_repeatWhile_condition_action_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
-// elseClause(…)
+// else(…)
 let signature_elseClause_action_elseAction_commandEnv = (
     paramType_0: asAnything,
     paramType_1: asAnything,
     returnType: asIs
 )
 let interface_elseClause_action_elseAction_commandEnv = CallableInterface(
-    name: "elseClause",
+    name: "else",
     parameters: [
         ("action", signature_elseClause_action_elseAction_commandEnv.paramType_0),
         ("elseAction", signature_elseClause_action_elseAction_commandEnv.paramType_1),
     ],
     returnType: signature_elseClause_action_elseAction_commandEnv.returnType
 )
-func call_elseClause_action_elseAction_commandEnv(command: Command, commandEnv: Env, handler: CallableValue, handlerEnv: Env, coercion: Coercion) throws -> Value {
+func call_elseClause_action_elseAction_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_elseClause_action_elseAction_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_elseClause_action_elseAction_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -900,8 +900,60 @@ func call_elseClause_action_elseAction_commandEnv(command: Command, commandEnv: 
     return try signature_elseClause_action_elseAction_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
+// of(…)
+let signature_ofClause_attribute_value_commandEnv = (
+    paramType_0: asAttributedValue,
+    paramType_1: asAnything,
+    returnType: asIs
+)
+let interface_ofClause_attribute_value_commandEnv = CallableInterface(
+    name: "of",
+    parameters: [
+        ("attribute", signature_ofClause_attribute_value_commandEnv.paramType_0),
+        ("value", signature_ofClause_attribute_value_commandEnv.paramType_1),
+    ],
+    returnType: signature_ofClause_attribute_value_commandEnv.returnType
+)
+func call_ofClause_attribute_value_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_ofClause_attribute_value_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_ofClause_attribute_value_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    let result = try ofClause(
+        attribute: arg_0,
+        value: arg_1,
+		commandEnv: commandEnv
+    )
+    return try signature_ofClause_attribute_value_commandEnv.returnType.box(value: result, env: handlerEnv)
+}
+
+// at(…)
+let signature_atClause_attribute_value = (
+    paramType_0: asAttributedValue,
+    paramType_1: asAnything,
+    returnType: asIs
+)
+let interface_atClause_attribute_value = CallableInterface(
+    name: "at",
+    parameters: [
+        ("attribute", signature_atClause_attribute_value.paramType_0),
+        ("value", signature_atClause_attribute_value.paramType_1),
+    ],
+    returnType: signature_atClause_attribute_value.returnType
+)
+func call_atClause_attribute_value(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_atClause_attribute_value.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_atClause_attribute_value.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    let result = try atClause(
+        attribute: arg_0,
+        value: arg_1
+    )
+    return try signature_atClause_attribute_value.returnType.box(value: result, env: handlerEnv)
+}
+
 
 func stdlib_loadHandlers(env: Env) throws {
+    
     try env.add(interface_exponent_a_b, call_exponent_a_b)
     try env.add(interface_positive_a, call_positive_a)
     try env.add(interface_negative_a, call_negative_a)
@@ -938,4 +990,6 @@ func stdlib_loadHandlers(env: Env) throws {
     try env.add(interface_repeatTimes_count_action_commandEnv, call_repeatTimes_count_action_commandEnv)
     try env.add(interface_repeatWhile_condition_action_commandEnv, call_repeatWhile_condition_action_commandEnv)
     try env.add(interface_elseClause_action_elseAction_commandEnv, call_elseClause_action_elseAction_commandEnv)
+    try env.add(interface_ofClause_attribute_value_commandEnv, call_ofClause_attribute_value_commandEnv)
+    try env.add(interface_atClause_attribute_value, call_atClause_attribute_value)
 }

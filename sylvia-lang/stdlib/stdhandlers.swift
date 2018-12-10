@@ -40,7 +40,7 @@ func add(a: Scalar, b: Scalar) throws -> Scalar { return try a + b }
 func subtract(a: Scalar, b: Scalar) throws -> Scalar { return try a - b }
 func multiply(a: Scalar, b: Scalar) throws -> Scalar { return try a * b }
 func divide(a: Scalar, b: Scalar) throws -> Scalar { return try a / b }
-func div(a: Double, b: Double) throws -> Int { return Int(a / b) }
+func div(a: Double, b: Double) throws -> Double { return Double(a / b) }
 func mod(a: Double, b: Double) throws -> Double { return a.truncatingRemainder(dividingBy: b) }
 
 // math comparison
@@ -111,9 +111,11 @@ func formatCode(value: Value) -> String {
 // requires: throws, commandEnv // any required env params are appended to bridging call in standard order (commandEnv,handlerEnv,bodyEnv)
 
 // TO DO: need asParameterList coercion that knows how to parse user-defined parameters list (which may consist of label strings and/or (label,coercion) tuples, and may include optional description strings too)
-// TO DO: rename `defineHandler` and take extra `options:.command/.event` parameter
-func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, action: Value, isEventHandler: Bool, commandEnv: Env) throws {
-    let  h = Handler(CallableInterface(name: name, parameters: parameters, returnType: returnType), action, isEventHandler)
+
+// TO DO: what about varargs/arbitrary args? (that will presumably require a [Native/Primitive]RawArgumentHandler class, which assigns the entire argument tuple as an unprocessed list for the handler to process itself [note that such handlers will not support automatic introspection beyond providing handler name])
+
+func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, action: Value, isEventHandler: Bool, commandEnv: Scope) throws {
+    let  h = NativeHandler(CallableInterface(name: name, parameters: parameters, returnType: returnType), action, isEventHandler)
     try commandEnv.add(h)
 }
 
@@ -122,8 +124,8 @@ func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, 
 // signature: store(name: primitive(text), value: anything, readOnly: default(true, boolean)) returning anything
 // requires: throws, commandEnv
 
-func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -> Value {
-    try commandEnv.set(name, to: value, readOnly: readOnly)
+func store(name: String, value: Value, readOnly: Bool, commandEnv: Scope) throws -> Value { // TO DO: take Identifier as `name`?
+    try commandEnv.set(name.lowercased(), to: value, readOnly: readOnly, thisFrameOnly: false) // TO DO: optional args in protocol
     return value
 }
 
@@ -137,11 +139,11 @@ func store(name: String, value: Value, readOnly: Bool, commandEnv: Env) throws -
 
 // TO DO: where a handler function evals a value, the handler signature's returnType should propagate up to action.eval(); alternatively, function might encapsulate action in a Value which is returned to the wrapper to force
 
-func testIf(condition: Bool, action: Value, commandEnv: Env) throws -> Value {
+func testIf(condition: Bool, action: Value, commandEnv: Scope) throws -> Value {
     return try condition ? action.eval(env: commandEnv, coercion: asAnything) : didNothing
 }
 
-func repeatTimes(count: Int, action: Value, commandEnv: Env) throws -> Value {
+func repeatTimes(count: Int, action: Value, commandEnv: Scope) throws -> Value {
     var count = count
     var result: Value = didNothing
     while count > 0 {
@@ -151,7 +153,8 @@ func repeatTimes(count: Int, action: Value, commandEnv: Env) throws -> Value {
     return result
 }
 
-func repeatWhile(condition: Value, action: Value, commandEnv: Env) throws -> Value {
+
+func repeatWhile(condition: Value, action: Value, commandEnv: Scope) throws -> Value {
     var result: Value = didNothing // TO DO: returning `didNothing` (implemented as subclass of NoValue?) will allow composition with infix `else` operator (ditto for `if`, etc); need to figure out precise semantics for this (as will NullCoercionErrors, the extent to which such a value can propagate must be strictly limited, with the value converting to noValue if not caught and handled immediately; one option is to define an `AsDidNothing(TYPE)` coercion which can unbox/coerce the nothing as a special case, e.g. returning a 2-case enum/returning didNothing rather than coercing it to noValue [which asOptionalValue/asOptional/asDefault should do])
     while try asBool.unbox(value: condition, env: commandEnv) {
         result = try action.eval(env: commandEnv, coercion: asAnything)
@@ -160,10 +163,43 @@ func repeatWhile(condition: Value, action: Value, commandEnv: Env) throws -> Val
 }
 
 
-func elseClause(action: Value, elseAction: Value, commandEnv: Env) throws -> Value { // TO DO: see TODO on AsAnything re. limiting scope of `didNothing` result
+func elseClause(action: Value, elseAction: Value, commandEnv: Scope) throws -> Value { // TO DO: see TODO on AsAnything re. limiting scope of `didNothing` result
     let result = try action.eval(env: commandEnv, coercion: asAnything)
     //print("action returned: \(result)")
     return result is DidNothing ? try elseAction.eval(env: commandEnv, coercion: asAnything) : result
 }
+
+
+/******************************************************************************/
+// selectors
+
+func ofClause(attribute: Value, value: Value, commandEnv: Scope) throws -> Value { // TO DO: see TODO on AsAnything re. limiting scope of `didNothing` result
+    guard let scope = value as? Scope else { throw UnrecognizedAttributeError(name: attribute.description, value: value) }
+    switch attribute {
+    case let command as Command:
+        // TO DO: copypasted from Command.eval; might be better to put implementation on Command/Scope
+        let (value, handlerEnv) = try scope.get(command.normalizedName)
+        guard let handler = value as? Callable else { throw HandlerNotFoundError(name: command.name, env: scope) }
+        return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: asAnything)
+    case let identifier as Identifier:
+        return try identifier.eval(env: scope, coercion: asAnything)
+    default:
+        throw CoercionError(value: attribute, coercion: asAttributedValue)
+    }
+}
+
+
+func atClause(attribute: Value, value: Value) throws -> Value { // TO DO: see TODO on AsAnything re. limiting scope of `didNothing` result
+    guard let scope = value as? Scope else { throw UnrecognizedAttributeError(name: attribute.description, value: value) }
+    switch attribute {
+    case let command as Command:
+        return try command.eval(env: scope, coercion: asAnything)
+    case let identifier as Identifier:
+        return try identifier.eval(env: scope, coercion: asAnything)
+    default:
+        throw CoercionError(value: attribute, coercion: asAttributedValue)
+    }
+}
+
 
 
