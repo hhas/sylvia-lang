@@ -31,7 +31,7 @@ enum OperatorNameType { // TO DO: merge into `OperatorName` coercion and impleme
             let chars = CharacterSet(charactersIn: name)
             if identifierCharacters.contains(p) && chars.subtracting(identifierAdditionalCharacters).isEmpty {
                 self = .word
-            } else if chars.subtracting(symbolCharacters).isEmpty {
+            } else if chars.subtracting(symbolicCharacters).isEmpty {
                 self = .symbol
             } else {
                 self = .invalid
@@ -99,7 +99,7 @@ class OperatorRegistry { // once populated, a single OperatorRegistry instance c
     private(set) var symbolLookup = SymbolSearchTree() // tree structure used to perform longest match of symbol-based operator names; topmost node matches 1st character of symbol name, 2nd level matches 2nd character (if any), and so on
     
     private func add(_ definition: OperatorDefinition, named name: String, to table: inout OperatorTable) {
-        let normalizedName = name.lowercased() // operator names are case-insensitive // TO DO: TBC
+        let normalizedName = name.lowercased() // operator names are case-insensitive
         guard table[normalizedName] == nil else {
             print("Can't redefine existing operator: \(name.debugDescription)") // TO DO: how to report error if already defined in table? (e.g. pass error info to a callback function/delegate supplied by caller; from UX POV, typically want to deal with all problem operators on completion at once rather than one at a time as they're encountered; e.g. a code editor would prompt user to fix whereas CLI would just abort)
             return

@@ -232,6 +232,8 @@ if y > 8 {
 """
 
 
+// code = " 2 thru 5 as list "
+// code = " items at 2 thru 4 of [5,6,7,8] "
 
 //code = " repeat 1000000 { 11.4 + 2 * 3 }" // 1M multiply&sum calculations = ~1.2sec (release build) vs ~0.3sec in AppleScript
 
@@ -240,7 +242,7 @@ if y > 8 {
 
 //code = "\n[\nπ, 23.4e5, \n(\n1+2\n)\n, \n“Hello\\nGoodbye”, [1\n\n,\n\t2,3], «1+\n2»4\n]\n"
 
-code = "Store (“n”, 2), [item (-2) of [5,6,7,8], item (N) of [5,6,7,8]]" // [7, 6]
+code = "Store (“n”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item -1 of [5,6,7,8,9], \n\t ITEM at -N of [5,6,7,8,9]\n]" // [7, 6]
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)

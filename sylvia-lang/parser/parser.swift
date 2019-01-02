@@ -45,6 +45,14 @@
 // TO DO: if using `NAME:EXPR` for assignment as well as pair operators in argument lists and key-value lists, parser may need to output different Values according to context (StoreValue, LabelledArgument/LabelledParameter, KeyValuePair) as each has different evaluation rules (operator precedence should be higher than comma separator/linebreak, lower than everything else); alternatively, block and argument tuple contexts might apply different coercions to Pair (although that's not ideal in block context as coercions really shouldn't have side effects); in any case, parser will want to distinguish key-value list literals from ordered/unique lists so that it can annotate/use alternative value representation to use Swift Dictionary instead of Array for internal storage
 
 
+// TO DO: going to need parameterized blocks for map, filter: `([LABEL:] IDENTIFIER [as TYPE],…) [returning TYPE] BLOCK`
+
+// TO DO: cautiously considering `;` for PIPE operator (or should it be core punctuation?), where `A(a,b); B(c,d)` -> `B(A(a,b),c,d)`; what are challenges of that transform?
+
+// TO DO: how should PAIR (`:`) be implemented (infix operator/core punctuation)? used for assignment in blocks, key-value pairs in kv-lists
+
+// TO DO: `@UID`, `#TAG`?
+
 import Foundation
 
 
@@ -71,26 +79,26 @@ class Parser {
     
     var thisInfo: TokenInfo { return self.index < self.tokens.count ? self.tokens[self.index] : self.tokens.last! }
     
-    var this: Token { return self.index < self.tokens.count ? self.tokens[self.index].coercion : .endOfCode }
+    var this: Token { return self.index < self.tokens.count ? self.tokens[self.index].token : .endOfCode }
     
     func peek(ignoringLineBreaks: Bool = false) -> Token {
         var index = self.index + 1
         var loop = true
         while loop && index < self.tokens.count {
-            switch self.tokens[index].coercion {
+            switch self.tokens[index].token {
             case .whitespace(_), .annotationLiteral(_): index += 1
             case .lineBreak where ignoringLineBreaks: index += 1
             default: loop = false
             }
         }
-        return index < self.tokens.count ? self.tokens[index].coercion : .endOfCode
+        return index < self.tokens.count ? self.tokens[index].token : .endOfCode
     }
     
     func advance(ignoringLineBreaks: Bool = false) {
         self.index += 1
         var loop = true
         while loop && self.index < self.tokens.count {
-            switch self.tokens[self.index].coercion {
+            switch self.tokens[self.index].token {
             case .whitespace(_): self.index += 1
             case .lineBreak where ignoringLineBreaks: self.index += 1
             case .annotationLiteral(_):
@@ -139,17 +147,19 @@ class Parser {
             self.advance(ignoringLineBreaks: true) // step over ','
         }
         // make sure there's a closing ')'/']'
-        guard isEndToken(self.this) else { throw SyntaxError("Unexpected code after item \(items.count) of \(items): \(self.this)") }
+        guard isEndToken(self.this) else {
+            // TO DO: need to format items as partial list; right now it displays badly
+            throw SyntaxError("Unexpected token after item \(items.count) of list: \(self.thisInfo)") // TO DO: need to pass source string + self.thisInfo to all SyntaxErrors so that it can display position of problem code
+        }
         return items // finish on ')'/']'
     }
     
     // token matching
     
-    private func parseAtom(_ precedence: Int = 0) throws -> Value {
+    private func parseAtom() throws -> Value {
         let tokenInfo = self.thisInfo
-        let token = tokenInfo.coercion
+        let token = tokenInfo.token
         let value: Value
-        // TO DO: what about .endOfCode? can it occur here?
         switch token {
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
             value = try List(self.readCommaDelimitedValues(isEndOfList))
@@ -163,11 +173,20 @@ class Parser {
             guard case .groupLiteralEnd = self.this else { throw SyntaxError("Expected end of precedence group, “)”, but found: \(self.this)") }
         case .textLiteral(value: let string):
             value = Text(string)
+        case .symbolLiteral(value: let string):
+            value = Symbol(string)
         case .identifier(value: let name, isQuoted: _): // found `NAME`
-            if case Token.groupLiteral = self.peek(ignoringLineBreaks: false) {  // is there an argument tuple after NAME (i.e. is it a command name or identifier?)
+            switch self.peek(ignoringLineBreaks: false) {  // is there an argument tuple after NAME (i.e. is it a command name or identifier?) // TO DO: how safe to accept a single unparenthesized argument? e.g. `get file 1` = `get (file (1))`
+            case .groupLiteral: // read zero or more parenthesized arguments
                 self.advance(ignoringLineBreaks: false) // advance cursor onto "("
                 value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple
-            } else {
+            case .listLiteral, .textLiteral, .symbolLiteral, .identifier, .number: // read single unparenthesized argument
+                self.advance(ignoringLineBreaks: false)
+                value = try Command(name, [self.parseAtom()])
+//            case .operatorName(value: _, prefix: let definition, infix: _) where definition != nil: // TO DO: we need this to allow negative numbers
+//                self.advance(ignoringLineBreaks: false)
+//                value = try Command(name, [self.parseAtom()])
+            default:
                 value = Identifier(name)
             }
         case .number(value: let string, scalar: let scalar):
@@ -193,7 +212,7 @@ class Parser {
     
     private func parseOperation(_ leftExpr: Value) throws -> Value {
         let tokenInfo = self.thisInfo
-        let token = tokenInfo.coercion
+        let token = tokenInfo.token
         let value: Value
         switch token {
         case .operatorName(value: let name, prefix: _, infix: let definition) where definition != nil:
@@ -244,7 +263,7 @@ class Parser {
             guard case .endOfCode = self.this else { throw SyntaxError("Expected end of code but found: \(self.this)") }
             return ScriptAST(result) // TBH, should swap this around so ScriptAST initializer takes code as argument and lexes and parses it
         } catch { // TO DO: delete once syntax errors provide decent debugging info
-            print("Partially parsed script:", result) // DEBUG
+            print("[DEBUG] Partially parsed script:", result.map{$0.description}.joined(separator: " "))
             throw error
         }
     }

@@ -86,9 +86,9 @@ let stdlib_operators: [OperatorDefinition] = [
     
     ("^",   500, .infix(parseRightInfixOperator), ["exponent"], nil),
     
-    // TO DO: should prefix `+` and `-` operators peek at next token and, if it's an unsigned .number, combine them and return a signed numeric value?
-    ("+",   490, .prefix(parseNumericSignOperator), [], "positive"),
-    ("-",   490, .prefix(parseNumericSignOperator), [], "negative"),
+    // unary +/- must bind tighter than `of`, `at`, etc
+    ("+",   2000, .prefix(parseNumericSignOperator), [], "positive"),
+    ("-",   2000, .prefix(parseNumericSignOperator), [], "negative"),
     
     ("×",   480, .infix(parseInfixOperator),      ["*"], nil),
     ("÷",   480, .infix(parseInfixOperator),      ["/"], nil),
@@ -117,13 +117,13 @@ let stdlib_operators: [OperatorDefinition] = [
     
     // identity comparison
 //    ("isSameObjectAs",  400, .infix(parseInfixOperator), [], nil), // compare object IDs
-    ("is_of_type",        400, .infix(parseInfixOperator), [], nil), // try coercing value to specified coercion and return 'true' if it succeeds or 'false' if it fails (an extra trick is to cache successful Coercions within the value, allowing subsequent tests to compare coercion objects instead of coercing the value itself, though of course this cache will be invalidated if the value is mutated) // note: there is difference between using coercions to test coercion suitability ('protocol-ness') of a Value vs checking its canonical coercion (e.g. `coercion of someValue == text`); allowing the latter may prove troublesome (novice users tend to check canonical coercion for equality when they should just check compatibility), so will need more thought (maybe use `EXPR isOfExactType TYPE`/`exactTypeOf EXPR`); plus it all gets extra thorny when values being checked are blocks, thunks, references, etc (should they be evaled and the result checked [which can cause issues where expression has side-effects or its result is non-idempotent], or should their current coercion [`codeBlock`, `lazyValue`, `reference`] be used? [note: AppleScript uses the former approach in an effort to appear simple and transparent to users, and frequently ends up causing confusion instead])
+    ("is_a",              400, .infix(parseInfixOperator), [], nil), // try coercing value to specified coercion and return 'true' if it succeeds
     
     // assignment
     // TO DO: if using NAME:VALUE for general assignment, we'll have to rely on coercions to specify read/write, e.g. `foo: 1 as editable(number)`, or else use `[let|var] NAME:VALUE`; using coercions is arguably better as the same syntax then works for handler signatures, allowing handler to indicate if it shares caller's argument value (c.f. pass-by-reference) or makes its own copy if needed (c.f. pass-by-value) (in keeping with existing read-only-by-default assignment policy, the latter behavior would be default and the former behavior explicitly requested using `EXPR as editable(…)`, or maybe even make `editable an atom/prefix operator for cleaner syntax, e.g. `EXPR as editable`, `EXPR as editable text`, etc, `EXPR as editable list(text)`); if we can be really sneaky, `A of B` operator could work by passing B as first argument to A, e.g. `EXPR as editable list of text`, `EXPR as editable list (max:10) of text`
     
     // TO DO: colon should be base punctuation
-    (":", 2, .infix(parseInfixOperator), [], nil), // assignment (Q. how best to distinguish read-only vs read-write? could probably use colons for constants and `=` for variables, but will need to confirm that colons will still work okay when used in key-value lists and labeled arguments/parameters); another option is to avoid `=` completely (as mistyping `a==b` as `a=b` is a common cause of bugs, especially when it's also legal as an expression) and use e.g. `:=` for assignment and `==` for comparison
+//    (":", 2, .infix(parseInfixOperator), [], nil), // assignment (Q. how best to distinguish read-only vs read-write? could probably use colons for constants and `=` for variables, but will need to confirm that colons will still work okay when used in key-value lists and labeled arguments/parameters); another option is to avoid `=` completely (as mistyping `a==b` as `a=b` is a common cause of bugs, especially when it's also legal as an expression) and use e.g. `:=` for assignment and `==` for comparison
     
     ("&", 450, .infix(parseInfixOperator), [], nil), // TO DO: should this accept optional `as` clause for specifying which coercion to force both operands to before joining (e.g. `A & B as list(text)`); and, if so, how should constraints be applied? (ditto for text/list comparison operators)
     
@@ -153,7 +153,7 @@ let stdlib_operators: [OperatorDefinition] = [
     ("else",         5, .infix(parseInfixOperator),    [], nil),
     ("catching",     4, .infix(parseInfixOperator),    [], nil), // "defineErrorHandler"?
     
-    // attributes
+    // reference
     ("of",         1000, .infix(parseInfixOperator),   [], nil),
     //(".",         1000, .infix(parseReverseInfixOperator), [], "of_clause"), // TO DO: dot notation is useful for reverse domain name-style references
     
@@ -162,6 +162,9 @@ let stdlib_operators: [OperatorDefinition] = [
     ("named",      1200, .infix(parseInfixOperator),   [], nil),
     ("where",      1200, .infix(parseInfixOperator),   [], nil),
     ("every",      1200, .prefix(parsePrefixOperator), [], nil),
+    
+    // range
+    ("thru",       1210, .infix(parseInfixOperator),   [], nil),
     
     // note: default precedence is 0; punctuation is -ve; annotation is high; infix/postfix ops should come somewhere inbetween (hardcoding precedence as ints is icky, requiring sufficient sized gaps between different operator sets to allow for new operators to be defined inbetween, but will do for now); TO DO: if sticking to ints, consider defining operator precedence as CATEGORYOperatorPrecedence+relativePrecedence, e.g. booleanOperatorPrecedence = 0x00010000, with NOT,AND,XOR,OR having relative precedence of 3,2,1,0 to each other
     

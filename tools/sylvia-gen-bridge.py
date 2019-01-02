@@ -37,7 +37,7 @@ _callReturnIfNoResult = """
     return noValue"""
 
 _handlerTemplate = """
-// ««nativeName»»(…)
+// ««nativeName»» (««nativeArgumentNames»»)
 let signature_««primitiveSignatureName»» = (««signatureParameters»»
     returnType: ««returnType»»
 )
@@ -116,12 +116,14 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
         primitiveSignatureName = '_'.join(primitiveSignatureName)
         # TO DO: bodyEnv (also requires extra line to create subenv)
         # insert code to unbox each argument; collect list of arguments for Swift function call
+        nativeArgumentNames = []
         signatureParameters = []
         interfaceParameters = []
         unboxArguments = []
         callArguments = []
         i = -1
         for i, (k,v) in enumerate(parameters):
+            nativeArgumentNames.append(k)
             signatureParameters.append(_render(_signatureParameter, count=i, coercion=v))
             interfaceParameters.append(_render(_interfaceParameter, count=i, nativeName=k, primitiveSignatureName=primitiveSignatureName))
             unboxArguments.append(_render(_unboxArgument, count=i, primitiveSignatureName=primitiveSignatureName))
@@ -143,6 +145,7 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
 
         defineHandlers.append(_render(_handlerTemplate,
                 nativeName=name,
+                nativeArgumentNames=', '.join(nativeArgumentNames),
                 # signature/interface
                 primitiveSignatureName=primitiveSignatureName,
                 signatureParameters=''.join(signatureParameters),
@@ -159,7 +162,7 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
     
     # TO DO: write to file
     print(_render(_commentTemplate, libraryName=libraryName), file=out)
-    print(''.join(defineHandlers), file=out)
+    print('\n'.join(defineHandlers), file=out)
     print(_render(_loaderTemplate, loadHandlers=''.join(loadHandlers)), file=out)
 
 
@@ -172,7 +175,8 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
 handlers = [("exponent", [("a", "asScalar"), ("b", "asScalar")], "asScalar",
                     dict(can_error=True)), # TO DO: replace flags list with dict (native definitions will represent flags as `IDENTIFIER:VALUE`)
             
-            # TO DO: optional 'swiftName', allowing native name to be symbol instead of words, e.g. `‘<’(a,b)`, not `if_less_than(a,b)`; as a rule of thumb, it's best that operators mask their own command names (when defining glue in native syntax, use quoted symbol in `to SIGNATURE` definition and include `Swift_name:IDENTIFIER` in block); Q. should `SwiftName` contain Swift parameter names as well, e.g. "isLessThan(lhs:rhs:)"?
+            # note: by default, underscore handler names automatically map to camel-case Swift function names, e.g. `foo_bar` would map to `fooBar`; use `dict(swift_handler="FUNCNAME")` to specify a different mapping (e.g. if native name is a symbol or reserved/ambiguous in Swift)
+            # as a rule of thumb, it's best that operators mask their own command names (when defining glue in native syntax, use quoted symbol in `to SIGNATURE` definition and include `Swift_name:IDENTIFIER` in block)
             ("positive", [("a", "asScalar")], "asScalar",
                     dict(can_error=True)),
             ("negative", [("a", "asScalar")], "asScalar",
@@ -221,11 +225,13 @@ handlers = [("exponent", [("a", "asScalar"), ("b", "asScalar")], "asScalar",
                     dict(can_error=True)),
             ("ge", [("a", "asString"), ("b", "asString")], "asBool", 
                     dict(can_error=True)),
+            ("is_a", [("value", "asAnything"), ("of_type", "asCoercion")], "asBool",
+                    dict()),
             ("&", [("a", "asString"), ("b", "asString")], "asString", 
                     dict(can_error=True, swift_handler="joinValues")),
-            ("uppercase", [("a", "asString")], "asString", 
+            ("uppercase", [("text", "asString")], "asString",
                     dict()),
-            ("lowercase", [("a", "asString")], "asString", 
+            ("lowercase", [("text", "asString")], "asString",
                     dict()),
             ("show", [("value", "asAnything")], "asNoResult", 
                     dict()),
@@ -246,12 +252,12 @@ handlers = [("exponent", [("a", "asScalar"), ("b", "asScalar")], "asScalar",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="repeatTimes")),
             ("while", [("condition", "asOptionalValue"), ("action", "asBlock")], "asIs", 
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="repeatWhile")),
-            ("else", [("action", "asAnything"), ("elseAction", "asAnything")], "asIs", 
+            ("else", [("action", "asAnything"), ("alternative_action", "asAnything")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="elseClause")),
-            ("of", [("attribute", "asAttributedValue"), ("value", "asAnything")], "asIs",
+            ("of", [("attribute", "asAttribute"), ("value", "asAttributedValue")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="ofClause")),
-            ("at", [("attribute", "asAttributedValue"), ("value", "asAnything")], "asIs", 
-                    dict(can_error=True, swift_handler="atClause")),
+            ("at", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
+                    dict(can_error=True, requires_scopes={commandEnv}, swift_handler="atClause")),
     ]
 
 

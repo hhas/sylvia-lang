@@ -30,16 +30,12 @@ class Env: Scope {
         return self.parent?.find(name)
     }
     
-    func get(_ name: String) throws -> (value: Value, scope: Scope) { // TO DO: returned scope should be read-only
+    func get(_ name: String) throws -> (value: Value, scope: Scope) { // TO DO: returned scope should be read-only // caution: caller must normalize name
         guard let result = self.find(name) else { throw ValueNotFoundError(name: name, env: self) }
         return (result.slot.value, result.env)
     }
     
-    func set(_ name: String, to value: Value) throws {
-        try self.set(name, to: value, readOnly: true)
-    }
-    
-    func set(_ name: String, to value: Value, readOnly: Bool = true, thisFrameOnly: Bool = false) throws {
+    func set(_ name: String, to value: Value, readOnly: Bool = true, thisFrameOnly: Bool = false) throws { // caution: caller must normalize name
         if !thisFrameOnly, let (slot, env) = self.find(name) {
             if slot.readOnly { throw ReadOnlyValueError(name: name, env: self) }
             env.frame[name] = (readOnly: readOnly, value: value)
@@ -48,25 +44,29 @@ class Env: Scope {
         }
     }
     
-    //
+    func child() -> Scope { // TO DO: what about scope name, global/local, writable flag?
+        return Env(parent: self)
+    }
+}
+
+
+
+
+extension Scope {
+    
+    func set(_ name: String, to value: Value) throws {
+        try self.set(name, to: value, readOnly: true, thisFrameOnly: false)
+    }
     
     func add(_ handler: CallableValue) throws { // used by library loader
-        if self.frame[handler.normalizedName] != nil { throw ReadOnlyValueError(name: handler.name, env: self) }
-        self.frame[handler.normalizedName] = (readOnly: true, value: handler)
+        try self.set(handler.normalizedName, to: handler, readOnly: true, thisFrameOnly: true)
     }
     
     func add(_ interface: CallableInterface, _ call: @escaping PrimitiveCall) throws { // used to load primitive handler definitions
         try self.add(PrimitiveHandler(interface, call))
     }
     
-    func add(_ coercion: Coercion) throws { // used by library loader // TO DO: delete this method once coercions implement Callable
-        if self.frame[coercion.coercionName] != nil { throw ReadOnlyValueError(name: coercion.coercionName, env: self) }
-        self.frame[coercion.coercionName] = (readOnly: true, value: coercion)
-    }
-    
-    func child() -> Env { // TO DO: what about scope name, global/local, writable flag?
-        return Env(parent: self)
+    func add(_ coercion: Coercion) throws { // used by library loader
+        try self.set(coercion.normalizedName, to: coercion, readOnly: true, thisFrameOnly: true)
     }
 }
-
-

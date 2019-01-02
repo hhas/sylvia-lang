@@ -37,11 +37,17 @@ typealias BridgingCoercion = Value & CoercionProtocol & BridgingProtocol
 
 protocol CoercionProtocol { // all Coercions are Value subclass, allowing them to be used directly in language
     
-    // coercion name as it appears in native language; this is used as env slot name (see stdlib_coercions.swift), so should be a camelCase identifier
-    var coercionName: String { get }
+    // coercion name as it appears in native language; this is used as env slot name (see stdlib_coercions.swift), so should be a native identifier
+    var coercionName: String { get } // caution: used in Env.add() without automatically normalizing (see below), so for now must be all-lowercase
     
     // all concrete Coercion subclasses must implement coerce() method for use in native language (e.g. `someValue as text`)
     func coerce(value: Value, env: Scope) throws -> Value
+}
+
+extension CoercionProtocol {
+    
+    var normalizedName: String { return self.coercionName }
+    
 }
 
 
@@ -160,7 +166,7 @@ class AsScalar: BridgingCoercion {
 
 class AsInt: BridgingCoercion {
     
-    var coercionName: String { return "wholeNumber" }
+    var coercionName: String { return "whole_number" }
     
     override var description: String { return self.coercionName }
     
@@ -304,6 +310,28 @@ class AsText: BridgingCoercion { // Q. what about constraints? // TO DO: would b
     }
     
     func box(value: SwiftType, env: Scope) throws -> Value { // add this method automatically via `extension BridgingCoercion where SwiftType: Value {}`
+        return value
+    }
+}
+
+
+class AsSymbol: BridgingCoercion {
+    
+    var coercionName: String { return "symbol" }
+    
+    override var description: String { return self.coercionName }
+    
+    typealias SwiftType = Symbol
+    
+    func coerce(value: Value, env: Scope) throws -> Value {
+        return try value.toSymbol(env: env, coercion: self)
+    }
+    
+    func unbox(value: Value, env: Scope) throws -> SwiftType {
+        return try value.toSymbol(env: env, coercion: self)
+    }
+    
+    func box(value: SwiftType, env: Scope) throws -> Value {
         return value
     }
 }
@@ -534,6 +562,27 @@ class AsAnything: BridgingCoercion { // any value including `nothing`; used to e
     }
 }
 
+//
+
+class AsIdentifier: BridgingCoercion { // the Identifier is passed thru as-is, without evaluation, or an error thrown if wrong type
+    
+    var coercionName: String { return "identifier" }
+    
+    override var description: String { return self.coercionName }
+    
+    typealias SwiftType = Identifier
+    
+    func coerce(value: Value, env: Scope) throws -> Value {
+        return try self.unbox(value: value, env: env)
+    }
+    func unbox(value: Value, env: Scope) throws -> SwiftType {
+        guard let result = value as? Identifier else { throw CoercionError(value: value, coercion: self) }
+        return result
+    }
+    func box(value: SwiftType, env: Scope) throws -> Value {
+        return value
+    }
+}
 
 /******************************************************************************/
 // defining handler signatures
@@ -598,7 +647,7 @@ class AsCoercion: BridgingCoercion {
 
 class AsNoResult: Coercion { // value is discarded; noValue is returned (used in primitive handler coercion sigs when handler returns no result)
     
-    var coercionName: String { return "noResult" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asValue`] from 'returns nothing')
+    var coercionName: String { return "no_result" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asValue`] from 'returns nothing')
     
     override var description: String { return self.coercionName }
     
@@ -621,10 +670,9 @@ class AsNoResult: Coercion { // value is discarded; noValue is returned (used in
 /******************************************************************************/
 // value attributes
 
-// TO DO: finalize
-
-class AsAttributedValue: BridgingCoercion {
-    var coercionName: String { return "attribute" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asValue`] from 'returns nothing')
+class AsAttributedValue: BridgingCoercion { // a value that implements the `get()` (slot lookup) protocol
+    
+    var coercionName: String { return "attributed_value" }
     
     override var description: String { return self.coercionName }
     
@@ -641,10 +689,37 @@ class AsAttributedValue: BridgingCoercion {
     func box(value: SwiftType, env: Scope) throws -> Value {
         return value
     }
-
 }
 
-let asAttributedValue = AsAttributedValue()
+
+
+class AsAttribute: BridgingCoercion { // an identifier/command (i.e. a value whose name can be used in get() protocol)
+    
+    var coercionName: String { return "attribute" }
+    
+    override var description: String { return self.coercionName }
+    
+    typealias SwiftType = Value
+
+    func coerce(value: Value, env: Scope) throws -> Value {
+        return try self.unbox(value: value, env: env)
+    }
+    
+    func unbox(value: Value, env: Scope) throws -> SwiftType {
+        switch value {
+        case is Identifier, is Command:
+            return value
+        case is Symbol: // also accept Symbol as shorthand, e.g. `#FOO of KV_LIST` is converted to `item #FOO of KV_LIST`
+            return Command("item", [value])
+        default:
+            throw CoercionError(value: value, coercion: self)
+        }
+    }
+    
+    func box(value: SwiftType, env: Scope) throws -> Value {
+        return value
+    }
+}
 
 
 /******************************************************************************/
@@ -653,9 +728,10 @@ let asAttributedValue = AsAttributedValue()
 // basic evaluation
 
 let asValue = AsValue() // any value except `nothing`; this is the default parameter coercion for native handlers
-let asOptionalValue = AsOptionalValue(asValue) // any value or `nothing`; this is the default return coercion for native handlers
+let asOptionalValue = AsOptionalValue(asValue) // any value or `nothing`; this is the default return coercion for native handlers // TO DO: get rid of this; see notes on asAnything
 
 let asText = AsText()
+let asSymbol = AsSymbol()
 let asBool = AsBool()
 let asScalar = AsScalar()
 let asInt = AsInt()
@@ -676,9 +752,16 @@ let asCoercion = AsCoercion()
 
 let asIs = AsIs() // supplied value is returned as-is, without expanding or thunking it; used in primitive handlers to take lazily-evaluated arguments that will be evaluated using the supplied `commandEnv` (primitive handlers should only need to thunk values that will be evaluated after the handler is returned)
 
-let asBlock = asIs // primitive handlers don't really care if an argument is a block or an expression (to/if/repeat/etc operators should check for block syntax themselves), so for now just pass it to the handler body as-is (there's no need to thunk it either, unless the supplied block/expression needs to be retained beyond the handler call in which case it must be captured with the command scope, either by declaring the parameter coercion asThunk or by calling asThunk.coerce in the handler body)
+let asIdentifier = AsIdentifier()
 
+let asBlock = asIs // primitive handlers don't really care if an argument is a block or an expression (to/if/repeat/etc operators should check for block syntax themselves), so for now just pass it to the handler body as-is (there's no need to thunk it either, unless the supplied block/expression needs to be retained beyond the handler call in which case it must be captured with the command scope, either by declaring the parameter coercion asThunk or by calling asThunk.coerce in the handler body)
 
 let asAnything = AsAnything() // used to evaluate expressions where no specific return coercion is required; unlike asOptionalValue, this allows `nothing` to appear nested within lists, e.g. `nothing as optional(value) -> nothing` but `[1,nothing] as optional(value) -> CoercionError`, whereas `[1,nothing] as anything -> [1,nothing]`, `[1,[2,[3,nothing]]] as anything -> [1,[2,[3,nothing]]]`
 
 let asNoResult = AsNoResult() // expands value to anything, ignoring any result, and always returns `nothing`; used as a handler's return type when no result is given/required
+
+
+// references
+
+let asAttributedValue = AsAttributedValue()
+let asAttribute = AsAttribute()

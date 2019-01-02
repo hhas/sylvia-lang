@@ -5,29 +5,22 @@
 // TO DO: a quicker way to check quote and block balancing during code editing is to skip all characters except quote and block delimiters [and their associated escape sequences], which can be done with a very simple Scanner that pushes open delimiters onto a stack and pops them off again when the corresponding close delimiter is found
 
 
-// TO DO: implement 'pipe' symbol (should this be core punctuation or stdlib operator?), allowing commands where result of first is first arg to second to be written in chained rather than nested format; Q. what character to use, e.g. "~", "\", "…", "→" ("->")? e.g. if "\" is used, `bar(foo,1,2)` can be written as `foo()\bar(1,2)` (note: entoli syntax uses semicolon symbol in keeping with English-esque punctuation rules, but sylvia syntax derives from C &co where semicolon has established meaning as statement separator)
 
-// note: for object specifier syntax, it should be practical to use `NAME1:EXPR of NAME2 of NAME3:EXPR` (combined with `thru` operator for by-range specifiers, which take 2 args), or `NAME at EXPR of NAME2 named EXPR of NAME3` (where all reference forms that take a selector value have a dedicated operator), as syntactic sugar for `NAME3.NAME2[EXPR].NAME[EXPR]` (unless `A[B]` is also used as synonym for `A.B`, in which case it'll be `NAME3.NAME2.named(EXPR).NAME[EXPR]`, c.f. nodeautomation). This could actually get us very close to a familiar "AppleScript-ish" syntax (minus all of its defects), e.g. `documentFile at 1 of folder named "Documents" of home`. (Yet another refinement would be for parser to special-case `WORD NUMBER` sequence as shorthand for `WORD[NUMBER]`, reducing need to use `at` operator to non-number selectors only, as that pattern is otherwise syntactically illegal. BTW, AppleScript uses `index`, not `at`, as explicit selector coercion, though may be better to use `atIndex`, e.g. `documentFile.atIndex(…)`.)
-
-
-/* TO DO: text literals should use `««EXPR»»` "tags", not backslash escapes, for character substitution and interpolation; e.g. `"Hello,««name»»!"` is arguably easier to understand than `"Hello,\(name)!"`; in turn, character and unicode escapes would be "foo««linebreak»»bar««0u12AB»»" rather than "foo\nbar\u12AB". Note that `linebreak`, `tab`, etc would need to be defined as non-maskable identifiers/atom operators in stdlib, and `case digitCharacters` in Lexer.tokenize() (or Lexer.readNumber?) will have to recognize `0uCODE…` syntax (this should use UTF-8 notation, so multiple codepoints will need written as `0uAAAA 0uBBBB 0uCCCC` and combined into one Text token by lexer, with formatting annotation). Q. what limits should be placed on interpolated EXPR when interpolating literal strings, e.g. by evaluating it in restricted Env? (e.g. Side-effects really should be disallowed. One option would be to whitelist stdlib handlers as being safe and relevant for this task; alternatively, allow any stdlib handler but error if any try to perform side effects.) It's probably best to have a single set of rules/limitations for both literal interpolation and text templating (where the format string is supplied at runtime) to avoid confusing users; the only difference would be in how custom identifiers and handlers are made available in latter case. (Whereas string literals can be automatically allowed to any symbol in their lexical scope, a runtime templating function would need all custom resources explicitly passed in, e.g. assuming an Env instance is used to represent a custom object, it would need read locks to permit client code to access its own handlers but not those of its parent scopes, while still allowing those handlers to access parent scopes themselves, plus write locks so that client code can't change anything.)
+/* TO DO:
  
- ««…»» escape sequences might also be employed in [some] annotations, particularly those used as userdoc annotations, allowing docstrings to insert info taken directly from handler's interface, e.g. parameter/return type, instead of user rekeying that info manually (the whole point of declaring handler interfaces being to minimize such duplication of information).
+     text literals should use `««EXPR»»` "tags", not backslash escapes, for character substitution and interpolation; e.g. `"Hello,««name»»!"` is arguably easier to understand than `"Hello,\(name)!"`; in turn, character and unicode escapes would be "foo««linebreak»»bar««0u12AB»»" rather than "foo\nbar\u12AB". Note that `linebreak`, `tab`, etc would need to be defined as non-maskable identifiers/atom operators in stdlib, and `case digitCharacters` in Lexer.tokenize() (or Lexer.readNumber?) will have to recognize `0uCODE…` syntax (this should use UTF-8 notation, so multiple codepoints will need written as `0uAAAA 0uBBBB 0uCCCC` and combined into one Text token by lexer, with formatting annotation). Q. what limits should be placed on interpolated EXPR when interpolating literal strings, e.g. by evaluating it in restricted Env? (e.g. Side-effects really should be disallowed. One option would be to whitelist stdlib handlers as being safe and relevant for this task; alternatively, allow any stdlib handler but error if any try to perform side effects.) It's probably best to have a single set of rules/limitations for both literal interpolation and text templating (where the format string is supplied at runtime) to avoid confusing users; the only difference would be in how custom identifiers and handlers are made available in latter case. (Whereas string literals can be automatically allowed to any symbol in their lexical scope, a runtime templating function would need all custom resources explicitly passed in, e.g. assuming an Env instance is used to represent a custom object, it would need read locks to permit client code to access its own handlers but not those of its parent scopes, while still allowing those handlers to access parent scopes themselves, plus write locks so that client code can't change anything.)
  
- Interpolation rules would be to insert text (which includes numbers and dates) as-is, e.g. `"Hello ««name»»!"` -> "Hello Bob!", while lists, etc would automatically use their literal representation. To insert literal representation of text, use `code(EXPR)`, e.g. `"Hello ««code(name)»»!"` -> "Hello “Bob”!". (Obviously, there are risks attached to providing the interpolator full access to all loaded commands and operators, so some sort of language-level sandboxing should be imposed. readQuotedText will also need to do punctuation and quote balancing to determine where the interpolated block ends.)
+     ««…»» escape sequences might also be employed in [some] annotations, particularly those used as userdoc annotations, allowing docstrings to insert info taken directly from handler's interface, e.g. parameter/return type, instead of user rekeying that info manually (the whole point of declaring handler interfaces being to minimize such duplication of information).
  
- Another benefit of this approach is that it can be easily adapted for use as general templating engines (obviously this'd require ability to attach automatic codecs, e.g. for HTML templating, default behavior would be to install a code that auto-converts all `&<>"'` chars in a given Text value to HTML entities automatically, and also to accept `RawHTML(Text)` values which bypasses the escape and inserts HTML code directly [this will require care in design to ensure programs can't be spoofed into wrapping Text in RawHTML to slip untrusted text into an HTML document as HTML code]).
+     Interpolation rules would be to insert text (which includes numbers and dates) as-is, e.g. `"Hello ««name»»!"` -> "Hello Bob!", while lists, etc would automatically use their literal representation. To insert literal representation of text, use `code(EXPR)`, e.g. `"Hello ««code(name)»»!"` -> "Hello “Bob”!". (Obviously, there are risks attached to providing the interpolator full access to all loaded commands and operators, so some sort of language-level sandboxing should be imposed. readQuotedText will also need to do punctuation and quote balancing to determine where the interpolated block ends.)
  
- Note that using 2-char escape sequence (`««`) for interpolation enables users to divide the "««" characters across two separate literals (e.g. `"foo «" & "« bar"`) should a non-escaping "««" sequence ever need to appear in text. (It's also possible to define constant names for these patterns which can be inserted by enclosing them in escapes, e.g. `"foo««beginAnnotationSymbol»»bar««endAnnotationSymbol»»"` evals to "foo««bar»»".)
+     Another benefit of this approach is that it can be easily adapted for use as general templating engines (obviously this'd require ability to attach automatic codecs, e.g. for HTML templating, default behavior would be to install a code that auto-converts all `&<>"'` chars in a given Text value to HTML entities automatically, and also to accept `RawHTML(Text)` values which bypasses the escape and inserts HTML code directly [this will require care in design to ensure programs can't be spoofed into wrapping Text in RawHTML to slip untrusted text into an HTML document as HTML code]).
  
- There's no ideal solution to this, although a smart editor should be able to look after much of the details. Just bear in mind the safety implications when using non-literal text as templates.
+     Note that using 2-char escape sequence (`««`) for interpolation enables users to divide the "««" characters across two separate literals (e.g. `"foo «" & "« bar"`) should a non-escaping "««" sequence ever need to appear in text. (It's also possible to define constant names for these patterns which can be inserted by enclosing them in escapes, e.g. `"foo««beginAnnotationSymbol»»bar««endAnnotationSymbol»»"` evals to "foo««bar»»".)
+ 
+     There's no ideal solution to this, although a smart editor should be able to look after much of the details. Just bear in mind the safety implications when using non-literal text as templates.
 */
 
-// Q. should symbols have their own literal syntax (c.f. Ruby Symbol class, which uses `:NAME` syntax), or should they be written as attributes of a global [abstract] 'symbol' namespace (c.f. appscript, which uses `k.NAME`)?
-//
-// ~name
-//
-// k.name
 
 
 // Q. any situations where whitespace needs to be known? (e.g. parser should be able to reduce `- 3` [.symbol.number] to `-3` [Value]); what's easiest when reading unbalanced lines
@@ -57,165 +50,6 @@
 
 
 import Foundation
-
-
-struct TokenInfo: CustomDebugStringConvertible {
-    let coercion: Token
-    let start: String.Index
-    let end: String.Index
-    
-    var debugDescription: String { return "\(self.start.encodedOffset)…\(self.end.encodedOffset) \(self.coercion)" }
-    
-    // TO DO: consider always using single-line Lexer, and store line number here as well
-}
-
-
-extension CharacterSet { // convenience extension, allows CharacterSet instances to be matched directly in switch cases
-    
-    static func ~= (a: CharacterSet, b: Unicode.Scalar) -> Bool {
-        return a.contains(b)
-    }
-    static func ~= (a: CharacterSet, c: Character) -> Bool {
-        guard let b = c.unicodeScalars.first, c.unicodeScalars.count == 1 else { return false }
-        return a ~= b
-    }
-}
-
-/******************************************************************************/
-// character sets for token types
-
-// TO DO: messing with Unicode.Scalar just to please CharacterSet is grotty and a pain (since Lexer should only care about Characters); how easy/wise to convert CharacterSets to Set<Character>?
-
-// the following should probably be public static constants on Lexer (some are used by sub-lexers such as OperatorRegistry.match… functions)
-
-// punctuation (these are hardcoded and non-overrideable)
-
-// quoted text/identifier literals
-let quotedTextDelimiterCharacters = CharacterSet(charactersIn: "\"“”")
-let quotedIdentifierDelimiterCharacters = CharacterSet(charactersIn: "'‘’")
-let quotedTextEscapeCharacters = CharacterSet(charactersIn: "\\")
-
-// annotation literals (comments, user documentation, TODOs, etc)
-let annotationDelimiters = (start: "«", end: "»")
-let annotationDelimiterCharacters = CharacterSet(charactersIn: annotationDelimiters.start)
-let annotationDelimiterEndCharacters = CharacterSet(charactersIn: annotationDelimiters.end)
-
-let quoteDelimiterCharacters = quotedTextDelimiterCharacters.union(quotedIdentifierDelimiterCharacters)
-                                .union(annotationDelimiterCharacters).union(annotationDelimiterEndCharacters)
-
-let punctuationTokens: [Character:Token] = [
-    "{": .blockLiteral, // while parens could be used for blocks too (lexical context will determine how/when they're evaluated), we're using conservative C-like syntax for familiarity, and using parens for argument/parameter lists and overriding operator precedence only (this leaves us without a literal record [struct] syntax, but we can do without a record coercion for this exercise)
-    "}": .blockLiteralEnd,
-    "(": .groupLiteral,
-    ")": .groupLiteralEnd,
-    "[": .listLiteral,
-    "]": .listLiteralEnd,
-    ",": .itemSeparator,
-    // TO DO: ":" for KEY:VALUE pairs (used in key-value list literals and argument/parameter lists to declare field labels; might also be used in blocks to declare name-value bindings instead of `let/var NAME=VALUE` syntax;)
-    // TO DO: if using JS-ish syntax, use "." for .attributeSelector (note: this shouldn't stop us defining `of` operator as well, though need to think how they both bake down to Values; probably want a specific Expression subclass for this)
-    // TO DO: what else? (e.g. 'pipe')
-]
-
-let punctuationCharacters = CharacterSet(punctuationTokens.keys.map { $0.unicodeScalars.first! })
-
-// unquoted identifiers
-// TO DO: identifier and operator names should be able to contain almost any legal Unicode character, but for now let's KISS and just use a convenient subset of characters for which CharacterSet already provides predefined constants, and treat any other characters [that aren't known punctuation chars] as .unknown
-let identifierCharacters = CharacterSet.letters.union(CharacterSet(charactersIn: "_"))
-let identifierAdditionalCharacters = identifierCharacters.union(digitCharacters)
-
-// number literals
-let numericSigns = Set(["+", "-"])
-let signCharacters = CharacterSet(charactersIn: numericSigns.joined()) // TO DO: decide exactly what sign glyphs to include here (be aware that these characters are also in symbolCharacters as they can also be used as arithmetic operators)
-let digitCharacters = CharacterSet.decimalDigits // lexer will match decimal and exponent notations itself (note that when stdlib operators are loaded, any +/- symbols before number will be read as a separate .operator; it's up to parser to match unary +/- .operators followed by .number and reduce it to a signed number value for efficiency [note that in AppleScript, multiple +/- symbols before a number are collapsed down by pretty printer])
-let decimalSeparators = CharacterSet(charactersIn: ".")
-let hexadecimalCharacters = digitCharacters.union(CharacterSet(charactersIn: "AaBbCcDdEeFf"))
-let hexadecimalSeparators = CharacterSet(charactersIn: "Xx")
-let exponentSeparators = CharacterSet(charactersIn: "Ee")
-
-// operators/unknown symbols
-let symbolCharacters = CharacterSet.symbols.union(CharacterSet.punctuationCharacters).subtracting(punctuationCharacters) // note: `+` and `-` appear in both signCharacters and symbolCharacters as they are used both in numbers and as operators (lexer and parser will perform further analysis to figure out which)
-
-// white space
-let linebreakCharacters = CharacterSet.newlines
-let whitespaceCharacters = CharacterSet.whitespaces
-
-// characters which are guaranteed to terminate the preceding token (unless it's an operator/symbol token, as those have their own boundary rules)
-let boundaryCharacters = linebreakCharacters.union(whitespaceCharacters).union(quoteDelimiterCharacters).union(punctuationCharacters).union(symbolCharacters)
-
-
-
-/******************************************************************************/
-// TokenInfo
-
-
-enum Token {
-    
-    case startOfCode
-    case endOfCode
-    
-    // annotations
-    case annotationLiteral(String)  // atomic; the lexer automatically reads everything between `«` and corresponding `»`, including nested annotations; Q. how to use annotations for docstrings, comments, TODO, TOFIX, change notes, metadata, etc? (probably use standard prefixes, e.g. `«?…»` might indicate user documentation, i.e. "help" [or should `«?` be used to indicate notes that appear in debug mode, given `?` operator is used to invoke interactive debug mode?], `«TODO:…»` is self-explanatory, etc); Q. how practical to attach change notes from code versioning system when pretty printing? (TBH, this sort of capability should probably be applied as map/filter/reduce operations between lexer and parser or parser and formatter, or handled by code editor)
-    case annotationLiteralEnd       // this will only appear in token stream if not balanced by an earlier .annotationLiteral
-    
-    // block structures
-    case listLiteral                // "[" an ordered collection (array)
-    case listLiteralEnd             // "]"
-    case blockLiteral               // "{"
-    case blockLiteralEnd            // "}"
-    case groupLiteral               // "("
-    case groupLiteralEnd            // ")"
-    
-    // separators
-    case itemSeparator              // ","
-    case lineBreak                  // "\n", etc // CharacterSet.newLines
-    // TO DO: also allow ";" as expression separator? (TBH, period would be preferable, but not if it's already symbol for attribute selection)
-    
-    // literals
-    case textLiteral(value: String)         // atomic; the lexer automatically reads everything between `"` and corresponding `"`, including `\CHARACTER` escapes (curly quotes are also accepted, and are used as standard when pretty printing text literals)
-    case number(value: String, scalar: Scalar)     // .decimal // TO DO: readNumber should also output Int/Double/decimal/fixed point/etc representation (e.g. output Scalar enum rather than String, c.f. entoli's numeric-parser.swift); when implementing UnitTypeRegistry (MeasurementRegistry?) also decide if .measurement(Measurement) should be a distinct Token, or if .number should include a `unit:UnitType?` slot (TBH it's probably worth going the whole hog and having lexer delegate all number reading to dedicated module which can also be used elsewhere, e.g. by numeric coercions and parsing/formatting libraries)
-    
-    // names
-    case identifier(value: String, isQuoted: Bool) // .letters // atomic; the lexer automatically reads everything between `'` and corresponding `'`; this allows identifier names that are otherwise masked by operator names to be used in quoted form (e.g. `'AND'(a,b)` = `a AND b`)
-    case operatorName(value: String, prefix: OperatorDefinition?, infix: OperatorDefinition?) // `value` contains operator's canonical name; should it be the name that appeared in source code? (issue is how to report syntax errors: the error message needs to show the name that appears in source code)
-    
-    // interstitials (i.e. everything that doesn't appear to be valid code)
-    case whitespace(String)
-    case symbol(Character)     // any symbols that are are not recognized as operators // TO DO: or just use .unknown?
-    case unknown(description: String) // any characters that are not otherwise recognized // TO DO: this should also capture matched part, if any (e.g. number), and unknown part (e.g. unknown suffix), allowing tools to provide better assistance (each part might also have its own description text, e.g. for display in editor tooltips, and the whole lot can be automatically composed into complete error message)
-    case illegal // TO DO: currently unused; decide how invalid unicode chars are handled (see also CharacterSet.illegalCharacters); for now, everything just gets stuffed into `unknown`
-    
-    
-    var precedence: Int {
-        switch self {
-        case .annotationLiteral:                                    return 100000 // '«...»'
-        case .itemSeparator:                                        return -3 // TO DO: what should precedences be?
-        case .listLiteralEnd, .blockLiteralEnd, .groupLiteralEnd:   return -2   // ','
-        case .operatorName(let definition):                         return definition.infix?.precedence ?? 0 // only infix/postfix ops are of relevance (atom/prefix ops do not take a left operand [i.e. leftExpr], so return 0 for those to finish the previous expression and start a new one)
-        case .lineBreak:                                            return -100
-        case .endOfCode:                                            return -99999
-        default:                                                    return 0
-        }
-    }
-    
-    // TO DO: `var tokenDescription:String` that describes what each token is (for use in syntax error messages, GUI editor tooltips, etc)
-}
-
-// kludgy workaround for inability to parameterize both operands in `if case ENUM = VALUE`; used by Parser.readDelimitedValues()
-
-// TO DO: put these into TokenInfo tuples along with corresponding "]"/")"/"}"/nil character for error reporting
-
-func isEndOfList(_ token: Token) -> Bool {
-    if case .listLiteralEnd = token { return true } else { return false }
-}
-func isEndOfGroup(_ token: Token) -> Bool {
-    if case .groupLiteralEnd = token { return true } else { return false }
-}
-func isEndOfBlock(_ token: Token) -> Bool {
-    if case .blockLiteralEnd = token { return true } else { return false }
-}
-func isEndOfCode(_ token: Token) -> Bool {
-    if case .endOfCode = token { return true } else { return false }
-}
 
 
 /******************************************************************************/
@@ -432,7 +266,7 @@ class Lexer {
     
     func tokenize() -> [TokenInfo] { // note: tokenization should never fail; any issues should be added to token stream for parsers to worry about // TO DO: ensure original lines of source code can be reconstructed from token stream (that will allow ambiguous quoting in per-line reading to be resolved downstream)
         var start = self.index
-        var result: [TokenInfo] = [TokenInfo(coercion: .startOfCode, start: start, end: start)]
+        var result: [TokenInfo] = [TokenInfo(token: .startOfCode, start: start, end: start)]
         if self.code != "" {
             // TO DO: backtrack() calls is ugly; consider using separate `var char:Character?` and `func next()->()`
             while let c = self.next() {
@@ -460,6 +294,16 @@ class Lexer {
                         token = .annotationLiteral(value) // TO DO: how best to capture value? (for now, just grab the entire "«…»" substring; eventually we should move this to AnnotationType which can process annotation's syntax itself, c.f. OperatorRegistry, and return .comment, .todo, .userdoc, etc)
                     case annotationDelimiterEndCharacters: // found unbalanced "»"
                         token = .annotationLiteralEnd
+                    case symbolPrefixCharacters:
+                        if let c = self.next(ifIn: identifierCharacters) {
+                            var value = String(c)
+                            while let c = self.next(ifIn: identifierAdditionalCharacters) { value.append(c) }
+                            token = .symbolLiteral(value: value)
+                        } else if self.next(ifIn: quotedIdentifierDelimiterCharacters) != nil {
+                            token = self.readQuotedIdentifier()
+                        } else {
+                            token = self.readUnknown(String(c))
+                        }
                     case identifierCharacters: // TO DO: also accept digits after first char
                         var value = String(c)
                         while let c = self.next(ifIn: identifierAdditionalCharacters) { value.append(c) }
@@ -470,7 +314,10 @@ class Lexer {
                         } else {
                             token = .operatorName(value: name, prefix: prefixOperator, infix: infixOperator)
                         }
-                    case symbolCharacters:
+                    case signCharacters where digitCharacters.contains(self.peek() ?? " "), digitCharacters: // match signed/unsigned number literal
+                        self.backtrack() // unconsume sign/digit and let readNumber() [try to] match entire number token
+                        token = self.readNumber()
+                    case symbolicCharacters:
                         self.backtrack() // unconsume symbol char so that operator registry can attempt to match full symbol name
                         let (prefixOperator, infixOperator) = self.operatorRegistry?.matchSymbol(self) ?? (nil, nil)
                         if prefixOperator == nil && infixOperator == nil {
@@ -480,15 +327,12 @@ class Lexer {
                                 self.backtrack() // unconsume +/- symbol and let readNumber() [try to] match entire number
                                 token = self.readNumber()
                             } else { // it's an unrecognized symbol, which parser will report as syntax error should it appear at top level of code
-                                token = .symbol(c)
+                                token = .unknown(description: String(c))
                             }
                         } else {
                             let name = prefixOperator?.name ?? infixOperator!.name
                             token = .operatorName(value: name, prefix: prefixOperator, infix: infixOperator) // TO DO: FIX: token.value is wrong here (it's the canonical operator name but should be the original matched text; it's up to consumer to choose whether to canonicize or not, e.g. when pretty printing); either matchSymbol needs to return the original substring as well as operator definitions, or (if recording code ranges only) we need to capture the start and end indexes of the token; TBH, it'd probably be best to separate out the raw range recording completely, as the outer repeat loop can take care of that
                         }
-                    case digitCharacters: // match unsigned number literal; note: assuming stdlib operator tables are loaded, any preceding '+'/'-' symbols will be matched as prefix operators (it's up to parser to optimize these operators away, c.f. AppleScript)
-                        self.backtrack() // unconsume digit and let readNumber() [try to] match entire number token
-                        token = self.readNumber()
                     case linebreakCharacters: // TO DO: need initializer flag that tells lexer to process entire script or first line only
                         token = .lineBreak
                     case whitespaceCharacters:
@@ -500,11 +344,11 @@ class Lexer {
                 }
                 let end = self.index
                 assert(start < end, "Invalid token (cannot be zero length): \(token)") // only .startOfCode/.endOfCode markers are zero-length
-                result.append(TokenInfo(coercion: token, start: start, end: end))
+                result.append(TokenInfo(token: token, start: start, end: end))
                 start = end
             }
         }
-        result.append(TokenInfo(coercion: .endOfCode, start: self.index, end: self.index))
+        result.append(TokenInfo(token: .endOfCode, start: self.index, end: self.index))
         return result
     }
 }

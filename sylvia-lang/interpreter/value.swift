@@ -5,6 +5,25 @@
 //
 
 
+
+// TO DO: how to denote symbol literals?
+//
+//   item \name of [\name: "untitled", \class: \document, \edited: false] « 'backslash escape' of identifier »
+//
+//   item #name of [#name: "untitled", #class: #document, #edited: false] « hash prefix; looks better but precludes hashtags as first-class syntax »
+//
+// note that while it *might* be possible to coerce identifiers to symbols in some use cases, it is important that users should not confuse the two, e.g.:
+//
+//   #name of [#name: "untitled", #class: #document, #edited: false]
+//
+// might be acceptable as shortcut for `item #name of KV_LIST`, but:
+//
+//   name of [#name: "untitled", #class: #document, #edited: false]
+//
+// will cause confusion and should not be treated as interchangeable for the first (in this example, `name` would be resolved as attribute of the key-value list); we want to avoid AS-style ambiguity where a record or script object's standard properties, e.g. `class`, may return different results depending on whether or not they're overridden by a declared property of same name (note: this assumes no native record/struct datatype, which is probably for best if we're not using records as unary arguments c.f. entoli)
+//
+
+
 // TO DO: need to start thinking about public/internal/private declarations
 
 // TO DO: what about annotating values with canonical Coercion types? (e.g. a list that is explicitly declared as `editable(list(text(nonEmpty),1,10))` could have that coercion attached to it so that all subsequent insertions/replacements/deletions to that list are constraint-checked against that coercion; ultimately, Coercion instances might even interlinked to provide generic-/dependent coercion-style capabilities; e.g. a handler that accepts a variant input `anyOf([number, date])` could guarantee that its output value will always be of the same coercion as the given input value - the output coercion receiving the Coercion object that was successfully matched by the input coercion - along with additional comparison checks, e.g. `outputValue>inputValue`, which can also be converted into mixture of compile-time and run-time checks when cross-compiling to Swift)
@@ -39,6 +58,10 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     // concrete subclasses must override the following as appropriate
     
     func toText(env: Scope, coercion: Coercion) throws -> Text { // re. coercion parameter: Coercion is assumed to be AsText, but may be AsString or other coercion as long as its coerce() method returns Text (would be good to get this strongly typed, but need to decide inheritance hierarchy for Coercion types)
+        throw CoercionError(value: self, coercion: coercion)
+    }
+    
+    func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
         throw CoercionError(value: self, coercion: coercion)
     }
     
@@ -87,6 +110,9 @@ class Nothing: Value {
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         throw NullCoercionError(value: self, coercion: coercion)
     }
+    override func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
+        throw NullCoercionError(value: self, coercion: coercion)
+    }
     override func toList(env: Scope, coercion: AsList) throws -> List {
         throw NullCoercionError(value: self, coercion: coercion)
     }
@@ -98,7 +124,7 @@ class Nothing: Value {
 
 class DidNothing: Nothing {
     
-    override var description: String { return "didNothing" }
+    override var description: String { return "did_nothing" }
     
 }
 
@@ -122,6 +148,29 @@ class Text: Value { // TO DO: Scalar?
     }
     
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
+        return self
+    }
+}
+
+
+class Symbol: Value {
+    
+    override var description: String { return "\(symbolLiteralPrefix)‘\(self.swiftValue)’" }
+    
+    override var nominalType: Coercion { return asSymbol }
+    
+    internal(set) var normalizedName: String
+    
+    // TO DO: need ability to capture raw Swift value in case of numbers, dates, etc; while this could be done in annotations, it might be quicker to have a dedicated private var containing enum of standard raw types we want to cache (.int, .double, .scalar, .date, whatever); another option is for annotations to be linked list/B-tree where entries are ordered according to predefined importance or frequency of use (would need to see how this compares to a dictionary, which should be pretty fast out of the box with interned keys)
+    
+    private(set) var swiftValue: String // TO DO: restricted mutability; e.g. perform appends in-place only if refcount==1, else copy self and append to that
+    
+    init(_ swiftValue: String) {
+        self.swiftValue = swiftValue
+        self.normalizedName = swiftValue.lowercased()
+    }
+    
+    override func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
         return self
     }
 }

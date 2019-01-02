@@ -3,7 +3,7 @@
 //
 
 
-// TO DO: should LanguageError subclass Value? (yes, as we have enough primitive boxing already, though need to decide how native error API will work)
+// TO DO: should GeneralError subclass Value? (yes, as we have enough primitive boxing already, though need to decide how native error API will work)
 
 // TO DO: how to separate user-visible error information from developer-only error information? e.g. stack traces showing command arguments might leak potentially sensitive information (TBH, this probably only becomes a concern when scripts are saved in compiled form)
 
@@ -12,7 +12,7 @@
 // TO DO: eventually move error raising APIs onto Env, allowing behavior to be customized (e.g. when running in debugger mode, instead of unwinding the stack, a coercion error might suspend execution and activate UI interaction mode where user can inspect, and potentially modify, the problem values, then resume execution from that same point)
 
 
-class LanguageError: Error, CustomStringConvertible {
+class GeneralError: Error, CustomStringConvertible {
     
     private(set) var parentError: Error?
     
@@ -41,12 +41,12 @@ class LanguageError: Error, CustomStringConvertible {
 /******************************************************************************/
 // implementation bugs
 
-class InternalError: LanguageError {}
+class InternalError: GeneralError {}
 
 /******************************************************************************/
 // parse error
 
-class SyntaxError: LanguageError {
+class SyntaxError: GeneralError {
     
     override init(_ message: String) { // TO DO: need to include parser for error reporting use; TO DO: more granular API that takes expected token description, found token, and position (what about previous token?)
         super.init(message)
@@ -57,7 +57,7 @@ class SyntaxError: LanguageError {
 // coercion errors
 
 
-class CoercionError: LanguageError {
+class CoercionError: GeneralError {
     
     let value: Value
     let coercion: Coercion
@@ -89,7 +89,7 @@ class NullCoercionError: CoercionError {
 /******************************************************************************/
 
 
-struct ConstraintError: Error, CustomStringConvertible {
+class ConstraintError: Error, CustomStringConvertible {
     
     let value: Any // TO DO: what should this be? (e.g. enum of Value, Scalar, Primitive?)
     let constraint: Coercion?
@@ -113,10 +113,16 @@ struct EvaluationError: Error, CustomStringConvertible {
 }
 
 
+class NotYetImplementedError: GeneralError {
+
+    init(_ message: String? = nil, function: String = #function) {
+        super.init("\(function)" + (message == nil ? "." : ": \(message!)"))
+    }
+}
 
 
 
-class UnrecognizedAttributeError: LanguageError {
+class UnrecognizedAttributeError: GeneralError {
     let name: String
     let value: Value
     
@@ -135,7 +141,7 @@ class UnrecognizedAttributeError: LanguageError {
 /******************************************************************************/
 // environment lookup errors
 
-class EnvironmentError: LanguageError { // abstract base class
+class EnvironmentError: GeneralError { // abstract base class
     
     let name: String
     let env: Scope
@@ -173,12 +179,12 @@ class HandlerNotFoundError: EnvironmentError {
 /******************************************************************************/
 // command evaluation errors
 
-class HandlerFailedError: LanguageError {
+class HandlerFailedError: GeneralError {
     
     let handler: Callable
     let command: Command
     
-    init(handler: Callable, command: Command) {
+    init(handler: Callable, command: Command) { // TO DO: inspect Command and Handlers annotations for stack trace generation
         self.handler = handler
         self.command = command
         super.init()
@@ -189,7 +195,7 @@ class HandlerFailedError: LanguageError {
 }
 
 
-class BadArgumentError: LanguageError {
+class BadArgumentError: GeneralError {
     
     let command: Command
     let handler: CallableValue
@@ -205,11 +211,11 @@ class BadArgumentError: LanguageError {
     override var message: String {
         let parameter = self.handler.interface.parameters[self.index]
         let argument = self.index < self.command.arguments.count ? self.command.arguments[self.index] : noValue
-        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter requires \(type(of:parameter.coercion)) but received \(type(of:argument)): \(argument)" // TO DO: better coercion descriptions needed
+        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter requires \(parameter.coercion.normalizedName) but received \(argument.nominalType): \(argument)" // TO DO: better coercion descriptions needed
     }
 }
 
-class UnrecognizedArgumentError: LanguageError {
+class UnrecognizedArgumentError: GeneralError {
     
     let command: Command
     let handler: CallableValue

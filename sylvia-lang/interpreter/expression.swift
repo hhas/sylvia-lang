@@ -8,6 +8,7 @@
 // TO DO: is it possible/practical for all toTYPE methods to be added via extension?
 
 
+
 // abstract base classes for values (blocks, identifiers, commands) that evaluate to yield other values
 
 class Expression: Value {
@@ -61,7 +62,7 @@ class Expression: Value {
 
 // concrete expression classes
 
-class Identifier: Expression, Attributed {
+class Identifier: Expression {
     
     // TO DO: while the goal is to build a slow AST interpreter with good runtime introspection that facilitates easy exploration and debugging plus option to cross-compile to fast[er] Swift code, there may still be a few parse-/run-time optimizations worth implementing once all the essentials are done. e.g. How can/when should Identifiers and Commands memoize non-maskable, read-only slot values (`nothing`, `π`, `+`, `as`, `show()`, etc) so they never need looked more than once? In theory, primitive library-defined constants could be defined in LIB_operators.swift as .constant(Value) parsefuncs, telling parser to substitute immediately as it builds the AST. Even when slots are writable, as long as they're guaranteed never to be masked the cost of identifier/command lookups could be reduced by capturing the environment frame in which they're defined, avoiding a full recursive lookup of Env every time.
     
@@ -100,7 +101,7 @@ class Identifier: Expression, Attributed {
 }
 
 
-class Command: Expression, Attributed {
+class Command: Expression {
     
     override var description: String { return "‘\(self.name)’ (\((self.arguments.map{$0.description}).joined(separator:", ")))" }
     
@@ -121,13 +122,9 @@ class Command: Expression, Attributed {
     // TO DO: caching? (the challenge here is that `A.B()`/`B() of A` requires that A supply the Env [or Env-like object], but there's no guarantee that A will be the same every time; one possible solution is to implement `eval(inScope:Accessor,env:Env,…)`), which would allow commands and identifiers to lookup in scope instead of env; given `of(B(),A)`, the` of` `handler` implements eval() to look up the B handler in A then call()s it with current scope as commandEnv and A as handlerEnv
 
     override func eval(env: Scope, coercion: Coercion) throws -> Value {
-        do {
-            let (value, handlerEnv) = try env.get(self.normalizedName)
-            guard let handler = value as? Callable else { throw HandlerNotFoundError(name: self.name, env: env) }
-            return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, coercion: coercion)
-        } catch {
-            throw error // TO DO: catch and rethrow as CommandError? or is HandlerError/HandlerNotFoundError sufficient? (we need to capture command object so its annotations can be inspected for stack trace generation)
-        }
+        let (value, handlerEnv) = try env.get(self.normalizedName)
+        guard let handler = value as? Callable else { throw HandlerNotFoundError(name: self.name, env: env) }
+        return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, coercion: coercion)
     }
     
     override func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
@@ -183,7 +180,6 @@ class Thunk: Expression {
     override func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
         return try coercion.unbox(value: self, env: env)
     }
-
 }
 
 

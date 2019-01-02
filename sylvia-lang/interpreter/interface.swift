@@ -5,31 +5,31 @@
 // get/set/call
 
 
-// Value Attributes // TBC: naming (Accessor, Scope, Gettable/Settable; what else?) from callers' POV, it's a scope
+// Attributed Values, Env
 
 
-protocol ReadOnlyScope {
+
+// TO DO: pass entire identifier/command to attributed value, env, etc for combined lookup + evaluation operation; this should simplify calling, avoid need for `get` to return scope, and allow alternate env implementations to process commands differently, e.g. an ObjC bridge would look up methods using combined command name + argument labels (current arrangement would require a custom callable that captures target + name, then appends arg labels to name in order to construct full ObjC name); where `get` returns a handler, it would always wrap it as a closure
+
+
+typealias AttributedValue = Value & Attributed
+
+protocol Attributed {
     
-    func get(_ name: String) throws -> (value: Value, scope: Scope)
+    func set(_ name: String, to value: Value) throws // used for setting [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that)
     
+    func get(_ name: String) throws -> (value: Value, scope: Scope) // TO DO: returning Scope (for use as handlerEnv) rather than Attributed is problematic, tightly coupling non-scope objects (e.g. List and other AttributedValues) to unrelated subclasses (Env)
+        
 }
 
-protocol Scope: ReadOnlyScope { // TO DO: `Identifier`, `Command` use Env.find() to retrieve the slot's value AND its lexical scope so that it can eval the value in its original context when coercing it to the requested return type (one option is for `get` to return both, although the scope needs to be protocol based and restricted to read-only [note: a read-only protocol will discourage, but won't prevent, upcasting of a returned Env; a safer option is to wrap the env in a shim, or maybe ask the env for a read-only version of itself which prevents any fiddling]) //
+
+protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Env.find() to retrieve the slot's value AND its lexical scope so that it can eval the value in its original context when coercing it to the requested return type (one option is for `get` to return both, although the scope needs to be protocol based and restricted to read-only [note: a read-only protocol will discourage, but won't prevent, upcasting of a returned Env; a safer option is to wrap the env in a shim, or maybe ask the env for a read-only version of itself which prevents any fiddling]) //
     
     // TO DO: make sure that value's attributes are fully introspectable (i.e. don't just implement everything as an opaque `switch` block in `get()`, but instead define the value's interface and let the glue generator build the get()/set() implementation automatically; in the case of aelib, interface definitions will be defined dynamically by terminology parser)
     
-    
     func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws
-
-    // TO DO: rest of these are really only applicable to Env (add methods are shortcuts for `set`, and could be implemented as extension)
     
-    func add(_ handler: CallableValue) throws // used by library loader
-    
-    func add(_ interface: CallableInterface, _ call: @escaping PrimitiveCall) throws // used to load primitive handler definitions
-    
-    func add(_ coercion: Coercion) throws // used by library loader // TO DO: delete this method once coercions implement Callable
-    
-    func child() -> Env // TO DO: what about scope name, global/local, writable flag?
+    func child() -> Scope // TO DO: what about scope name, global/local, writable flag?
     
 }
 
@@ -90,9 +90,3 @@ extension Callable {
 
 
 //
-
-typealias AttributedValue = Value & Attributed
-
-protocol Attributed { // ReadOnlyScope? (challenge is that some Callables require write access)
-    
-}
