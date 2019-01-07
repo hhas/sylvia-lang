@@ -19,12 +19,12 @@
 // for now, implement for string only; longer term, these should accept optional coercion:Coercion parameter (e.g. `A eq B as list of caseSensitiveText`) to standardize argument types before comparison, and call coercion-specific comparison methods on Values (ideally a default coercion would be inferred where practical, e.g. if it is known that two lists of text are being compared, the default coercion would be `list(text)`); the goal is to avoid inconsistent behavior during comparisons, particularly lt/le/gt/ge; a typical example would be in sorting a mixed list where comparison behavior changes from item to item according to operand coercion(s)
 
 // comparison
-func lt(a: String, b: String) throws -> Bool { return a.lowercased() <  b.lowercased() }
-func le(a: String, b: String) throws -> Bool { return a.lowercased() <= b.lowercased() }
-func eq(a: String, b: String) throws -> Bool { return a.lowercased() == b.lowercased() }
-func ne(a: String, b: String) throws -> Bool { return a.lowercased() != b.lowercased() }
-func gt(a: String, b: String) throws -> Bool { return a.lowercased() >  b.lowercased() }
-func ge(a: String, b: String) throws -> Bool { return a.lowercased() >= b.lowercased() }
+func lt(left: String, right: String) throws -> Bool { return left.lowercased() <  right.lowercased() }
+func le(left: String, right: String) throws -> Bool { return left.lowercased() <= right.lowercased() }
+func eq(left: String, right: String) throws -> Bool { return left.lowercased() == right.lowercased() }
+func ne(left: String, right: String) throws -> Bool { return left.lowercased() != right.lowercased() }
+func gt(left: String, right: String) throws -> Bool { return left.lowercased() >  right.lowercased() }
+func ge(left: String, right: String) throws -> Bool { return left.lowercased() >= right.lowercased() }
 
 
 
@@ -38,7 +38,7 @@ func isA(value: Value, ofType: Coercion) -> Bool {
 
 // TO DO: what if mixed types (e.g. text+list) are given?
 
-func joinValues(a: String, b: String) throws -> String { return a + b }
+func joinValues(left: String, right: String) throws -> String { return left + right }
 
 
 

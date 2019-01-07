@@ -7,15 +7,16 @@
 
 // TO DO: is it possible/practical for all toTYPE methods to be added via extension?
 
+// TO DO: operator-generated commands/identifiers should be annotated with operator definition; this can be used by pretty-printer and in error message generation (e.g. "‘-’ handler’s ‘left’ parameter" should read as "‘-’ operator’s ‘left’ operand" in BadArgumentError message)
 
 
 // abstract base classes for values (blocks, identifiers, commands) that evaluate to yield other values
 
 class Expression: Value {
     
-    // forward all Expression.toTYPE() calls to swiftEval()/eval()
+    // forward all Expression.toTYPE() calls to bridgingEval()/nativeEval()
     
-    override var nominalType: Coercion { return asOptionalValue }
+    override var nominalType: Coercion { return asAnything }
     
     //
     
@@ -23,7 +24,7 @@ class Expression: Value {
     internal func safeRun<T: Value>(env: Scope, coercion: Coercion, function: String = #function) throws -> T {
         let value: Value
        // do {
-            value = try self.eval(env: env, coercion: coercion)
+            value = try self.nativeEval(env: env, coercion: coercion)
        // } catch let e as NullCoercionError { // check
        //     print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
         //    //throw CoercionError(value: self, coercion: coercion)
@@ -40,7 +41,7 @@ class Expression: Value {
     
     override func toAny(env: Scope, coercion: Coercion) throws -> Value { // still gets called on Identifier, Command, Block
 //        print("\(type(of:self)).\(#function) was called")
-        return try self.eval(env: env, coercion: coercion)
+        return try self.nativeEval(env: env, coercion: coercion)
     }
     
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
@@ -55,7 +56,7 @@ class Expression: Value {
     
     override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         print("\(type(of:self)).\(#function) was called")
-        return try self.swiftEval(env: env, coercion: coercion)
+        return try self.bridgingEval(env: env, coercion: coercion)
     }
 }
 
@@ -78,22 +79,22 @@ class Identifier: Expression {
         self.normalizedName = name.lowercased()
     }
     
-    override func eval(env: Scope, coercion: Coercion) throws -> Value {
+    override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
         let (value, lexicalEnv) = try env.get(self.normalizedName)
         // TO DO: catch null coercions, c.f. below?
         do {
-            return try value.eval(env: lexicalEnv, coercion: coercion)
+            return try value.nativeEval(env: lexicalEnv, coercion: coercion)
         } catch {
             print("Identifier `\(self.name)` couldn't coerce following value to `\(coercion)`: \(value)")
             throw error
         }
     }
     
-    override func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
+    override func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
         let (value, lexicalEnv) = try env.get(self.name)
         // TO DO: where should null coercion errors become permanent?
         //do {
-        return try value.swiftEval(env: lexicalEnv, coercion: coercion)
+        return try value.bridgingEval(env: lexicalEnv, coercion: coercion)
         //} catch let error as NullCoercionError {
         //    throw CoercionError(value: self, coercion: coercion).from(error)
         //}
@@ -119,15 +120,15 @@ class Command: Expression {
         return index >= arguments.count ? noValue : self.arguments[index]
     }
     
-    // TO DO: caching? (the challenge here is that `A.B()`/`B() of A` requires that A supply the Env [or Env-like object], but there's no guarantee that A will be the same every time; one possible solution is to implement `eval(inScope:Accessor,env:Env,…)`), which would allow commands and identifiers to lookup in scope instead of env; given `of(B(),A)`, the` of` `handler` implements eval() to look up the B handler in A then call()s it with current scope as commandEnv and A as handlerEnv
+    // TO DO: caching? (the challenge here is that `A.B()`/`B() of A` requires that A supply the Env [or Env-like object], but there's no guarantee that A will be the same every time; one possible solution is to implement `nativeEval(inScope:Accessor,env:Env,…)`), which would allow commands and identifiers to lookup in scope instead of env; given `of(B(),A)`, the` of` `handler` implements nativeEval() to look up the B handler in A then call()s it with current scope as commandEnv and A as handlerEnv
 
-    override func eval(env: Scope, coercion: Coercion) throws -> Value {
+    override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
         let (value, handlerEnv) = try env.get(self.normalizedName)
         guard let handler = value as? Callable else { throw HandlerNotFoundError(name: self.name, env: env) }
         return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, coercion: coercion)
     }
     
-    override func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
+    override func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
         fatalError() // TO DO: implement; one option might be to tunnel primitive results through native eval, returning an opaque Value that is a minimal wrapper around Swift value, avoiding need for generic `swiftCall`
     }
 }
@@ -150,13 +151,13 @@ class Thunk: Expression {
         self.coercion = coercion
     }
     
-    // currently, evaling a thunk with non-thunk Coercion should call Thunk.eval(C)->C.coerce()->Thunk.toTYPE()->Thunk.safeRun(), which forces original value
+    // currently, evaling a thunk with non-thunk Coercion should call Thunk.nativeEval(C)->C.coerce()->Thunk.toTYPE()->Thunk.safeRun(), which forces original value
     
     override internal func safeRun<T: Value>(env: Scope, coercion: Coercion, function: String = #function) throws -> T {
         let value: Value
         do {
             // force thunked value // TO DO: this should simplify once Coercion.intersect() is implemented
-            value = try self.value.eval(env: self.env, coercion: self.coercion).eval(env: env, coercion: coercion)
+            value = try self.value.nativeEval(env: self.env, coercion: self.coercion).nativeEval(env: env, coercion: coercion)
         } catch is NullCoercionError {
             print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
             //throw CoercionError(value: self, coercion: coercion)
@@ -172,12 +173,12 @@ class Thunk: Expression {
     
     // evaluating a thunk forces it (unless coercion specifies AsThunk, in which case it thunks again)
     
-    override func eval(env: Scope, coercion: Coercion) throws -> Value {
+    override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
         // TO DO: this is why we need to implement Coercion.intersect(): if `coercion` is another thunk, it will capture self.coercion and itself in a new thunk, otherwise it will expand value to intersection of both; right now,
         return try coercion.coerce(value: self, env: env)
     }
     
-    override func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
+    override func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
         return try coercion.unbox(value: self, env: env)
     }
 }
@@ -197,17 +198,17 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
         self.body = body
     }
     
-    override func eval(env: Scope, coercion: Coercion) throws -> Value { // TO DO: visualization hooks? (learning, debugging, profiling, etc)
+    override func nativeEval(env: Scope, coercion: Coercion) throws -> Value { // TO DO: visualization hooks? (learning, debugging, profiling, etc)
         var result: Value = noValue
         for value in self.body {
-            result = try value.eval(env: env, coercion: asAnything) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
+            result = try value.nativeEval(env: env, coercion: asAnything) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
         }
         return try coercion.coerce(value: result, env: env) // TO DO: how to pass output coercion to last expr to be evaluated? (for last expr in body, should be enough to take it out of self.body and eval it here with `coercion`; if `return VALUE` op is implemented, it could break out of eval loop and again have VALUE coerced to return type here; another trick would be to change last item of body to `return(ITEM)` during initialization, making the value return explicit, though need to consider how this'd work for handler bodies vs control flow bodies)
     }
     
-    override func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
+    override func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
         var result: Value = noValue
-        for value in self.body { result = try value.eval(env: env, coercion: asAnything) }
+        for value in self.body { result = try value.nativeEval(env: env, coercion: asAnything) }
         return try coercion.unbox(value: result, env: env)
     }
 }

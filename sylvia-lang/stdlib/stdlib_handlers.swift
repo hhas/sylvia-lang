@@ -6,641 +6,641 @@
 //
 
 
-// exponent (a, b)
-let signature_exponent_a_b = (
+// exponent (left, right)
+let signature_exponent_left_right = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_exponent_a_b = CallableInterface(
+let interface_exponent_left_right = CallableInterface(
     name: "exponent",
     parameters: [
-        ("a", signature_exponent_a_b.paramType_0),
-        ("b", signature_exponent_a_b.paramType_1),
+        ("left", signature_exponent_left_right.paramType_0),
+        ("right", signature_exponent_left_right.paramType_1),
     ],
-    returnType: signature_exponent_a_b.returnType
+    returnType: signature_exponent_left_right.returnType
 )
-func call_exponent_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_exponent_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_exponent_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_exponent_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_exponent_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_exponent_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try exponent(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_exponent_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_exponent_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// positive (a)
-let signature_positive_a = (
+// positive (left)
+let signature_positive_left = (
     paramType_0: asScalar,
     returnType: asScalar
 )
-let interface_positive_a = CallableInterface(
+let interface_positive_left = CallableInterface(
     name: "positive",
     parameters: [
-        ("a", signature_positive_a.paramType_0),
+        ("left", signature_positive_left.paramType_0),
     ],
-    returnType: signature_positive_a.returnType
+    returnType: signature_positive_left.returnType
 )
-func call_positive_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_positive_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+func call_positive_left(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_positive_left.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try positive(
-        a: arg_0
+        left: arg_0
     )
-    return try signature_positive_a.returnType.box(value: result, env: handlerEnv)
+    return try signature_positive_left.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// negative (a)
-let signature_negative_a = (
+// negative (left)
+let signature_negative_left = (
     paramType_0: asScalar,
     returnType: asScalar
 )
-let interface_negative_a = CallableInterface(
+let interface_negative_left = CallableInterface(
     name: "negative",
     parameters: [
-        ("a", signature_negative_a.paramType_0),
+        ("left", signature_negative_left.paramType_0),
     ],
-    returnType: signature_negative_a.returnType
+    returnType: signature_negative_left.returnType
 )
-func call_negative_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_negative_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+func call_negative_left(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_negative_left.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try negative(
-        a: arg_0
+        left: arg_0
     )
-    return try signature_negative_a.returnType.box(value: result, env: handlerEnv)
+    return try signature_negative_left.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// + (a, b)
-let signature_add_a_b = (
+// + (left, right)
+let signature_add_left_right = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_add_a_b = CallableInterface(
+let interface_add_left_right = CallableInterface(
     name: "+",
     parameters: [
-        ("a", signature_add_a_b.paramType_0),
-        ("b", signature_add_a_b.paramType_1),
+        ("left", signature_add_left_right.paramType_0),
+        ("right", signature_add_left_right.paramType_1),
     ],
-    returnType: signature_add_a_b.returnType
+    returnType: signature_add_left_right.returnType
 )
-func call_add_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_add_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_add_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_add_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_add_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_add_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try add(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_add_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_add_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// - (a, b)
-let signature_subtract_a_b = (
+// - (left, right)
+let signature_subtract_left_right = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_subtract_a_b = CallableInterface(
+let interface_subtract_left_right = CallableInterface(
     name: "-",
     parameters: [
-        ("a", signature_subtract_a_b.paramType_0),
-        ("b", signature_subtract_a_b.paramType_1),
+        ("left", signature_subtract_left_right.paramType_0),
+        ("right", signature_subtract_left_right.paramType_1),
     ],
-    returnType: signature_subtract_a_b.returnType
+    returnType: signature_subtract_left_right.returnType
 )
-func call_subtract_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_subtract_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_subtract_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_subtract_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_subtract_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_subtract_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try subtract(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_subtract_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_subtract_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// * (a, b)
-let signature_multiply_a_b = (
+// * (left, right)
+let signature_multiply_left_right = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_multiply_a_b = CallableInterface(
+let interface_multiply_left_right = CallableInterface(
     name: "*",
     parameters: [
-        ("a", signature_multiply_a_b.paramType_0),
-        ("b", signature_multiply_a_b.paramType_1),
+        ("left", signature_multiply_left_right.paramType_0),
+        ("right", signature_multiply_left_right.paramType_1),
     ],
-    returnType: signature_multiply_a_b.returnType
+    returnType: signature_multiply_left_right.returnType
 )
-func call_multiply_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_multiply_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_multiply_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_multiply_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_multiply_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_multiply_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try multiply(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_multiply_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_multiply_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// / (a, b)
-let signature_divide_a_b = (
+// / (left, right)
+let signature_divide_left_right = (
     paramType_0: asScalar,
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_divide_a_b = CallableInterface(
+let interface_divide_left_right = CallableInterface(
     name: "/",
     parameters: [
-        ("a", signature_divide_a_b.paramType_0),
-        ("b", signature_divide_a_b.paramType_1),
+        ("left", signature_divide_left_right.paramType_0),
+        ("right", signature_divide_left_right.paramType_1),
     ],
-    returnType: signature_divide_a_b.returnType
+    returnType: signature_divide_left_right.returnType
 )
-func call_divide_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_divide_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_divide_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_divide_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_divide_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_divide_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try divide(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_divide_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_divide_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// div (a, b)
-let signature_div_a_b = (
+// div (left, right)
+let signature_div_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asDouble
 )
-let interface_div_a_b = CallableInterface(
+let interface_div_left_right = CallableInterface(
     name: "div",
     parameters: [
-        ("a", signature_div_a_b.paramType_0),
-        ("b", signature_div_a_b.paramType_1),
+        ("left", signature_div_left_right.paramType_0),
+        ("right", signature_div_left_right.paramType_1),
     ],
-    returnType: signature_div_a_b.returnType
+    returnType: signature_div_left_right.returnType
 )
-func call_div_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_div_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_div_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_div_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_div_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_div_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try div(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_div_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_div_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// mod (a, b)
-let signature_mod_a_b = (
+// mod (left, right)
+let signature_mod_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asDouble
 )
-let interface_mod_a_b = CallableInterface(
+let interface_mod_left_right = CallableInterface(
     name: "mod",
     parameters: [
-        ("a", signature_mod_a_b.paramType_0),
-        ("b", signature_mod_a_b.paramType_1),
+        ("left", signature_mod_left_right.paramType_0),
+        ("right", signature_mod_left_right.paramType_1),
     ],
-    returnType: signature_mod_a_b.returnType
+    returnType: signature_mod_left_right.returnType
 )
-func call_mod_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_mod_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_mod_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_mod_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_mod_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_mod_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try mod(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_mod_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_mod_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// < (a, b)
-let signature_isLessThan_a_b = (
+// < (left, right)
+let signature_isLessThan_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isLessThan_a_b = CallableInterface(
+let interface_isLessThan_left_right = CallableInterface(
     name: "<",
     parameters: [
-        ("a", signature_isLessThan_a_b.paramType_0),
-        ("b", signature_isLessThan_a_b.paramType_1),
+        ("left", signature_isLessThan_left_right.paramType_0),
+        ("right", signature_isLessThan_left_right.paramType_1),
     ],
-    returnType: signature_isLessThan_a_b.returnType
+    returnType: signature_isLessThan_left_right.returnType
 )
-func call_isLessThan_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_isLessThan_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_isLessThan_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_isLessThan_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_isLessThan_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_isLessThan_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = isLessThan(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_isLessThan_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_isLessThan_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// <= (a, b)
-let signature_isLessThanOrEqualTo_a_b = (
+// <= (left, right)
+let signature_isLessThanOrEqualTo_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isLessThanOrEqualTo_a_b = CallableInterface(
+let interface_isLessThanOrEqualTo_left_right = CallableInterface(
     name: "<=",
     parameters: [
-        ("a", signature_isLessThanOrEqualTo_a_b.paramType_0),
-        ("b", signature_isLessThanOrEqualTo_a_b.paramType_1),
+        ("left", signature_isLessThanOrEqualTo_left_right.paramType_0),
+        ("right", signature_isLessThanOrEqualTo_left_right.paramType_1),
     ],
-    returnType: signature_isLessThanOrEqualTo_a_b.returnType
+    returnType: signature_isLessThanOrEqualTo_left_right.returnType
 )
-func call_isLessThanOrEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_isLessThanOrEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_isLessThanOrEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_isLessThanOrEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_isLessThanOrEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_isLessThanOrEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = isLessThanOrEqualTo(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_isLessThanOrEqualTo_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_isLessThanOrEqualTo_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// == (a, b)
-let signature_isEqualTo_a_b = (
+// == (left, right)
+let signature_isEqualTo_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isEqualTo_a_b = CallableInterface(
+let interface_isEqualTo_left_right = CallableInterface(
     name: "==",
     parameters: [
-        ("a", signature_isEqualTo_a_b.paramType_0),
-        ("b", signature_isEqualTo_a_b.paramType_1),
+        ("left", signature_isEqualTo_left_right.paramType_0),
+        ("right", signature_isEqualTo_left_right.paramType_1),
     ],
-    returnType: signature_isEqualTo_a_b.returnType
+    returnType: signature_isEqualTo_left_right.returnType
 )
-func call_isEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_isEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_isEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_isEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_isEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_isEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = isEqualTo(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_isEqualTo_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_isEqualTo_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// != (a, b)
-let signature_isNotEqualTo_a_b = (
+// != (left, right)
+let signature_isNotEqualTo_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isNotEqualTo_a_b = CallableInterface(
+let interface_isNotEqualTo_left_right = CallableInterface(
     name: "!=",
     parameters: [
-        ("a", signature_isNotEqualTo_a_b.paramType_0),
-        ("b", signature_isNotEqualTo_a_b.paramType_1),
+        ("left", signature_isNotEqualTo_left_right.paramType_0),
+        ("right", signature_isNotEqualTo_left_right.paramType_1),
     ],
-    returnType: signature_isNotEqualTo_a_b.returnType
+    returnType: signature_isNotEqualTo_left_right.returnType
 )
-func call_isNotEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_isNotEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_isNotEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_isNotEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_isNotEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_isNotEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = isNotEqualTo(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_isNotEqualTo_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_isNotEqualTo_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// > (a, b)
-let signature_isGreaterThan_a_b = (
+// > (left, right)
+let signature_isGreaterThan_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isGreaterThan_a_b = CallableInterface(
+let interface_isGreaterThan_left_right = CallableInterface(
     name: ">",
     parameters: [
-        ("a", signature_isGreaterThan_a_b.paramType_0),
-        ("b", signature_isGreaterThan_a_b.paramType_1),
+        ("left", signature_isGreaterThan_left_right.paramType_0),
+        ("right", signature_isGreaterThan_left_right.paramType_1),
     ],
-    returnType: signature_isGreaterThan_a_b.returnType
+    returnType: signature_isGreaterThan_left_right.returnType
 )
-func call_isGreaterThan_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_isGreaterThan_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_isGreaterThan_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_isGreaterThan_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_isGreaterThan_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_isGreaterThan_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = isGreaterThan(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_isGreaterThan_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_isGreaterThan_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// >= (a, b)
-let signature_isGreaterThanOrEqualTo_a_b = (
+// >= (left, right)
+let signature_isGreaterThanOrEqualTo_left_right = (
     paramType_0: asDouble,
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isGreaterThanOrEqualTo_a_b = CallableInterface(
+let interface_isGreaterThanOrEqualTo_left_right = CallableInterface(
     name: ">=",
     parameters: [
-        ("a", signature_isGreaterThanOrEqualTo_a_b.paramType_0),
-        ("b", signature_isGreaterThanOrEqualTo_a_b.paramType_1),
+        ("left", signature_isGreaterThanOrEqualTo_left_right.paramType_0),
+        ("right", signature_isGreaterThanOrEqualTo_left_right.paramType_1),
     ],
-    returnType: signature_isGreaterThanOrEqualTo_a_b.returnType
+    returnType: signature_isGreaterThanOrEqualTo_left_right.returnType
 )
-func call_isGreaterThanOrEqualTo_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_isGreaterThanOrEqualTo_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_isGreaterThanOrEqualTo_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_isGreaterThanOrEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_isGreaterThanOrEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_isGreaterThanOrEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = isGreaterThanOrEqualTo(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_isGreaterThanOrEqualTo_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_isGreaterThanOrEqualTo_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// NOT (a)
-let signature_NOT_a = (
+// NOT (right)
+let signature_NOT_right = (
     paramType_0: asBool,
     returnType: asBool
 )
-let interface_NOT_a = CallableInterface(
+let interface_NOT_right = CallableInterface(
     name: "NOT",
     parameters: [
-        ("a", signature_NOT_a.paramType_0),
+        ("right", signature_NOT_right.paramType_0),
     ],
-    returnType: signature_NOT_a.returnType
+    returnType: signature_NOT_right.returnType
 )
-func call_NOT_a(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_NOT_a.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+func call_NOT_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_NOT_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = NOT(
-        a: arg_0
+        right: arg_0
     )
-    return try signature_NOT_a.returnType.box(value: result, env: handlerEnv)
+    return try signature_NOT_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// AND (a, b)
-let signature_AND_a_b = (
+// AND (left, right)
+let signature_AND_left_right = (
     paramType_0: asBool,
     paramType_1: asBool,
     returnType: asBool
 )
-let interface_AND_a_b = CallableInterface(
+let interface_AND_left_right = CallableInterface(
     name: "AND",
     parameters: [
-        ("a", signature_AND_a_b.paramType_0),
-        ("b", signature_AND_a_b.paramType_1),
+        ("left", signature_AND_left_right.paramType_0),
+        ("right", signature_AND_left_right.paramType_1),
     ],
-    returnType: signature_AND_a_b.returnType
+    returnType: signature_AND_left_right.returnType
 )
-func call_AND_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_AND_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_AND_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_AND_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_AND_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_AND_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = AND(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_AND_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_AND_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// OR (a, b)
-let signature_OR_a_b = (
+// OR (left, right)
+let signature_OR_left_right = (
     paramType_0: asBool,
     paramType_1: asBool,
     returnType: asBool
 )
-let interface_OR_a_b = CallableInterface(
+let interface_OR_left_right = CallableInterface(
     name: "OR",
     parameters: [
-        ("a", signature_OR_a_b.paramType_0),
-        ("b", signature_OR_a_b.paramType_1),
+        ("left", signature_OR_left_right.paramType_0),
+        ("right", signature_OR_left_right.paramType_1),
     ],
-    returnType: signature_OR_a_b.returnType
+    returnType: signature_OR_left_right.returnType
 )
-func call_OR_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_OR_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_OR_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_OR_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_OR_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_OR_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = OR(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_OR_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_OR_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// XOR (a, b)
-let signature_XOR_a_b = (
+// XOR (left, right)
+let signature_XOR_left_right = (
     paramType_0: asBool,
     paramType_1: asBool,
     returnType: asBool
 )
-let interface_XOR_a_b = CallableInterface(
+let interface_XOR_left_right = CallableInterface(
     name: "XOR",
     parameters: [
-        ("a", signature_XOR_a_b.paramType_0),
-        ("b", signature_XOR_a_b.paramType_1),
+        ("left", signature_XOR_left_right.paramType_0),
+        ("right", signature_XOR_left_right.paramType_1),
     ],
-    returnType: signature_XOR_a_b.returnType
+    returnType: signature_XOR_left_right.returnType
 )
-func call_XOR_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_XOR_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_XOR_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_XOR_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_XOR_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_XOR_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = XOR(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_XOR_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_XOR_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// lt (a, b)
-let signature_lt_a_b = (
+// lt (left, right)
+let signature_lt_left_right = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asBool
 )
-let interface_lt_a_b = CallableInterface(
+let interface_lt_left_right = CallableInterface(
     name: "lt",
     parameters: [
-        ("a", signature_lt_a_b.paramType_0),
-        ("b", signature_lt_a_b.paramType_1),
+        ("left", signature_lt_left_right.paramType_0),
+        ("right", signature_lt_left_right.paramType_1),
     ],
-    returnType: signature_lt_a_b.returnType
+    returnType: signature_lt_left_right.returnType
 )
-func call_lt_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_lt_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_lt_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_lt_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_lt_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_lt_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try lt(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_lt_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_lt_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// le (a, b)
-let signature_le_a_b = (
+// le (left, right)
+let signature_le_left_right = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asBool
 )
-let interface_le_a_b = CallableInterface(
+let interface_le_left_right = CallableInterface(
     name: "le",
     parameters: [
-        ("a", signature_le_a_b.paramType_0),
-        ("b", signature_le_a_b.paramType_1),
+        ("left", signature_le_left_right.paramType_0),
+        ("right", signature_le_left_right.paramType_1),
     ],
-    returnType: signature_le_a_b.returnType
+    returnType: signature_le_left_right.returnType
 )
-func call_le_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_le_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_le_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_le_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_le_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_le_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try le(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_le_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_le_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// eq (a, b)
-let signature_eq_a_b = (
+// eq (left, right)
+let signature_eq_left_right = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asBool
 )
-let interface_eq_a_b = CallableInterface(
+let interface_eq_left_right = CallableInterface(
     name: "eq",
     parameters: [
-        ("a", signature_eq_a_b.paramType_0),
-        ("b", signature_eq_a_b.paramType_1),
+        ("left", signature_eq_left_right.paramType_0),
+        ("right", signature_eq_left_right.paramType_1),
     ],
-    returnType: signature_eq_a_b.returnType
+    returnType: signature_eq_left_right.returnType
 )
-func call_eq_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_eq_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_eq_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_eq_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_eq_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_eq_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try eq(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_eq_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_eq_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// ne (a, b)
-let signature_ne_a_b = (
+// ne (left, right)
+let signature_ne_left_right = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asBool
 )
-let interface_ne_a_b = CallableInterface(
+let interface_ne_left_right = CallableInterface(
     name: "ne",
     parameters: [
-        ("a", signature_ne_a_b.paramType_0),
-        ("b", signature_ne_a_b.paramType_1),
+        ("left", signature_ne_left_right.paramType_0),
+        ("right", signature_ne_left_right.paramType_1),
     ],
-    returnType: signature_ne_a_b.returnType
+    returnType: signature_ne_left_right.returnType
 )
-func call_ne_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_ne_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_ne_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_ne_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_ne_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_ne_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try ne(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_ne_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_ne_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// gt (a, b)
-let signature_gt_a_b = (
+// gt (left, right)
+let signature_gt_left_right = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asBool
 )
-let interface_gt_a_b = CallableInterface(
+let interface_gt_left_right = CallableInterface(
     name: "gt",
     parameters: [
-        ("a", signature_gt_a_b.paramType_0),
-        ("b", signature_gt_a_b.paramType_1),
+        ("left", signature_gt_left_right.paramType_0),
+        ("right", signature_gt_left_right.paramType_1),
     ],
-    returnType: signature_gt_a_b.returnType
+    returnType: signature_gt_left_right.returnType
 )
-func call_gt_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_gt_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_gt_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_gt_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_gt_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_gt_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try gt(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_gt_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_gt_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
-// ge (a, b)
-let signature_ge_a_b = (
+// ge (left, right)
+let signature_ge_left_right = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asBool
 )
-let interface_ge_a_b = CallableInterface(
+let interface_ge_left_right = CallableInterface(
     name: "ge",
     parameters: [
-        ("a", signature_ge_a_b.paramType_0),
-        ("b", signature_ge_a_b.paramType_1),
+        ("left", signature_ge_left_right.paramType_0),
+        ("right", signature_ge_left_right.paramType_1),
     ],
-    returnType: signature_ge_a_b.returnType
+    returnType: signature_ge_left_right.returnType
 )
-func call_ge_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_ge_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_ge_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_ge_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_ge_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_ge_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try ge(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_ge_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_ge_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
@@ -670,29 +670,29 @@ func call_isA_value_ofType(command: Command, commandEnv: Scope, handler: Callabl
 }
 
 
-// & (a, b)
-let signature_joinValues_a_b = (
+// & (left, right)
+let signature_joinValues_left_right = (
     paramType_0: asString,
     paramType_1: asString,
     returnType: asString
 )
-let interface_joinValues_a_b = CallableInterface(
+let interface_joinValues_left_right = CallableInterface(
     name: "&",
     parameters: [
-        ("a", signature_joinValues_a_b.paramType_0),
-        ("b", signature_joinValues_a_b.paramType_1),
+        ("left", signature_joinValues_left_right.paramType_0),
+        ("right", signature_joinValues_left_right.paramType_1),
     ],
-    returnType: signature_joinValues_a_b.returnType
+    returnType: signature_joinValues_left_right.returnType
 )
-func call_joinValues_a_b(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_joinValues_a_b.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_joinValues_a_b.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func call_joinValues_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_joinValues_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_joinValues_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try joinValues(
-        a: arg_0,
-        b: arg_1
+        left: arg_0,
+        right: arg_1
     )
-    return try signature_joinValues_a_b.returnType.box(value: result, env: handlerEnv)
+    return try signature_joinValues_left_right.returnType.box(value: result, env: handlerEnv)
 }
 
 
@@ -764,7 +764,7 @@ func call_show_value(command: Command, commandEnv: Scope, handler: CallableValue
 
 // format_code (value)
 let signature_formatCode_value = (
-    paramType_0: asOptionalValue,
+    paramType_0: asAnything,
     returnType: asString
 )
 let interface_formatCode_value = CallableInterface(
@@ -826,7 +826,7 @@ func call_defineHandler_name_parameters_returnType_action_isEventHandler_command
 // store (name, value, readOnly)
 let signature_store_name_value_readOnly_commandEnv = (
     paramType_0: asString,
-    paramType_1: asOptionalValue,
+    paramType_1: asAnything,
     paramType_2: asBool,
     returnType: asIs
 )
@@ -910,7 +910,7 @@ func call_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Scop
 
 // while (condition, action)
 let signature_repeatWhile_condition_action_commandEnv = (
-    paramType_0: asOptionalValue,
+    paramType_0: asAnything,
     paramType_1: asBlock,
     returnType: asIs
 )
@@ -1018,33 +1018,33 @@ func call_atClause_elementType_selectorData_commandEnv(command: Command, command
 
 func stdlib_loadHandlers(env: Env) throws {
     
-    try env.add(interface_exponent_a_b, call_exponent_a_b)
-    try env.add(interface_positive_a, call_positive_a)
-    try env.add(interface_negative_a, call_negative_a)
-    try env.add(interface_add_a_b, call_add_a_b)
-    try env.add(interface_subtract_a_b, call_subtract_a_b)
-    try env.add(interface_multiply_a_b, call_multiply_a_b)
-    try env.add(interface_divide_a_b, call_divide_a_b)
-    try env.add(interface_div_a_b, call_div_a_b)
-    try env.add(interface_mod_a_b, call_mod_a_b)
-    try env.add(interface_isLessThan_a_b, call_isLessThan_a_b)
-    try env.add(interface_isLessThanOrEqualTo_a_b, call_isLessThanOrEqualTo_a_b)
-    try env.add(interface_isEqualTo_a_b, call_isEqualTo_a_b)
-    try env.add(interface_isNotEqualTo_a_b, call_isNotEqualTo_a_b)
-    try env.add(interface_isGreaterThan_a_b, call_isGreaterThan_a_b)
-    try env.add(interface_isGreaterThanOrEqualTo_a_b, call_isGreaterThanOrEqualTo_a_b)
-    try env.add(interface_NOT_a, call_NOT_a)
-    try env.add(interface_AND_a_b, call_AND_a_b)
-    try env.add(interface_OR_a_b, call_OR_a_b)
-    try env.add(interface_XOR_a_b, call_XOR_a_b)
-    try env.add(interface_lt_a_b, call_lt_a_b)
-    try env.add(interface_le_a_b, call_le_a_b)
-    try env.add(interface_eq_a_b, call_eq_a_b)
-    try env.add(interface_ne_a_b, call_ne_a_b)
-    try env.add(interface_gt_a_b, call_gt_a_b)
-    try env.add(interface_ge_a_b, call_ge_a_b)
+    try env.add(interface_exponent_left_right, call_exponent_left_right)
+    try env.add(interface_positive_left, call_positive_left)
+    try env.add(interface_negative_left, call_negative_left)
+    try env.add(interface_add_left_right, call_add_left_right)
+    try env.add(interface_subtract_left_right, call_subtract_left_right)
+    try env.add(interface_multiply_left_right, call_multiply_left_right)
+    try env.add(interface_divide_left_right, call_divide_left_right)
+    try env.add(interface_div_left_right, call_div_left_right)
+    try env.add(interface_mod_left_right, call_mod_left_right)
+    try env.add(interface_isLessThan_left_right, call_isLessThan_left_right)
+    try env.add(interface_isLessThanOrEqualTo_left_right, call_isLessThanOrEqualTo_left_right)
+    try env.add(interface_isEqualTo_left_right, call_isEqualTo_left_right)
+    try env.add(interface_isNotEqualTo_left_right, call_isNotEqualTo_left_right)
+    try env.add(interface_isGreaterThan_left_right, call_isGreaterThan_left_right)
+    try env.add(interface_isGreaterThanOrEqualTo_left_right, call_isGreaterThanOrEqualTo_left_right)
+    try env.add(interface_NOT_right, call_NOT_right)
+    try env.add(interface_AND_left_right, call_AND_left_right)
+    try env.add(interface_OR_left_right, call_OR_left_right)
+    try env.add(interface_XOR_left_right, call_XOR_left_right)
+    try env.add(interface_lt_left_right, call_lt_left_right)
+    try env.add(interface_le_left_right, call_le_left_right)
+    try env.add(interface_eq_left_right, call_eq_left_right)
+    try env.add(interface_ne_left_right, call_ne_left_right)
+    try env.add(interface_gt_left_right, call_gt_left_right)
+    try env.add(interface_ge_left_right, call_ge_left_right)
     try env.add(interface_isA_value_ofType, call_isA_value_ofType)
-    try env.add(interface_joinValues_a_b, call_joinValues_a_b)
+    try env.add(interface_joinValues_left_right, call_joinValues_left_right)
     try env.add(interface_uppercase_text, call_uppercase_text)
     try env.add(interface_lowercase_text, call_lowercase_text)
     try env.add(interface_show_value, call_show_value)

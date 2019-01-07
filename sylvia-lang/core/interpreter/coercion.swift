@@ -30,7 +30,7 @@
 // TO DO: how would 'AsPipe(TYPE)' work? (this should work across *nix pipes, coroutines/generators, SAX readers, and anything else that resembles streaming data)
 
 
-typealias Coercion = Value & CoercionProtocol
+typealias Coercion = Value & CoercionProtocol // TO DO: rename `Constraint`?
 
 typealias BridgingCoercion = Value & CoercionProtocol & BridgingProtocol
 
@@ -77,8 +77,8 @@ extension BridgingProtocol {
     func unboxArgument(at index: Int, command: Command, commandEnv: Scope, handler: CallableValue) throws -> SwiftType {
         //print("Unboxing argument \(index)")
         do {
-            return try self.unbox(value: command.argument(index), env: commandEnv)// TO DO: should use swiftEval
-            //return try command.argument(index).swiftEval(env: Scope, coercion: self) // TO DO: …except this doesn't work as swiftEval<T>() can't be inferred
+            return try self.unbox(value: command.argument(index), env: commandEnv)// TO DO: should use bridgingEval
+            //return try command.argument(index).bridgingEval(env: Scope, coercion: self) // TO DO: …except this doesn't work as bridgingEval<T>() can't be inferred
         } catch {
             //print("Unboxing argument \(index) failed:",error)
             throw BadArgumentError(command: command, handler: handler, index: index).from(error)
@@ -363,9 +363,34 @@ class AsList: Coercion {
 // optionals
 
 
-class AsDefault: Coercion { // native only; TO DO: what about bridging? (remember, we want to avoid primitive library developers hardcoding default values in func implementation)
+class AsDefault: Coercion, Callable {
+    
+    let signature = (
+        paramType_0: asAnything,
+        paramType_1: asCoercion,
+        returnType: asIs
+    )
+    
+    lazy private(set) var interface = CallableInterface(
+        name: self.coercionName,
+        parameters: [
+            ("value", signature.paramType_0),
+            ("of_type", signature.paramType_1)
+        ],
+        returnType: asCoercion)
+    
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+        let defaultValue = try self.signature.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)
+        let ofType = try self.signature.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: self)
+        if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: self) }
+        return AsDefault(ofType, defaultValue)
+    }
+    
+    // native only; TO DO: what about bridging? (remember, we want to avoid primitive library developers hardcoding default values in func implementation)
     
     var coercionName: String { return "default" }
+    
+    var normalizedName: String { return self.interface.normalizedName } // TO DO: currently need this as both Callable and Coercion implement `normalizedName` via extensions
     
     override var description: String { return "\(self.coercionName)(\(self.defaultValue), \(self.coercion))" }
     
@@ -654,11 +679,11 @@ class AsNoResult: Coercion { // value is discarded; noValue is returned (used in
     typealias SwiftType = Value
     
     func coerce(value: Value, env: Scope) throws -> Value {
-        let _ = try asOptionalValue.coerce(value: value, env: env)
+        let _ = try asAnything.coerce(value: value, env: env)
         return noValue
     }
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        let _ = try asOptionalValue.coerce(value: value, env: env)
+        let _ = try asAnything.coerce(value: value, env: env)
         return noValue
     }
     func box(value: SwiftType, env: Scope) throws -> Value {
@@ -728,7 +753,9 @@ class AsAttribute: BridgingCoercion { // an identifier/command (i.e. a value who
 // basic evaluation
 
 let asValue = AsValue() // any value except `nothing`; this is the default parameter coercion for native handlers
-let asOptionalValue = AsOptionalValue(asValue) // any value or `nothing`; this is the default return coercion for native handlers // TO DO: get rid of this; see notes on asAnything
+
+let asAnything = AsAnything() // any value or `nothing`; this is the default return coercion for native handlers and may be used to expand any value, including [nested] lists containing `nothing`, e.g. `[1,nothing] as optional(value) -> CoercionError`, whereas `[1,nothing] as anything -> [1,nothing]`
+
 
 let asText = AsText()
 let asSymbol = AsSymbol()
@@ -742,7 +769,7 @@ let asList = AsList(asValue)
 
 // lazy evaluation
 
-let asThunk = AsThunk(asOptionalValue) // native handlers may use this to declare lazily evaluated parameters
+let asThunk = AsThunk(asAnything) // native handlers may use this to declare lazily evaluated parameters
 
 
 // handler signatures
@@ -755,8 +782,6 @@ let asIs = AsIs() // supplied value is returned as-is, without expanding or thun
 let asIdentifier = AsIdentifier()
 
 let asBlock = asIs // primitive handlers don't really care if an argument is a block or an expression (to/if/repeat/etc operators should check for block syntax themselves), so for now just pass it to the handler body as-is (there's no need to thunk it either, unless the supplied block/expression needs to be retained beyond the handler call in which case it must be captured with the command scope, either by declaring the parameter coercion asThunk or by calling asThunk.coerce in the handler body)
-
-let asAnything = AsAnything() // used to evaluate expressions where no specific return coercion is required; unlike asOptionalValue, this allows `nothing` to appear nested within lists, e.g. `nothing as optional(value) -> nothing` but `[1,nothing] as optional(value) -> CoercionError`, whereas `[1,nothing] as anything -> [1,nothing]`, `[1,[2,[3,nothing]]] as anything -> [1,[2,[3,nothing]]]`
 
 let asNoResult = AsNoResult() // expands value to anything, ignoring any result, and always returns `nothing`; used as a handler's return type when no result is given/required
 

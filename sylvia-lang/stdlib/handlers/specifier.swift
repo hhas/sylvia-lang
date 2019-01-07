@@ -16,7 +16,7 @@ func ofClause(attribute: Value, value: Value, commandEnv: Scope) throws -> Value
         guard let handler = value as? Callable else { throw HandlerNotFoundError(name: command.name, env: scope) }
         return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: asAnything)
     case let identifier as Identifier:
-        return try identifier.eval(env: scope, coercion: asAnything)
+        return try identifier.nativeEval(env: scope, coercion: asAnything)
     default:
         throw CoercionError(value: attribute, coercion: asAttribute)
     }
@@ -32,7 +32,7 @@ func atClause(elementType name: String, selectorData index: Value, commandEnv pa
     guard let elements = try parentObject.get(name).value as? Selectable else { // e.g. `items [of LIST]`
         throw ValueNotFoundError(name: name, env: parentObject)
     }
-    return try elements.selectByIndex(index)
+    return try elements.byIndex(index)
 }
 
 

@@ -53,7 +53,7 @@ func stdlib_loadCoercions(env: Env) throws {
     try env.add(asAnything)
     try env.add(asNoResult)
     
-    try env.add(asOptionalValue)
-    try env.add(AsDefault(asOptionalValue, noValue)) // note: AsDefault requires constraint args (coercion and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
+    try env.add(asAnything)
+    try env.add(AsDefault(asAnything, noValue) as Coercion) // note: AsDefault requires constraint args (coercion and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
 }
 

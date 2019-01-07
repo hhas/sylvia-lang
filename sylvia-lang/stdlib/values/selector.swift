@@ -19,11 +19,25 @@ class UnsupportedSelectorError: GeneralError {
     }
 }
 
+class OutOfRangeError: GeneralError {
+    let value: Value
+    let selector: Value
+    
+    init(value: Value, selector: Value) {
+        self.value = value
+        self.selector = selector
+    }
+    
+    override var message: String {
+        return "Can’t select \(self.selector) of the following value as it is out of range: \(self.value)"
+    }
+}
 
 
 
 
-class IndexSelectorConstructor: CallableValue { // returns an 'at' handler (closure), used to construct `ELEMENT at INDEX [of LIST]`
+
+class ByIndexSelectorConstructor: CallableValue { // returns an 'at' handler (closure), used to construct `ELEMENT at INDEX [of LIST]`
     
     let signature = (
         paramType_0: asAttributeName,
@@ -49,13 +63,13 @@ class IndexSelectorConstructor: CallableValue { // returns an 'at' handler (clos
         let index = try self.signature.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: self)
         if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: self) }
         guard let elements = try self.parentObject.get(elementName).value as? Selectable else { throw NotYetImplementedError() } // e.g. `items [of LIST]`
-        return try elements.selectByIndex(index)
+        return try elements.byIndex(index)
     }
 }
 
 
 
-class NameSelectorConstructor: CallableValue { // returns a 'named' handler (closure), used to construct `ELEMENT named TEXT [of KV_LIST]`
+class ByNameSelectorConstructor: CallableValue { // returns a 'named' handler (closure), used to construct `ELEMENT named TEXT [of KV_LIST]`
     
     let signature = (
         paramType_0: asAttributeName,
@@ -81,7 +95,7 @@ class NameSelectorConstructor: CallableValue { // returns a 'named' handler (clo
         let selector = try self.signature.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: self)
         if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: self) }
         guard let elements = try self.parentObject.get(elementName).value as? Selectable else { throw NotYetImplementedError() } // e.g. `items [of LIST]`
-        return try elements.selectByName(selector)
+        return try elements.byName(selector)
     }
 }
 

@@ -20,6 +20,9 @@
 // text of value
 // text [at] 1 thru 5 of value
 
+// note that text values should *not* have `item` elements; i.e. passing a text value where a list of text is expected will treat it as a list containing a single text item, not a list of characters; to iterate over text's characters be explicit, e.g. "map(characters of some_text,EXPR)"
+
+
 // Q. at what point should chunk expressions resolve? (unlike AS, there's no implicit `get`, so presumably will resolve immediately according to type of object to which they're applied: native object -> native object; remote reference -> remote reference)
 
 // Q. how to implement chunk exprs over native values (e.g. `items of my_list where CONDITION`)? (note that same implementation might eventually provide underpinnings for a new IPC handling framework)
@@ -33,35 +36,7 @@
 // TO DO: think it's important that symbols have their own syntax, to eliminate confusion between symbols and specifiers, e.g. in AS, `document` = class name, but `document 1` = specifier; syntax options are limited, `#NAME`, `~NAME`, ``NAME`; don't want to use `:NAME` as colon is already used as pair operator
 
 
-
-
-protocol Selectable { // unselected (all) elements // TO DO: rename `Elements`? // TO DO: need default method implementations that throw 'unrecognized reference form' error (only applies to native collections; AE specifiers must permit all legal selector forms, regardless of what app dictionary says, as it's target app's decision whether to accept it or not)
-    
-    func selectByIndex(_ index: Value) throws -> Value
-    
-    func selectByIndex(_ index: Int) throws -> Value
-    
-    func selectByName(_ name: String) throws -> Value // TO DO: KV lists will want to use `item named NAME of KV_LIST`
-    
-    func selectByName(_ name: Value) throws -> Value // TO DO: KV lists will want to use `item named NAME of KV_LIST`
-    
-    func selectByRange(from startIndex: Int, to endIndex: Int) throws -> Value // Value may be List, ObjectSpecifier, etc
-    
-    // func selectByRange(from startSpecifier: Value, to endSpecifier: Value) throws -> Value // how best to implement generalized by-range? (start and end are con-based specifiers, with integer and string values as shortcuts for by-index and by-name selectors respectively)
-    
-    // func selectByTest(from startIndex: Int, to endIndex: Int) throws -> Value
-    
-    // func selectByID(_ uid: Value) throws -> Value
-    
-    // func first/middle/last/any/every() throws -> Value
-    
-    // func before/after/beginning/end() throws -> InsertionLocation
-    
-    // func previous/next(elementType) throws -> Value
-    
-}
-
-
+// TO DO: how to generalize selections as queries, and when to resolve automatically (e.g. via coercion when consumed) vs explicitly (via `get` command); bear in mind that these need to support set, add, remove, etc; also mind that query resolvers may also provide foundation code for an IPC server framework
 
 
 let nullEnv = Env()
@@ -80,9 +55,9 @@ extension List: Scope {
     func get(_ name: String) throws -> (value: Value, scope: Scope) { // TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv)
         switch name {
         case "item", "items": // singular/plural naming conventions aren't consistent, so have to treat them as synonyms; TO DO: where both spellings are available, pretty printer should choose according to to-one/to-many selector, e.g. `item at 1`, `items at 1 thru 3`
-            return (ListItemAccessor(self), nullEnv) // TO DO: kludge; don't really want to pass nullEnv here
+            return (OrderedListItems(self), nullEnv) // TO DO: kludge; don't really want to pass nullEnv here
         case "at": // `item at 1 of LIST` -> `'of' ('at' (item, 1), LIST)`, which looks up `at` on LIST
-            return (IndexSelectorConstructor(parentObject: self), nullEnv)
+            return (ByIndexSelectorConstructor(parentObject: self), nullEnv)
         default:
             throw UnrecognizedAttributeError(name: name, value: self)
         }
@@ -92,61 +67,82 @@ extension List: Scope {
         // if we allow `IDENTIFIER EXPR` as synonym for `IDENTIFIER(EXPR)`, the `at` and `named` forms could be provided by callables, e.g. `item x of foo` == `item(x) of foo` == `item at x of foo` when foo is ordered list, or `item named x of foo` when foo is key-value list (i.e. dictionary), although this does get trickier with application specifiers where both forms are often supported by an object, so would have to standardize on `at` form only
     }
     
+    
+    
+    private func absIndex(_ index: Int) throws -> Int {
+        let length = self.swiftValue.count
+        if index > 0 && index <= length { return index-1 }
+        if index < 0 && -index <= length { return length+index }
+        throw ConstraintError(value: Text(String(index))) // TO DO: throw out of range error
+    }
+    
+    func getByIndex(_ index: Int) throws -> Value {
+        return try self.swiftValue[self.absIndex(index)]
+    }
+    
+    func getByRange(from startIndex: Int, to endIndex: Int) throws -> [Value] { // TO DO: what return value? `List` or `[Value]`?
+        return try self.swiftValue[self.absIndex(startIndex)...self.absIndex(endIndex)].map{$0} // shallow-copy ArraySlice to new Array (in theory List.swiftValue could be typed as RandomAccessCollection, allowing it to hold ArraySlice directly, but this retains original array and also creates safety issues if either List is subsequently mutated)
+    }
 }
 
 
-class ListItemAccessor: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension
+
+// TO DO: move
+
+class OrderedListItems: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension
     
-    // TO DO: should this be callable, e.g. `item(3) of LIST`? this really only makes sense if parens can be omitted when a single unnamed argument is given, i.e. `item 3 of LIST`
+    // `item` and `items` are effectively synonyms
+    
+    override var description: String { return "items of \(self.list)" } // TO DO: expressions need to be generated via pretty printer as representation changes depending on what operator tables are loaded (may be best to use `description` for canonical representations only, e.g. for troubleshooting/portable serialization)
+    
+    override var nominalType: Coercion { return asList } // TO DO: AsReference(…)
+    
+    
+    // ordered list's default reference form is by-index, allowing `item at 3 of LIST` to be written as `item 3 of LIST`
     var interface = CallableInterface(
         name: "item",
         parameters: [(name: "at", coercion: asInt)], // `item (INDEX)` is shortcut for `item at INDEX`
         returnType: asAnything
     )
     
-    private let list: List // TO DO: IndexedValue protocol
+    private let list: List // TO DO: type as OrderedCollection protocol?
     
     init(_ list: List) {
         self.list = list
     }
     
-    // TO DO: to support selectors, `item` and `items` are effectively synonyms; `call` invokes preferred selector form (`at` for ordered list, `named` for key-value list); define `Selectable` protocol (Q. how to provide default implementations for unsupported forms?)
+    // TO DO: to support selectors; `call` invokes preferred selector form (`at` for ordered list, `named` for key-value list); define `Selectable` protocol (Q. how to provide default implementations for unsupported forms?)
     
     // TO DO: atRange; Q. how will app selectors implement atIndex, given that anything can be passed there?
     
-    func selectByIndex(_ index: Int) throws -> Value {
-        let length = self.list.swiftValue.count
-        if index > 0 && index <= length { return self.list.swiftValue[index-1] }
-        if index < 0 && -index <= length { return self.list.swiftValue[length+index] }
-        throw ConstraintError(value: Text(String(index))) // TO DO: out of range
-    }
-    
-    func selectByIndex(_ index: Value) throws -> Value {
+    func byIndex(_ index: Value) throws -> Value { // TO DO: probably need to pass env
         switch index {
         case let text as Text:
-            if let n = Int(text.swiftValue) { return try self.selectByIndex(n) }
-        // TO DO: `case let range as Range:`
+            if let n = Int(text.swiftValue) { return try self.list.getByIndex(n) }
+        case let range as Command where range.normalizedName == "thru" && range.arguments.count == 2: // TO DO: use `'thru'(m,n)` command here? (i.e. should range always be written as a literal, not passed as result of evaluating expression?)
+            return try self.byRange(from: range.arguments[0], to: range.arguments[1])
         default:
             () // fall thru
         }
-        throw ConstraintError(value: index) // TO DO: what error type?
+        throw GeneralError("Invalid index type: \(index)") // TO DO: what error type?
     }
     
-    func selectByName(_ name: String) throws -> Value {
+    func byName(_ name: Value) throws -> Value {
         throw UnsupportedSelectorError(name: "named", value: self)
     }
     
-    func selectByName(_ name: Value) throws -> Value {
-        throw UnsupportedSelectorError(name: "named", value: self)
+    func byRange(from startReference: Value, to endReference: Value) throws -> Value {
+        // TO DO: currently only supports by-index; need to accept references as well
+        guard let startText = startReference as? Text, let endText = endReference as? Text,
+            let startIndex = Int(startText.swiftValue), let endIndex = Int(endText.swiftValue) else {
+                throw NotYetImplementedError("Non-numeric list range is not yet supported: \(startReference) thru \(endReference)")
+        }
+        return try List(self.list.getByRange(from: startIndex, to: endIndex))
     }
     
-    func selectByRange(from startIndex: Int, to endIndex: Int) throws -> Value { // TO DO: what return value? `List` or `[Value]`?
-        fatalError()
-    }
-    
-    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // TO DO: delete this unless implementing `item INDEX` as shortcut for `item at INDEX` (assuming parens-less commands are practical)
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // `item INDEX` -> `item(at:INDEX)`
         let index = try asInt.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)
         if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: self) }
-        return try self.selectByIndex(index)
+        return try self.list.getByIndex(index)
     }
 }

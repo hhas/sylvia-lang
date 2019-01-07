@@ -70,7 +70,7 @@ do { // evaluate commands
         => “-3”
      */
     let v = Command("-", [Command("+", [Text("1"), Text("2")]), Text("6")])
-    print(try asOptionalValue.coerce(value: v, env: e)) // "-3" // native
+    print(try asAnything.coerce(value: v, env: e)) // "-3" // native
 } catch {
     print(4, error)
 }
@@ -242,7 +242,12 @@ if y > 8 {
 
 //code = "\n[\nπ, 23.4e5, \n(\n1+2\n)\n, \n“Hello\\nGoodbye”, [1\n\n,\n\t2,3], «1+\n2»4\n]\n"
 
-code = "Store (“n”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item -1 of [5,6,7,8,9], \n\t ITEM at -N of [5,6,7,8,9]\n]" // [7, 6]
+
+code = "Store (“N”, 2), item -n of [5,6,7,8,9]" // TO DO: while `item at -EXPR of LIST` works fine, parsing `item -EXPR of LIST` currently causes a misleading runtime error ("ValueNotFoundError: Can’t find a value named “item”") as `-` symbol parses here as valid binary operator `((item - n) of list)`, which is worse than parse-time error; problem is that `-` is overloaded as both unary and binary operators, which is ambiguous but unavoidable as mathematical syntax [dialect] requires it); see TODO on parser re. enhancing stock parser with library-supplied issue detectors/resolvers. In this case, consuming the library's `-` operator definition would activate ambiguity analyzers that consider surrounding context; e.g. by attempting parse trees for both unary and binary `-` operators to see if one or both succeed, weighting each outcome with library's own expert knowledge (e.g. `of` operator expects its left operand to be of form `IDENTIFIER [ARGUMENT]`, so `IDENTIFIER BINARY_OPERATOR ARGUMENT` sequence would have a very suspect 'smell' whereas `IDENTIFIER UNARY_OPERATOR ARGUMENT` would smell fine), and making best guess/prompting user to choose at edit-time.
+
+
+
+//code = "Store (“N”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item at -n of [5,6,7,8,9], \n\t ITEM at 2 thru -2 of [5,6,7,8,9]\n]" // [7, 6]
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
@@ -261,7 +266,7 @@ do {
     let s = try p.parseScript()
     print(s)
     print("\nEVAL:")
-    let res = try s.eval(env: e, coercion: asOptionalValue)
+    let res = try s.nativeEval(env: e, coercion: asAnything)
     print(res)
 } catch {
     print(error)

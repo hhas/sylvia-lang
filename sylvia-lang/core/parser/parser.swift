@@ -44,12 +44,14 @@
 
 // TO DO: if using `NAME:EXPR` for assignment as well as pair operators in argument lists and key-value lists, parser may need to output different Values according to context (StoreValue, LabelledArgument/LabelledParameter, KeyValuePair) as each has different evaluation rules (operator precedence should be higher than comma separator/linebreak, lower than everything else); alternatively, block and argument tuple contexts might apply different coercions to Pair (although that's not ideal in block context as coercions really shouldn't have side effects); in any case, parser will want to distinguish key-value list literals from ordered/unique lists so that it can annotate/use alternative value representation to use Swift Dictionary instead of Array for internal storage
 
+// TO DO: `item -n of LIST` is not valid code as it's not clear if `-` is unary or binary operator; ideally, parser should use whitespace analysis to guess user's intention and parenthesize automatically (highlighting automatic changes for user to confirm/correct), but that should be implemented as callback API which throws 'ambiguous syntax' error by default but can be overridden with library-supplied code analyzers
+
 
 // TO DO: going to need parameterized blocks for map, filter: `([LABEL:] IDENTIFIER [as TYPE],…) [returning TYPE] BLOCK`
 
-// TO DO: cautiously considering `;` for PIPE operator (or should it be core punctuation?), where `A(a,b); B(c,d)` -> `B(A(a,b),c,d)`; what are challenges of that transform?
+// TO DO: considering `;` for PIPE operator (or should it be core punctuation?), where `A(a,b); B(c,d)` -> `B(A(a,b),c,d)`; what are challenges of that transform?
 
-// TO DO: how should PAIR (`:`) be implemented (infix operator/core punctuation)? used for assignment in blocks, key-value pairs in kv-lists
+// TO DO: implement PAIR `:` as core punctuation; used for assignment in blocks, key-value pairs in kv-lists; might consider `(NAME1,NAME2):EXPR` for multiple assignment (Q. how should this handle more/less items on RHS? not convinced it merits dedicated `REST…` syntax)
 
 // TO DO: `@UID`, `#TAG`?
 
@@ -162,6 +164,7 @@ class Parser {
         let value: Value
         switch token {
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
+            // TO DO: accept `[:]` as literal notation for empty KV list
             value = try List(self.readCommaDelimitedValues(isEndOfList))
         case .blockLiteral:     // `{…}`
             value = try self.readBlock()

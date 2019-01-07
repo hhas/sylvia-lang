@@ -49,7 +49,7 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     // TO DO: implement pretty printing API (ideally this would be a general-purpose Visitor API; Q. for rewriting, use read-only visitor API that reconstructs entire AST from scratch, or support read-write? [right now most Value classes' internal state is `let` rather than `private(set)var`])
     
-    // double-dispatch methods; these are called by Coercion.swiftEval()/eval() methods; they should not be called directly
+    // toTYPE() methods; these are called by Coercion.bridgingEval()/nativeEval() methods to convert; they should not be called directly
     
     func toAny(env: Scope, coercion: Coercion) throws -> Value { // collection subclasses override this to recursively evaluate items
         return self
@@ -69,7 +69,7 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     func toList(env: Scope, coercion: AsList) throws -> List {
         do {
-            return try List([self.eval(env: env, coercion: coercion.elementType)])
+            return try List([self.nativeEval(env: env, coercion: coercion.elementType)])
         } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
             throw CoercionError(value: self, coercion: coercion.elementType).from(error) // TO DO: more detailed error message indicating which list item couldn't be evaled
         }
@@ -77,19 +77,22 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         do {
-            return try [self.swiftEval(env: env, coercion: coercion.elementType)] //[coercion.elementType.unbox(value: self, env: env)]
+            return try [self.bridgingEval(env: env, coercion: coercion.elementType)] //[coercion.elementType.unbox(value: self, env: env)]
         } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
             throw CoercionError(value: self, coercion: coercion.elementType).from(error) // TO DO: ditto
         }
     }
     
-    // main entry points for native/bridging evaluation
+    // main entry points for evaluation
     
-    func eval(env: Scope, coercion: Coercion) throws -> Value {
+    // env -- typically global scope or stack frame, though can also be a custom scope (c.f. JavaScript objects, which are effectively heap-allocated frames in a thin API wrapper allowing them to pass through runtime along with JS primitives)
+    // coercion -- specifies the return value's static/dynamic type, along with any additional runtime constraints (e.g. min/max length)
+    
+    func nativeEval(env: Scope, coercion: Coercion) throws -> Value { // evaluates this Value returning an "untyped" native Value; used in native runtime
         return try coercion.coerce(value: self, env: env)
     }
     
-    func swiftEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
+    func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType { // evaluates this Value returning a Swift primitive/known Value subclass; used in typesafe Swift code (primitive libraries, external client code)
         return try coercion.unbox(value: self, env: env)
     }
 }
@@ -159,11 +162,9 @@ class Symbol: Value {
     
     override var nominalType: Coercion { return asSymbol }
     
-    internal(set) var normalizedName: String
+    let normalizedName: String
     
-    // TO DO: need ability to capture raw Swift value in case of numbers, dates, etc; while this could be done in annotations, it might be quicker to have a dedicated private var containing enum of standard raw types we want to cache (.int, .double, .scalar, .date, whatever); another option is for annotations to be linked list/B-tree where entries are ordered according to predefined importance or frequency of use (would need to see how this compares to a dictionary, which should be pretty fast out of the box with interned keys)
-    
-    private(set) var swiftValue: String // TO DO: restricted mutability; e.g. perform appends in-place only if refcount==1, else copy self and append to that
+    let swiftValue: String
     
     init(_ swiftValue: String) {
         self.swiftValue = swiftValue
@@ -176,9 +177,27 @@ class Symbol: Value {
 }
 
 
+// TO DO: does range need to be primitive type, or is it sufficient to handle it as `thru` command, with context determining behavior (e.g. in global/local scope, given indices, return a generator; in query, use its arguments to construct selector)
+/*
+class Range: Value {
+    
+    override var description: String { return "‘thru’ (\(self.start), \(self.stop))" }
+    
+    override var nominalType: Coercion { return asRange }
+    
+    let start: Value
+    let stop: Value
+    
+    init(_ start: Value, _ stop: Value) {
+        self.start = start
+        self.stop = stop
+    }
+}
+*/
+
 class List: Value { // TO DO: how best to represent ordered (Array) vs key-value (Dictionary) vs unique (Set) lists? subclasses? internal enum?
     
-    override var description: String { return "\(self.swiftValue)" }
+    override var description: String { return "\(self.swiftValue)" } // note: this assumes native `[…,…]` list syntax is same as Swift Array syntax; if that changes then use "[\(self.swiftValue.map{$0.description}.joined(separator:","))]" // TO DO: pretty printer needs to support line wrapping and indentation of long lists
     
     override var nominalType: Coercion { return asList }
     
@@ -191,7 +210,7 @@ class List: Value { // TO DO: how best to represent ordered (Array) vs key-value
     override func toAny(env: Scope, coercion: Coercion) throws -> Value {
         return try List(self.swiftValue.map {
             do {
-                return try $0.eval(env: env, coercion: coercion)
+                return try $0.nativeEval(env: env, coercion: coercion)
             } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
                 throw CoercionError(value: $0, coercion: coercion).from(error)
             }
@@ -201,7 +220,7 @@ class List: Value { // TO DO: how best to represent ordered (Array) vs key-value
     override func toList(env: Scope, coercion: AsList) throws -> List {
         return try List(self.swiftValue.map {
             do {
-                return try $0.eval(env: env, coercion: coercion.elementType)
+                return try $0.nativeEval(env: env, coercion: coercion.elementType)
             } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors, i.e. `[nothing] as list(optional) => [nothing]`, but `[nothing] as optional => CoercionError`
                 throw CoercionError(value: $0, coercion: coercion.elementType).from(error)  // TO DO: more detailed error message indicating which list item couldn't be evaled
             }
@@ -211,7 +230,7 @@ class List: Value { // TO DO: how best to represent ordered (Array) vs key-value
     override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         return try self.swiftValue.map {
             do {
-                return try $0.swiftEval(env: env, coercion: coercion.elementType)
+                return try $0.bridgingEval(env: env, coercion: coercion.elementType)
             } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
                 throw CoercionError(value: $0, coercion: coercion.elementType).from(error)
             }
