@@ -1,5 +1,5 @@
 //
-//  reference.swift
+//  interface.swift
 //
 
 import Foundation
@@ -10,23 +10,25 @@ import Foundation
 
 // problem here is trying to serve two masters before all requirements are understood; might be best to implement for aelib, then work out how to generalize it
 
+
 protocol Selectable { // unselected (all) elements // TO DO: rename `Elements`? // TO DO: need default method implementations that throw 'unrecognized reference form' error (only applies to native collections; AE specifiers must permit all legal selector forms, regardless of what app dictionary says, as it's target app's decision whether to accept it or not)
     
     // TO DO: should these take env + coercion arguments, allowing return type to be specified?
     
     func byIndex(_ index: Value) throws -> Value
     
-    func byName(_ name: Value) throws -> Value // TO DO: KV lists will want to use `item named NAME of KV_LIST`
+    func byName(_ name: Value) throws -> Value // TO DO: KV lists will use `item named NAME of KV_LIST`
     
-    // func byID(_ uid: Value) throws -> Value // opaque URI; any use outside of aelib?
+    func byID(_ uid: Value) throws -> Value // argument is an opaque identifier previously supplied by target, not a value users would generate themselves; Q. any use outside of aelib? (e.g. a web library might pass URIs here)
     
     // func first()/middle()/last()/any()/every() throws -> Value // TO DO: these need to throw if returning resolved values
     
     // func previous/next(elementType) throws -> Value
     
-    func byRange(from startReference: Value, to endReference: Value) throws -> Value // TO DO: how best to implement generalized by-range? (start and end are con-based specifiers, with integer and string values as shortcuts for by-index and by-name selectors respectively)
+    //func byRange(from startReference: Value, to endReference: Value) throws -> Value // TO DO: how best to implement generalized by-range? (start and end are con-based specifiers, with integer and string values as shortcuts for by-index and by-name selectors respectively)
     
-    // func byTest(from startIndex: Int, to endIndex: Int) throws -> Value
+    func byTest(_ test: Value) throws -> Value
+
     
     // func before()/after()/()beginning()/end() throws -> InsertionLocation
     
@@ -39,13 +41,13 @@ protocol Selectable { // unselected (all) elements // TO DO: rename `Elements`? 
  
  
  
-class OrderedListItems: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension
+class ListItemsReference: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension
  
     // `item` and `items` are effectively synonyms
  
     override var description: String { return "items of \(self.list)" } // TO DO: expressions need to be generated via pretty printer as representation changes depending on what operator tables are loaded (may be best to use `description` for canonical representations only, e.g. for troubleshooting/portable serialization)
  
-    override var nominalType: Coercion { return asList } // TO DO: AsReference(…)
+    override class var nominalType: Coercion { return asList } // TO DO: AsReference(…)
 
  
     // ordered list's default reference form is by-index, allowing `item at 3 of LIST` to be written as `item 3 of LIST`
@@ -80,7 +82,7 @@ class OrderedListItems: CallableValue, Selectable { // `items of LIST` specifier
         switch index {
         case let text as Text:
             if let n = Int(text.swiftValue) { return try self.getByIndex(n) }
-        case let range as Command where range.normalizedName == "thru" && range.arguments.count == 2: // TO DO: use `'thru'(m,n)` command here? (i.e. should range always be written as a literal, not passed as result of evaluating expression?)
+        case let range as Command where range.key == "thru" && range.arguments.count == 2: // TO DO: use `'thru'(m,n)` command here? (i.e. should range always be written as a literal, not passed as result of evaluating expression?)
             return try self.getByRange(from: range.arguments[0], to: range.arguments[1])
         default:
             () // fall thru

@@ -84,7 +84,11 @@ let stdlib_operators: [OperatorDefinition] = [
     
     // TO DO: generate via sylvia-gen-bridge.py (Q. how best to describe syntax in requirements?)
     
-    ("^",   500, .infix(parseRightInfixOperator), ["exponent"], nil),
+    // TO DO: swap primitive name with alias list (also use `nil` if no aliases are given?)
+    
+    // TO DO: what about word-based names for all symbol operators? (useful for auto-documentation, and also voice support)
+    
+    ("^",   500, .infix(parseRightInfixOperator), ["exponent", "to_power"], nil),
     
     // unary +/- must bind tighter than `of`, `at`, etc
     ("+",   2000, .prefix(parseNumericSignOperator), [], "positive"),
@@ -100,15 +104,15 @@ let stdlib_operators: [OperatorDefinition] = [
     ("-",   470, .infix(parseInfixOperator),      ["minus"], nil),
     
     // math comparison
-    ("<",  400, .infix(parseInfixOperator), [], nil),
-    ("<=", 400, .infix(parseInfixOperator), ["≤"], nil),
-    ("==", 400, .infix(parseInfixOperator), [], nil),    // TO DO: for this exercise we'll stick to traditional C/Python-style syntax, but need to explore using `=` for equality tests (c.f. AppleScript)
-    ("!=", 400, .infix(parseInfixOperator), ["≠"], nil),
-    (">",  400, .infix(parseInfixOperator), [], nil),
-    (">=", 400, .infix(parseInfixOperator), ["≥"], nil),
+    ("<",  400, .infix(parseInfixOperator), ["is_less_than"], nil),
+    ("<=", 400, .infix(parseInfixOperator), ["≤", "is_less_than_or_equal_to"], nil),
+    ("==", 400, .infix(parseInfixOperator), ["is_equal_to"], nil),    // TO DO: for this exercise we'll stick to traditional C/Python-style syntax, but need to explore using `=` for equality tests (c.f. AppleScript)
+    ("!=", 400, .infix(parseInfixOperator), ["≠", "is_not_equal_to"], nil),
+    (">",  400, .infix(parseInfixOperator), ["is_greater_than"], nil),
+    (">=", 400, .infix(parseInfixOperator), ["≥", "is_greater_than_or_equal_to"], nil),
     
     // text/list comparison (c.f. Perl scalar operators); TO DO: when comparing lists, should `A eq B as list(TYPE)` be required? what about text comparisons in general? (e.g. `A isSameAs B as caseSensitiveText`; other considerations: would it be wise to have `considering(TYPE){…}` that supplies default coercion for all comparison ops within its scope? If so, should it also apply to handlers called within that scope, and if so, how to do it safely? In AppleScript, considering/ignoring blocks implicitly affect all handlers called within that scope, causing handlers that don't explicitly set their own considering/ignoring flags to behave unpredictably; this could probably be covered by same 'requirements' ('capabilities'?) flags used to specify erroring, envs, pipes, and other external connections, side-effects, etc; thus default behavior would be for a handler to ignore command scope's considering/ignoring options unless it has `considersAndIgnores` in its capababilities list
-    ("lt", 400, .infix(parseInfixOperator), ["is_before"], nil),
+    ("lt", 400, .infix(parseInfixOperator), ["is_before"], nil), // TO DO: should probably make long names the default and abbreviations aliases (ideally pretty-print should preserve user's choice inside `whose` clauses, but use long name everywhere else)
     ("le", 400, .infix(parseInfixOperator), ["is_not_before"], nil),
     ("eq", 400, .infix(parseInfixOperator), ["is_same_as"], nil),
     ("ne", 400, .infix(parseInfixOperator), ["is_not_same_as"], nil),
@@ -116,7 +120,6 @@ let stdlib_operators: [OperatorDefinition] = [
     ("ge", 400, .infix(parseInfixOperator), ["is_not_after"], nil),
     
     // identity comparison
-//    ("isSameObjectAs",  400, .infix(parseInfixOperator), [], nil), // compare object IDs
     ("is_a",              400, .infix(parseInfixOperator), [], nil), // try coercing value to specified coercion and return 'true' if it succeeds
     
     // assignment
@@ -145,9 +148,9 @@ let stdlib_operators: [OperatorDefinition] = [
     ("when", 0, .prefix(parseEventHandlerConstructorOperator),   [], "define_handler"),
     
     // flow control
-    ("if",          10, .prefix(parsePostfixOperatorWithBlock), [], nil),
+    ("if",          10, .prefix(parsePostfixOperatorWithBlock), [], nil), // TO DO: how sensible/safe to allow infix `EXPR if TEST` c.f. Ruby, e.g. `error if problem`? // TO DO: also implement `unless`?
     ("repeat",      10, .prefix(parsePostfixOperatorWithBlock), [], nil),
-    ("while",       10, .prefix(parsePostfixOperatorWithBlock), [], nil),
+    ("while",       10, .prefix(parsePostfixOperatorWithBlock), [], nil), // TO DO: also implement `until`?
     
     // flow control (conjunctions)
     ("else",         5, .infix(parseInfixOperator),    [], nil),
@@ -160,7 +163,8 @@ let stdlib_operators: [OperatorDefinition] = [
     // selectors
     ("at",         1200, .infix(parseInfixOperator),   [], nil),
     ("named",      1200, .infix(parseInfixOperator),   [], nil),
-    ("where",      1200, .infix(parseInfixOperator),   [], nil),
+    // TO DO: what to call by-id operator? could use `id`, although that will require user to single-quote ‘id’ when referring to an `id` property
+    ("whose",      1200, .infix(parseInfixOperator),   [], nil),
     ("every",      1200, .prefix(parsePrefixOperator), [], nil),
     
     // range

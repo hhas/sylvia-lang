@@ -17,7 +17,7 @@ enum EnvType { // used in primitive libraries; indicates what, if any, environme
 
 // concrete classes
 
-class BoundHandler: CallableValue { // getting a Handler from an Env creates a closure, allowing it to be passed to and called in other contexts
+class BoundHandler: CallableValue { // getting a Handler from an Env creates a closure, allowing it to be passed to and called in other contexts // TO DO: eventually env should be smart enough to add this wrapper only if handler needs it (i.e. if handler's glue definition doesn't require handlerEnv, the PrimitiveHandler can be passed as-is; no BoundHandler wrapper required)
     
     var interface: CallableInterface { return self.handler.interface }
     

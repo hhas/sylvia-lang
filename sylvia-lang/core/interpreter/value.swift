@@ -5,6 +5,7 @@
 //
 
 
+// Q. how should pretty printer apply rich text styles, e.g. annotations should probably appear italicized; should [some user-defined] command names appear emboldened? (thinking here is that operators tend to be defined for small general operations that are very frequently performed, e.g. math); TBH, only user really knows which of their handlers are "significant" and which are supporting (and this assumes that all library-defined handlers are support); maybe auto-embolden all names defined by current package (eventually, editor might provide command line where users can specify how they want code highlighted/selected at any time, e.g. `highlight every command whose handler is_in LIBRARY`)
 
 // TO DO: how to denote symbol literals?
 //
@@ -43,7 +44,11 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     var description: String { return "«TODO: `\(type(of:self)).description`»" }
     
-    var nominalType: Coercion { fatalError("Not yet implemented: \(type(of:self)).nominalType") }
+    // TO DO: class var typeName (canonical name, e.g. `list`), var typeName (generated from self.nominalType, e.g. `list(text,max:10)`)
+    
+    class var nominalType: Coercion { fatalError("Not yet implemented: \(type(of:self)).nominalType") }
+    
+    var nominalType: Coercion { return type(of: self).nominalType }
     
     // TO DO: implement debugDescription (this should return Swift representation whereas description should return native representation using default formatting)
     
@@ -105,7 +110,7 @@ class Nothing: Value {
     
     override var description: String { return "nothing" }
     
-    override var nominalType: Coercion { return asNoResult }
+    override class var nominalType: Coercion { return asNoResult }
     
     override func toAny(env: Scope, coercion: Coercion) throws -> Value {
         throw NullCoercionError(value: self, coercion: coercion)
@@ -137,9 +142,9 @@ class Text: Value { // TO DO: Scalar?
     
     override var description: String { return "“\(self.swiftValue)”" } // TO DO: pretty printing
     
-    override var nominalType: Coercion { return asText }
+    override class var nominalType: Coercion { return asText }
     
-    internal(set) var scalar: Scalar?
+    internal(set) var scalar: Scalar? // TO DO: any way to make this lazily self-initialize if not set by init?
     
     // TO DO: need ability to capture raw Swift value in case of numbers, dates, etc; while this could be done in annotations, it might be quicker to have a dedicated private var containing enum of standard raw types we want to cache (.int, .double, .scalar, .date, whatever); another option is for annotations to be linked list/B-tree where entries are ordered according to predefined importance or frequency of use (would need to see how this compares to a dictionary, which should be pretty fast out of the box with interned keys)
     
@@ -156,19 +161,43 @@ class Text: Value { // TO DO: Scalar?
 }
 
 
+
+
+extension Text {
+    
+    convenience init(_ scalar: Scalar)  { self.init(scalar.literalRepresentation(), scalar: scalar) }
+    convenience init(_ n: Int)          { self.init(Scalar(n)) }
+    convenience init(_ n: Double)       { self.init(Scalar(n)) }
+    
+    func toScalar() throws -> Scalar { // initializes scalar property on first use
+        if let scalar = self.scalar { return scalar }
+        do {
+            let scalar = try Scalar(self.swiftValue)
+            self.scalar = scalar
+            return scalar
+        } catch {
+            self.scalar = .invalid(self.swiftValue) // set Text.scalar property to .invalid, which will always throw when used
+            throw error
+        }
+    }
+    func toInt() throws -> Int { return try self.toScalar().toInt() }
+    func toDouble() throws -> Double { return try self.toScalar().toDouble() }
+}
+
+
 class Symbol: Value {
     
     override var description: String { return "\(symbolLiteralPrefix)‘\(self.swiftValue)’" }
     
-    override var nominalType: Coercion { return asSymbol }
+    override class var nominalType: Coercion { return asSymbol }
     
-    let normalizedName: String
+    let key: String
     
     let swiftValue: String
     
     init(_ swiftValue: String) {
         self.swiftValue = swiftValue
-        self.normalizedName = swiftValue.lowercased()
+        self.key = swiftValue.lowercased()
     }
     
     override func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
@@ -177,29 +206,11 @@ class Symbol: Value {
 }
 
 
-// TO DO: does range need to be primitive type, or is it sufficient to handle it as `thru` command, with context determining behavior (e.g. in global/local scope, given indices, return a generator; in query, use its arguments to construct selector)
-/*
-class Range: Value {
-    
-    override var description: String { return "‘thru’ (\(self.start), \(self.stop))" }
-    
-    override var nominalType: Coercion { return asRange }
-    
-    let start: Value
-    let stop: Value
-    
-    init(_ start: Value, _ stop: Value) {
-        self.start = start
-        self.stop = stop
-    }
-}
-*/
-
 class List: Value { // TO DO: how best to represent ordered (Array) vs key-value (Dictionary) vs unique (Set) lists? subclasses? internal enum?
     
     override var description: String { return "\(self.swiftValue)" } // note: this assumes native `[…,…]` list syntax is same as Swift Array syntax; if that changes then use "[\(self.swiftValue.map{$0.description}.joined(separator:","))]" // TO DO: pretty printer needs to support line wrapping and indentation of long lists
     
-    override var nominalType: Coercion { return asList }
+    override class var nominalType: Coercion { return asList }
     
     private(set) var swiftValue: [Value]
     

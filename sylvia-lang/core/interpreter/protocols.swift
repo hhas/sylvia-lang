@@ -16,7 +16,9 @@ typealias AttributedValue = Value & Attributed
 
 protocol Attributed {
     
-    func set(_ name: String, to value: Value) throws // used for setting [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that)
+    // TO DO: use separate naming to distinguish between attributed value lookups (`set`/`get`) and environment lookups (`store`/`fetch`)?
+    
+    func set(_ name: String, to value: Value) throws // used to set (via `store` command/`IDENTIFIER:VALUE` assignment) [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that); TO DO: this needs more thought, as `set(REFERENCE,to:VALUE)` is also used particularly in aelib; it might be that we standardize on `set(_:to:)` for *all* assignment
     
     func get(_ name: String) throws -> (value: Value, scope: Scope) // TO DO: returning Scope (for use as handlerEnv) rather than Attributed is problematic, tightly coupling non-scope objects (e.g. List and other AttributedValues) to unrelated subclasses (Env)
         
@@ -46,13 +48,13 @@ struct CallableInterface: CustomDebugStringConvertible {
     // note: for simplicity, parameters are positional only; ideally they should also support labelling (but requires more complex unpacking algorithm to match labeled/unlabeled command arguments to labeled parameters, particularly when args are omitted from anywhere other than end of arg list)
     
     let name: String
-    let normalizedName: String
+    let key: String
     let parameters: [Parameter]
     let returnType: Coercion
     
     init(name: String, parameters: [Parameter], returnType: Coercion) {
         self.name = name
-        self.normalizedName = name.lowercased()
+        self.key = name.lowercased()
         self.parameters = parameters
         self.returnType = returnType
     }
@@ -76,7 +78,7 @@ protocol Callable {
     var interface: CallableInterface { get }
     
     var name: String { get }
-    var normalizedName: String { get }
+    var key: String { get }
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value
     
@@ -85,7 +87,7 @@ protocol Callable {
 extension Callable {
     
     var name: String { return self.interface.name }
-    var normalizedName: String { return self.interface.normalizedName }
+    var key: String { return self.interface.key }
 }
 
 

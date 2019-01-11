@@ -14,7 +14,7 @@ enum Scalar { // represents an integer (as Swift Int) or decimal (as Swift Doubl
     case integer(Int, radix: Int)
     case floatingPoint(Double)
     case overflow(String, Any.Type) // TO DO: separate enums for int vs double overflows? also, what about UInt?
-    case invalid(String)
+    case invalid(String) // not a number
     
     init(_ n: Int, radix: Int = 10) {
         self = .integer(n, radix: radix)
@@ -189,17 +189,3 @@ func >=(lhs: Scalar, rhs: Scalar) throws -> Bool {
 
 
 
-
-extension Text {
-    
-    func toScalar() throws -> Scalar {
-        if let scalar = self.scalar {
-            return scalar
-        } else {
-            let scalar = try Scalar(self.swiftValue)
-            self.scalar = scalar
-            return scalar
-        }
-    }
-    
-}

@@ -8,7 +8,7 @@
 /******************************************************************************/
 
 
-class AsAttributeName: BridgingCoercion { // the Identifier is passed thru as-is, without evaluation, or an error thrown if wrong type
+class AsAttributeName: BridgingCoercion { // TO DO: unboxing here may be problematic
     
     var coercionName: String { return "identifier" }
     
@@ -20,7 +20,7 @@ class AsAttributeName: BridgingCoercion { // the Identifier is passed thru as-is
         return try asIdentifier.coerce(value: value, env: env)
     }
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        guard let result = (value as? Identifier)?.normalizedName else { throw CoercionError(value: value, coercion: self) }
+        guard let result = (value as? Identifier)?.key else { throw CoercionError(value: value, coercion: self) }
         return result
     }
     func box(value: SwiftType, env: Scope) throws -> Value {

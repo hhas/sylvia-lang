@@ -33,6 +33,9 @@ func isA(value: Value, ofType: Coercion) -> Bool {
     return false
 }
 
+// TO DO: what about comparing object identities? (how often is that really needed? ideally it shouldn't be included as it doesn't fit with native "say what you need" [coerce before consuming] and "if it looks right, it is" [structural, not nominal, typing] idioms)
+
+
 /******************************************************************************/
 // concatenation (currently text only but should support collections too)
 

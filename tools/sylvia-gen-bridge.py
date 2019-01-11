@@ -6,6 +6,11 @@
 
 # TO DO: effects declarations
 
+# TO DO: method wrappers (probably implement as standard subclass/sibling of PrimitiveHandler containing a `target` Value; similar to how Python implements instance methods by enclosing function objects in <bound method> wrappers)
+
+# TO DO: along with library-defined 'effects' declarations, PrimitiveHandler.init() should be passed a 'boundHandler' flag indicating that the handler body has "free variables" (i.e. the primitive handler function takes a handlerEnv: parameter) so must capture its lexical environment (by wrapping both in a BoundHandler instance) in order to be passed around as a value (closure)
+
+
 import sys
 
 
@@ -18,7 +23,7 @@ _interfaceParameter = """
 _unboxArgument = """
     let arg_««count»» = try signature_««primitiveSignatureName»».paramType_««count»».unboxArgument(at: ««count»», command: command, commandEnv: commandEnv, handler: handler)"""
 
-_callArgument = """
+_functionArgument = """
         ««paramLabel»»: arg_««count»»""" # combine with context arguments and comma-separate
 
 _checkForUnexpectedArguments = """
@@ -30,10 +35,10 @@ _contextArguments = [ # TO DO: currently unused
         "bodyEnv: bodyEnv", # also need to insert Swift code to create lexical sub-env
 ] # what else? e.g. external IPC, FS, etc connections?
 
-_callReturnIfResult = """
+_functionReturnIfResult = """
     return try signature_««primitiveSignatureName»».returnType.box(value: result, env: handlerEnv)"""
 
-_callReturnIfNoResult = """
+_functionReturnIfNoResult = """
     return noValue"""
 
 _handlerTemplate = """
@@ -47,14 +52,14 @@ let interface_««primitiveSignatureName»» = CallableInterface(
     ],
     returnType: signature_««primitiveSignatureName»».returnType
 )
-func call_««primitiveSignatureName»»(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {««unboxArguments»»
-    ««resultAssignment»»««tryKeyword»»««primitiveFunctionName»»(««callArguments»»
-    )««callReturn»»
+func function_««primitiveSignatureName»»(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {««unboxArguments»»
+    ««resultAssignment»»««tryKeyword»»««primitiveFunctionName»»(««functionArguments»»
+    )««functionReturn»»
 }
 """
 
 _loadHandler = """
-    try env.add(interface_««primitiveSignatureName»», call_««primitiveSignatureName»»)"""
+    try env.add(interface_««primitiveSignatureName»», function_««primitiveSignatureName»»)"""
 
 _loaderTemplate = """
 func stdlib_loadHandlers(env: Env) throws {
@@ -101,7 +106,10 @@ handlerEnv = 'handler'
 bodyEnv = 'body'
 
 canError = 'can_error'
-ignoreUnknownArguments = 'ignore_unknown_arguments'
+isConstructor = 'value_constructor'
+
+ignoreUnknownArguments = 'ignore_unknown_arguments' # event handler
+
 
 def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
     defineHandlers = []
@@ -120,28 +128,30 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
         signatureParameters = []
         interfaceParameters = []
         unboxArguments = []
-        callArguments = []
+        functionArguments = []
         i = -1
         for i, (k,v) in enumerate(parameters):
             nativeArgumentNames.append(k)
             signatureParameters.append(_render(_signatureParameter, count=i, coercion=v))
             interfaceParameters.append(_render(_interfaceParameter, count=i, nativeName=k, primitiveSignatureName=primitiveSignatureName))
             unboxArguments.append(_render(_unboxArgument, count=i, primitiveSignatureName=primitiveSignatureName))
-            callArguments.append(_render(_callArgument, count=i, paramLabel=_camelCase(k)))
+            functionArguments.append(_render(_functionArgument, count=i, paramLabel=_camelCase(k)))
         # if it's a command handler, add code to check all arguments supplied by command have been consumed
         if not requirements.get(ignoreUnknownArguments):
             unboxArguments.append(_render(_checkForUnexpectedArguments, parameterCount=i+1))
         # add any additional ('special') arguments for Swift function call
-        if commandEnv in scopes: callArguments.append("\n\t\tcommandEnv: commandEnv")
-        if handlerEnv in scopes: callArguments.append("\n\t\thandlerEnv: handlerEnv")
+        if commandEnv in scopes: functionArguments.append("\n\t\tcommandEnv: commandEnv")
+        if handlerEnv in scopes: functionArguments.append("\n\t\thandlerEnv: handlerEnv")
         
-        
-        if returnType == "asNoResult":
+        if isConstructor in scopes:
+            resultAssignment = "return "
+            functionReturn = ""
+        elif returnType == "asNoResult":
             resultAssignment = ""
-            callReturn = _callReturnIfNoResult
+            functionReturn = _functionReturnIfNoResult
         else:
             resultAssignment = "let result = "
-            callReturn = _render(_callReturnIfResult, primitiveSignatureName=primitiveSignatureName)
+            functionReturn = _render(_functionReturnIfResult, primitiveSignatureName=primitiveSignatureName)
 
         defineHandlers.append(_render(_handlerTemplate,
                 nativeName=name,
@@ -151,13 +161,13 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
                 signatureParameters=''.join(signatureParameters),
                 returnType=returnType,
                 interfaceParameters=''.join(interfaceParameters),
-                # call func
+                # function func
                 unboxArguments=''.join(unboxArguments),
                 resultAssignment=resultAssignment,
                 tryKeyword='try ' if requirements.get(canError) else '',
                 primitiveFunctionName=swiftFuncName,
-                callArguments=','.join(callArguments),
-                callReturn=callReturn))
+                functionArguments=','.join(functionArguments),
+                functionReturn=functionReturn))
         loadHandlers.append(_render(_loadHandler, primitiveSignatureName=primitiveSignatureName))
     
     # TO DO: write to file
@@ -181,6 +191,7 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                     dict(can_error=True)),
             ("negative", [("left", "asScalar")], "asScalar",
                     dict(can_error=True)),
+            
             ("+", [("left", "asScalar"), ("right", "asScalar")], "asScalar",
                     dict(can_error=True, swift_handler="add")),
             ("-", [("left", "asScalar"), ("right", "asScalar")], "asScalar",
@@ -193,6 +204,7 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                     dict(can_error=True)),
             ("mod", [("left", "asDouble"), ("right", "asDouble")], "asDouble",
                     dict(can_error=True)),
+            
             ("<", [("left", "asDouble"), ("right", "asDouble")], "asBool",
                     dict(swift_handler="isLessThan")),
             ("<=", [("left", "asDouble"), ("right", "asDouble")], "asBool",
@@ -205,6 +217,7 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                     dict(swift_handler="isGreaterThan")),
             (">=", [("left", "asDouble"), ("right", "asDouble")], "asBool",
                     dict(swift_handler="isGreaterThanOrEqualTo")),
+            
             ("NOT", [("right", "asBool")], "asBool",
                     dict()),
             ("AND", [("left", "asBool"), ("right", "asBool")], "asBool",
@@ -213,6 +226,7 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                     dict()),
             ("XOR", [("left", "asBool"), ("right", "asBool")], "asBool",
                     dict()),
+            
             ("lt", [("left", "asString"), ("right", "asString")], "asBool",
                     dict(can_error=True)),
             ("le", [("left", "asString"), ("right", "asString")], "asBool",
@@ -225,18 +239,22 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                     dict(can_error=True)),
             ("ge", [("left", "asString"), ("right", "asString")], "asBool",
                     dict(can_error=True)),
+            
             ("is_a", [("value", "asAnything"), ("of_type", "asCoercion")], "asBool",
                     dict()),
             ("&", [("left", "asString"), ("right", "asString")], "asString",
                     dict(can_error=True, swift_handler="joinValues")),
+            
             ("uppercase", [("text", "asString")], "asString",
                     dict()),
             ("lowercase", [("text", "asString")], "asString",
                     dict()),
+            
             ("show", [("value", "asAnything")], "asNoResult", 
                     dict()),
             ("format_code", [("value", "asAnything")], "asString",
                     dict()),
+            
             ("define_handler", [("name", "asString"),
                                ("parameters", "AsArray(asParameter)"),
                                ("return_type", "asCoercion"),
@@ -246,6 +264,7 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                     dict(can_error=True, requires_scopes={commandEnv})),
             ("store", [("name", "asString"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv})),
+            
             ("if", [("condition", "asBool"), ("action", "asBlock")], "asIs", 
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="testIf")),
             ("repeat", [("count", "asInt"), ("action", "asBlock")], "asIs", 
@@ -254,10 +273,16 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="repeatWhile")),
             ("else", [("action", "asAnything"), ("alternative_action", "asAnything")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="elseClause")),
+            
             ("of", [("attribute", "asAttribute"), ("value", "asAttributedValue")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="ofClause")),
             ("at", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
-                    dict(can_error=True, requires_scopes={commandEnv}, swift_handler="atClause")),
+                    dict(can_error=True, requires_scopes={commandEnv}, swift_handler="indexSelector")),
+            ("named", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
+             dict(can_error=True, requires_scopes={commandEnv}, swift_handler="nameSelector")),
+            ("where", [("element_type", "asAttributeName"), ("selector_data", "asReference")], "asIs",
+             dict(can_error=True, requires_scopes={commandEnv}, swift_handler="testSelector")),
+           
     ]
 
 

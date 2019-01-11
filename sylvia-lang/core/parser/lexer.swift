@@ -330,7 +330,7 @@ class Lexer {
                                 token = .unknown(description: String(c))
                             }
                         } else {
-                            let name = prefixOperator?.name ?? infixOperator!.name
+                            let name = (prefixOperator?.name ?? infixOperator!.name).name
                             token = .operatorName(value: name, prefix: prefixOperator, infix: infixOperator) // TO DO: FIX: token.value is wrong here (it's the canonical operator name but should be the original matched text; it's up to consumer to choose whether to canonicize or not, e.g. when pretty printing); either matchSymbol needs to return the original substring as well as operator definitions, or (if recording code ranges only) we need to capture the start and end indexes of the token; TBH, it'd probably be best to separate out the raw range recording completely, as the outer repeat loop can take care of that
                         }
                     case linebreakCharacters: // TO DO: need initializer flag that tells lexer to process entire script or first line only

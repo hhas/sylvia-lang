@@ -59,7 +59,7 @@ extension Scope {
     }
     
     func add(_ handler: CallableValue) throws { // used by library loader
-        try self.set(handler.normalizedName, to: handler, readOnly: true, thisFrameOnly: true)
+        try self.set(handler.key, to: handler, readOnly: true, thisFrameOnly: true)
     }
     
     func add(_ interface: CallableInterface, _ call: @escaping PrimitiveCall) throws { // used to load primitive handler definitions
@@ -67,6 +67,6 @@ extension Scope {
     }
     
     func add(_ coercion: Coercion) throws { // used by library loader
-        try self.set(coercion.normalizedName, to: coercion, readOnly: true, thisFrameOnly: true)
+        try self.set(coercion.key, to: coercion, readOnly: true, thisFrameOnly: true)
     }
 }

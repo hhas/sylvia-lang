@@ -90,46 +90,15 @@ class NativeKeywordConverter: KeywordConverterProtocol {
     
     private var _cache = [String:String]()
     
-    public func escapeName(_ s: String) -> String { // note: names don't need to be escaped if quoted instead
-        return "\(s)_"
-    }
+    public func escapeName(_ s: String) -> String { return "\(s)_" } // escape any app-defined names that conflict with specifier attributes (this should rarely be needed in practice)
     
     
     func convertName(_ string: String, reservedWords: Set<String>) -> String { // Convert string to identifier
         if let result = self._cache[string] {
             return result
         } else {
-            // convert keyword to underscore_name, e.g. "audio CD playlist" -> "audio_CD_playlist"
-            var result = ""
-            var i = string.startIndex
-            var charSet = legalFirstChars
-            while i < string.endIndex {
-                while i < string.endIndex && reservedWordSeparators.contains(string[i]) { // skip whitespace, hyphen, slash
-                    i = string.index(after: i)
-                }
-                while i < string.endIndex {
-                    let c = string[i]
-                    if charSet.contains(c) { // TO DO: AETE/SDEF resources generally stick to C-style naming convention, although there's no restriction on using non-ASCII characters
-                        result += String(c)
-                    } else if reservedWordSeparators.contains(c) {
-                        result += "_"
-                    } else if numericChars.contains(c) { // first character in name is a digit (this should never be encountered in practice, but there's no validation or enforcement of naming conventions in SDEF, so we protect ourselves)
-                        result += "_\(String(c))"
-                    } else if c == "&" {
-                        result += "_and_"
-                    } else {
-                        result += String(c)
-                        // TO DO: set an 'alwaysQuoteIdentifier' flag as hint to pretty printer?
-                    }
-                    i = string.index(after: i)
-                    charSet = legalOtherChars
-                    willCapitalize = false
-                }
-                willCapitalize = true
-            }
-            if reservedWords.contains(result) || result.hasPrefix("_") || result == "" {
-                result = self.escapeName(result)
-            }
+            // convert keyword to underscore_name, e.g. "audio CD playlist" -> "audio_CD_playlist"; any other non-identifier characters will require the user/pretty-printer to single-quote the name to use it as an identifier, e.g. Finder's "desktop-object" must be written as `'desktop-object'`
+            let result = string.replacingOccurrences(of: " ", with: "_")
             self._cache[string] = String(result)
             return result
         }
@@ -159,12 +128,8 @@ class NativeKeywordConverter: KeywordConverterProtocol {
         return self.convertName(s, reservedWords: self._reservedParameterWords)
     }
     
-    public func identifierForAppName(_ appName: String) -> String {
-        return ""
-    }
+    public func identifierForAppName(_ appName: String) -> String { return "" }
     
-    public func prefixForAppName(_ appName: String) -> String {
-        return ""
-    }
+    public func prefixForAppName(_ appName: String) -> String { return "" }
     
 }

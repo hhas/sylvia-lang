@@ -20,7 +20,7 @@ let interface_exponent_left_right = CallableInterface(
     ],
     returnType: signature_exponent_left_right.returnType
 )
-func call_exponent_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_exponent_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_exponent_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_exponent_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -44,7 +44,7 @@ let interface_positive_left = CallableInterface(
     ],
     returnType: signature_positive_left.returnType
 )
-func call_positive_left(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_positive_left(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_positive_left.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try positive(
@@ -66,7 +66,7 @@ let interface_negative_left = CallableInterface(
     ],
     returnType: signature_negative_left.returnType
 )
-func call_negative_left(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_negative_left(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_negative_left.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = try negative(
@@ -90,7 +90,7 @@ let interface_add_left_right = CallableInterface(
     ],
     returnType: signature_add_left_right.returnType
 )
-func call_add_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_add_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_add_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_add_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -116,7 +116,7 @@ let interface_subtract_left_right = CallableInterface(
     ],
     returnType: signature_subtract_left_right.returnType
 )
-func call_subtract_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_subtract_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_subtract_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_subtract_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -142,7 +142,7 @@ let interface_multiply_left_right = CallableInterface(
     ],
     returnType: signature_multiply_left_right.returnType
 )
-func call_multiply_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_multiply_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_multiply_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_multiply_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -168,7 +168,7 @@ let interface_divide_left_right = CallableInterface(
     ],
     returnType: signature_divide_left_right.returnType
 )
-func call_divide_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_divide_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_divide_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_divide_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -194,7 +194,7 @@ let interface_div_left_right = CallableInterface(
     ],
     returnType: signature_div_left_right.returnType
 )
-func call_div_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_div_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_div_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_div_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -220,7 +220,7 @@ let interface_mod_left_right = CallableInterface(
     ],
     returnType: signature_mod_left_right.returnType
 )
-func call_mod_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_mod_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_mod_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_mod_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -246,7 +246,7 @@ let interface_isLessThan_left_right = CallableInterface(
     ],
     returnType: signature_isLessThan_left_right.returnType
 )
-func call_isLessThan_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_isLessThan_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isLessThan_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isLessThan_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -272,7 +272,7 @@ let interface_isLessThanOrEqualTo_left_right = CallableInterface(
     ],
     returnType: signature_isLessThanOrEqualTo_left_right.returnType
 )
-func call_isLessThanOrEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_isLessThanOrEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isLessThanOrEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isLessThanOrEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -298,7 +298,7 @@ let interface_isEqualTo_left_right = CallableInterface(
     ],
     returnType: signature_isEqualTo_left_right.returnType
 )
-func call_isEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_isEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -324,7 +324,7 @@ let interface_isNotEqualTo_left_right = CallableInterface(
     ],
     returnType: signature_isNotEqualTo_left_right.returnType
 )
-func call_isNotEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_isNotEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isNotEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isNotEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -350,7 +350,7 @@ let interface_isGreaterThan_left_right = CallableInterface(
     ],
     returnType: signature_isGreaterThan_left_right.returnType
 )
-func call_isGreaterThan_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_isGreaterThan_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isGreaterThan_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isGreaterThan_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -376,7 +376,7 @@ let interface_isGreaterThanOrEqualTo_left_right = CallableInterface(
     ],
     returnType: signature_isGreaterThanOrEqualTo_left_right.returnType
 )
-func call_isGreaterThanOrEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_isGreaterThanOrEqualTo_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isGreaterThanOrEqualTo_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isGreaterThanOrEqualTo_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -400,7 +400,7 @@ let interface_NOT_right = CallableInterface(
     ],
     returnType: signature_NOT_right.returnType
 )
-func call_NOT_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_NOT_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_NOT_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = NOT(
@@ -424,7 +424,7 @@ let interface_AND_left_right = CallableInterface(
     ],
     returnType: signature_AND_left_right.returnType
 )
-func call_AND_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_AND_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_AND_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_AND_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -450,7 +450,7 @@ let interface_OR_left_right = CallableInterface(
     ],
     returnType: signature_OR_left_right.returnType
 )
-func call_OR_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_OR_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_OR_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_OR_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -476,7 +476,7 @@ let interface_XOR_left_right = CallableInterface(
     ],
     returnType: signature_XOR_left_right.returnType
 )
-func call_XOR_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_XOR_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_XOR_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_XOR_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -502,7 +502,7 @@ let interface_lt_left_right = CallableInterface(
     ],
     returnType: signature_lt_left_right.returnType
 )
-func call_lt_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_lt_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_lt_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_lt_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -528,7 +528,7 @@ let interface_le_left_right = CallableInterface(
     ],
     returnType: signature_le_left_right.returnType
 )
-func call_le_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_le_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_le_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_le_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -554,7 +554,7 @@ let interface_eq_left_right = CallableInterface(
     ],
     returnType: signature_eq_left_right.returnType
 )
-func call_eq_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_eq_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_eq_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_eq_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -580,7 +580,7 @@ let interface_ne_left_right = CallableInterface(
     ],
     returnType: signature_ne_left_right.returnType
 )
-func call_ne_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_ne_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_ne_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_ne_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -606,7 +606,7 @@ let interface_gt_left_right = CallableInterface(
     ],
     returnType: signature_gt_left_right.returnType
 )
-func call_gt_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_gt_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_gt_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_gt_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -632,7 +632,7 @@ let interface_ge_left_right = CallableInterface(
     ],
     returnType: signature_ge_left_right.returnType
 )
-func call_ge_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_ge_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_ge_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_ge_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -658,7 +658,7 @@ let interface_isA_value_ofType = CallableInterface(
     ],
     returnType: signature_isA_value_ofType.returnType
 )
-func call_isA_value_ofType(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_isA_value_ofType(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_isA_value_ofType.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_isA_value_ofType.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -684,7 +684,7 @@ let interface_joinValues_left_right = CallableInterface(
     ],
     returnType: signature_joinValues_left_right.returnType
 )
-func call_joinValues_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_joinValues_left_right(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_joinValues_left_right.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_joinValues_left_right.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -708,7 +708,7 @@ let interface_uppercase_text = CallableInterface(
     ],
     returnType: signature_uppercase_text.returnType
 )
-func call_uppercase_text(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_uppercase_text(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_uppercase_text.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = uppercase(
@@ -730,7 +730,7 @@ let interface_lowercase_text = CallableInterface(
     ],
     returnType: signature_lowercase_text.returnType
 )
-func call_lowercase_text(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_lowercase_text(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_lowercase_text.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = lowercase(
@@ -752,7 +752,7 @@ let interface_show_value = CallableInterface(
     ],
     returnType: signature_show_value.returnType
 )
-func call_show_value(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_show_value(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_show_value.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     show(
@@ -774,7 +774,7 @@ let interface_formatCode_value = CallableInterface(
     ],
     returnType: signature_formatCode_value.returnType
 )
-func call_formatCode_value(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_formatCode_value(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_formatCode_value.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: handler) }
     let result = formatCode(
@@ -804,7 +804,7 @@ let interface_defineHandler_name_parameters_returnType_action_isEventHandler_com
     ],
     returnType: signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.returnType
 )
-func call_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let arg_2 = try signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_2.unboxArgument(at: 2, command: command, commandEnv: commandEnv, handler: handler)
@@ -839,7 +839,7 @@ let interface_store_name_value_readOnly_commandEnv = CallableInterface(
     ],
     returnType: signature_store_name_value_readOnly_commandEnv.returnType
 )
-func call_store_name_value_readOnly_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_store_name_value_readOnly_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_store_name_value_readOnly_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_store_name_value_readOnly_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     let arg_2 = try signature_store_name_value_readOnly_commandEnv.paramType_2.unboxArgument(at: 2, command: command, commandEnv: commandEnv, handler: handler)
@@ -868,7 +868,7 @@ let interface_testIf_condition_action_commandEnv = CallableInterface(
     ],
     returnType: signature_testIf_condition_action_commandEnv.returnType
 )
-func call_testIf_condition_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_testIf_condition_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_testIf_condition_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_testIf_condition_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -895,7 +895,7 @@ let interface_repeatTimes_count_action_commandEnv = CallableInterface(
     ],
     returnType: signature_repeatTimes_count_action_commandEnv.returnType
 )
-func call_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_repeatTimes_count_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_repeatTimes_count_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_repeatTimes_count_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -922,7 +922,7 @@ let interface_repeatWhile_condition_action_commandEnv = CallableInterface(
     ],
     returnType: signature_repeatWhile_condition_action_commandEnv.returnType
 )
-func call_repeatWhile_condition_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_repeatWhile_condition_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_repeatWhile_condition_action_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_repeatWhile_condition_action_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -949,7 +949,7 @@ let interface_elseClause_action_alternativeAction_commandEnv = CallableInterface
     ],
     returnType: signature_elseClause_action_alternativeAction_commandEnv.returnType
 )
-func call_elseClause_action_alternativeAction_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_elseClause_action_alternativeAction_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_elseClause_action_alternativeAction_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_elseClause_action_alternativeAction_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -976,7 +976,7 @@ let interface_ofClause_attribute_value_commandEnv = CallableInterface(
     ],
     returnType: signature_ofClause_attribute_value_commandEnv.returnType
 )
-func call_ofClause_attribute_value_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_ofClause_attribute_value_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     let arg_0 = try signature_ofClause_attribute_value_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
     let arg_1 = try signature_ofClause_attribute_value_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
@@ -990,71 +990,127 @@ func call_ofClause_attribute_value_commandEnv(command: Command, commandEnv: Scop
 
 
 // at (element_type, selector_data)
-let signature_atClause_elementType_selectorData_commandEnv = (
+let signature_indexSelector_elementType_selectorData_commandEnv = (
     paramType_0: asAttributeName,
     paramType_1: asAnything,
     returnType: asIs
 )
-let interface_atClause_elementType_selectorData_commandEnv = CallableInterface(
+let interface_indexSelector_elementType_selectorData_commandEnv = CallableInterface(
     name: "at",
     parameters: [
-        ("element_type", signature_atClause_elementType_selectorData_commandEnv.paramType_0),
-        ("selector_data", signature_atClause_elementType_selectorData_commandEnv.paramType_1),
+        ("element_type", signature_indexSelector_elementType_selectorData_commandEnv.paramType_0),
+        ("selector_data", signature_indexSelector_elementType_selectorData_commandEnv.paramType_1),
     ],
-    returnType: signature_atClause_elementType_selectorData_commandEnv.returnType
+    returnType: signature_indexSelector_elementType_selectorData_commandEnv.returnType
 )
-func call_atClause_elementType_selectorData_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-    let arg_0 = try signature_atClause_elementType_selectorData_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
-    let arg_1 = try signature_atClause_elementType_selectorData_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+func function_indexSelector_elementType_selectorData_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_indexSelector_elementType_selectorData_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_indexSelector_elementType_selectorData_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
     if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
-    let result = try atClause(
+    let result = try indexSelector(
         elementType: arg_0,
         selectorData: arg_1,
 		commandEnv: commandEnv
     )
-    return try signature_atClause_elementType_selectorData_commandEnv.returnType.box(value: result, env: handlerEnv)
+    return try signature_indexSelector_elementType_selectorData_commandEnv.returnType.box(value: result, env: handlerEnv)
+}
+
+
+// named (element_type, selector_data)
+let signature_nameSelector_elementType_selectorData_commandEnv = (
+    paramType_0: asAttributeName,
+    paramType_1: asAnything,
+    returnType: asIs
+)
+let interface_nameSelector_elementType_selectorData_commandEnv = CallableInterface(
+    name: "named",
+    parameters: [
+        ("element_type", signature_nameSelector_elementType_selectorData_commandEnv.paramType_0),
+        ("selector_data", signature_nameSelector_elementType_selectorData_commandEnv.paramType_1),
+    ],
+    returnType: signature_nameSelector_elementType_selectorData_commandEnv.returnType
+)
+func function_nameSelector_elementType_selectorData_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_nameSelector_elementType_selectorData_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_nameSelector_elementType_selectorData_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    let result = try nameSelector(
+        elementType: arg_0,
+        selectorData: arg_1,
+		commandEnv: commandEnv
+    )
+    return try signature_nameSelector_elementType_selectorData_commandEnv.returnType.box(value: result, env: handlerEnv)
+}
+
+
+// where (element_type, selector_data)
+let signature_testSelector_elementType_selectorData_commandEnv = (
+    paramType_0: asAttributeName,
+    paramType_1: asReference,
+    returnType: asIs
+)
+let interface_testSelector_elementType_selectorData_commandEnv = CallableInterface(
+    name: "where",
+    parameters: [
+        ("element_type", signature_testSelector_elementType_selectorData_commandEnv.paramType_0),
+        ("selector_data", signature_testSelector_elementType_selectorData_commandEnv.paramType_1),
+    ],
+    returnType: signature_testSelector_elementType_selectorData_commandEnv.returnType
+)
+func function_testSelector_elementType_selectorData_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_testSelector_elementType_selectorData_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_testSelector_elementType_selectorData_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    let result = try testSelector(
+        elementType: arg_0,
+        selectorData: arg_1,
+		commandEnv: commandEnv
+    )
+    return try signature_testSelector_elementType_selectorData_commandEnv.returnType.box(value: result, env: handlerEnv)
 }
 
 
 func stdlib_loadHandlers(env: Env) throws {
     
-    try env.add(interface_exponent_left_right, call_exponent_left_right)
-    try env.add(interface_positive_left, call_positive_left)
-    try env.add(interface_negative_left, call_negative_left)
-    try env.add(interface_add_left_right, call_add_left_right)
-    try env.add(interface_subtract_left_right, call_subtract_left_right)
-    try env.add(interface_multiply_left_right, call_multiply_left_right)
-    try env.add(interface_divide_left_right, call_divide_left_right)
-    try env.add(interface_div_left_right, call_div_left_right)
-    try env.add(interface_mod_left_right, call_mod_left_right)
-    try env.add(interface_isLessThan_left_right, call_isLessThan_left_right)
-    try env.add(interface_isLessThanOrEqualTo_left_right, call_isLessThanOrEqualTo_left_right)
-    try env.add(interface_isEqualTo_left_right, call_isEqualTo_left_right)
-    try env.add(interface_isNotEqualTo_left_right, call_isNotEqualTo_left_right)
-    try env.add(interface_isGreaterThan_left_right, call_isGreaterThan_left_right)
-    try env.add(interface_isGreaterThanOrEqualTo_left_right, call_isGreaterThanOrEqualTo_left_right)
-    try env.add(interface_NOT_right, call_NOT_right)
-    try env.add(interface_AND_left_right, call_AND_left_right)
-    try env.add(interface_OR_left_right, call_OR_left_right)
-    try env.add(interface_XOR_left_right, call_XOR_left_right)
-    try env.add(interface_lt_left_right, call_lt_left_right)
-    try env.add(interface_le_left_right, call_le_left_right)
-    try env.add(interface_eq_left_right, call_eq_left_right)
-    try env.add(interface_ne_left_right, call_ne_left_right)
-    try env.add(interface_gt_left_right, call_gt_left_right)
-    try env.add(interface_ge_left_right, call_ge_left_right)
-    try env.add(interface_isA_value_ofType, call_isA_value_ofType)
-    try env.add(interface_joinValues_left_right, call_joinValues_left_right)
-    try env.add(interface_uppercase_text, call_uppercase_text)
-    try env.add(interface_lowercase_text, call_lowercase_text)
-    try env.add(interface_show_value, call_show_value)
-    try env.add(interface_formatCode_value, call_formatCode_value)
-    try env.add(interface_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv, call_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv)
-    try env.add(interface_store_name_value_readOnly_commandEnv, call_store_name_value_readOnly_commandEnv)
-    try env.add(interface_testIf_condition_action_commandEnv, call_testIf_condition_action_commandEnv)
-    try env.add(interface_repeatTimes_count_action_commandEnv, call_repeatTimes_count_action_commandEnv)
-    try env.add(interface_repeatWhile_condition_action_commandEnv, call_repeatWhile_condition_action_commandEnv)
-    try env.add(interface_elseClause_action_alternativeAction_commandEnv, call_elseClause_action_alternativeAction_commandEnv)
-    try env.add(interface_ofClause_attribute_value_commandEnv, call_ofClause_attribute_value_commandEnv)
-    try env.add(interface_atClause_elementType_selectorData_commandEnv, call_atClause_elementType_selectorData_commandEnv)
+    try env.add(interface_exponent_left_right, function_exponent_left_right)
+    try env.add(interface_positive_left, function_positive_left)
+    try env.add(interface_negative_left, function_negative_left)
+    try env.add(interface_add_left_right, function_add_left_right)
+    try env.add(interface_subtract_left_right, function_subtract_left_right)
+    try env.add(interface_multiply_left_right, function_multiply_left_right)
+    try env.add(interface_divide_left_right, function_divide_left_right)
+    try env.add(interface_div_left_right, function_div_left_right)
+    try env.add(interface_mod_left_right, function_mod_left_right)
+    try env.add(interface_isLessThan_left_right, function_isLessThan_left_right)
+    try env.add(interface_isLessThanOrEqualTo_left_right, function_isLessThanOrEqualTo_left_right)
+    try env.add(interface_isEqualTo_left_right, function_isEqualTo_left_right)
+    try env.add(interface_isNotEqualTo_left_right, function_isNotEqualTo_left_right)
+    try env.add(interface_isGreaterThan_left_right, function_isGreaterThan_left_right)
+    try env.add(interface_isGreaterThanOrEqualTo_left_right, function_isGreaterThanOrEqualTo_left_right)
+    try env.add(interface_NOT_right, function_NOT_right)
+    try env.add(interface_AND_left_right, function_AND_left_right)
+    try env.add(interface_OR_left_right, function_OR_left_right)
+    try env.add(interface_XOR_left_right, function_XOR_left_right)
+    try env.add(interface_lt_left_right, function_lt_left_right)
+    try env.add(interface_le_left_right, function_le_left_right)
+    try env.add(interface_eq_left_right, function_eq_left_right)
+    try env.add(interface_ne_left_right, function_ne_left_right)
+    try env.add(interface_gt_left_right, function_gt_left_right)
+    try env.add(interface_ge_left_right, function_ge_left_right)
+    try env.add(interface_isA_value_ofType, function_isA_value_ofType)
+    try env.add(interface_joinValues_left_right, function_joinValues_left_right)
+    try env.add(interface_uppercase_text, function_uppercase_text)
+    try env.add(interface_lowercase_text, function_lowercase_text)
+    try env.add(interface_show_value, function_show_value)
+    try env.add(interface_formatCode_value, function_formatCode_value)
+    try env.add(interface_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv, function_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv)
+    try env.add(interface_store_name_value_readOnly_commandEnv, function_store_name_value_readOnly_commandEnv)
+    try env.add(interface_testIf_condition_action_commandEnv, function_testIf_condition_action_commandEnv)
+    try env.add(interface_repeatTimes_count_action_commandEnv, function_repeatTimes_count_action_commandEnv)
+    try env.add(interface_repeatWhile_condition_action_commandEnv, function_repeatWhile_condition_action_commandEnv)
+    try env.add(interface_elseClause_action_alternativeAction_commandEnv, function_elseClause_action_alternativeAction_commandEnv)
+    try env.add(interface_ofClause_attribute_value_commandEnv, function_ofClause_attribute_value_commandEnv)
+    try env.add(interface_indexSelector_elementType_selectorData_commandEnv, function_indexSelector_elementType_selectorData_commandEnv)
+    try env.add(interface_nameSelector_elementType_selectorData_commandEnv, function_nameSelector_elementType_selectorData_commandEnv)
+    try env.add(interface_testSelector_elementType_selectorData_commandEnv, function_testSelector_elementType_selectorData_commandEnv)
 }

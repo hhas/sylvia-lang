@@ -39,25 +39,26 @@
 // TO DO: how to generalize selections as queries, and when to resolve automatically (e.g. via coercion when consumed) vs explicitly (via `get` command); bear in mind that these need to support set, add, remove, etc; also mind that query resolvers may also provide foundation code for an IPC server framework
 
 
-let nullEnv = Env()
 
 
-extension List: Scope {
+extension List: Scope { // TO DO: List should be Attributed, not Scope (which is intended for stack frames, JS-style Objects, etc); this needs more thought/work (for starters, it needs to be compiled as part of core, not library, so next step will be to split value.swift into per-class files for easier maintainability and move this there)
     
     func child() -> Scope { // TO DO: normally used by NativeHandler; could also be used by nested `tell` blocks; any reason why it might be used here?
         return self // what to return?
     }
     
-    func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws {
+    // attributes
+    
+    func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws { // TO DO: really want to get rid of this: there shouldn't be any use case where a list attribute (e.g. "items") is set directly, e.g. `set(items of LIST, to:…)`
         fatalError() // TO DO: any settable attributes? if not, throw ReadOnly error
     }
     
-    func get(_ name: String) throws -> (value: Value, scope: Scope) { // TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv)
+    func get(_ name: String) throws -> (value: Value, scope: Scope) { // e.g. `items of LIST`; TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv); in this case, scope is List value (i.e. self)
         switch name {
-        case "item", "items": // singular/plural naming conventions aren't consistent, so have to treat them as synonyms; TO DO: where both spellings are available, pretty printer should choose according to to-one/to-many selector, e.g. `item at 1`, `items at 1 thru 3`
-            return (OrderedListItems(self), nullEnv) // TO DO: kludge; don't really want to pass nullEnv here
+        case "items", "item": // singular/plural naming conventions aren't consistent, so have to treat them as synonyms; TO DO: where both spellings are available, pretty printer should choose according to to-one/to-many selector, e.g. `item at 1`, `items at 1 thru 3`
+            return (AllListItemsSpecifier(self, name), self) // TO DO: kludge; don't really want to pass nullEnv here
         case "at": // `item at 1 of LIST` -> `'of' ('at' (item, 1), LIST)`, which looks up `at` on LIST
-            return (ByIndexSelectorConstructor(parentObject: self), nullEnv)
+            return (IndexSelectorMethod(parentObject: self), self)
         default:
             throw UnrecognizedAttributeError(name: name, value: self)
         }
@@ -89,26 +90,29 @@ extension List: Scope {
 
 // TO DO: move
 
-class OrderedListItems: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension
+class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension
     
     // `item` and `items` are effectively synonyms
     
     override var description: String { return "items of \(self.list)" } // TO DO: expressions need to be generated via pretty printer as representation changes depending on what operator tables are loaded (may be best to use `description` for canonical representations only, e.g. for troubleshooting/portable serialization)
     
-    override var nominalType: Coercion { return asList } // TO DO: AsReference(…)
+    override class var nominalType: Coercion { return asList } // TO DO: AsReference(…)
     
+    let elementsName: String
     
-    // ordered list's default reference form is by-index, allowing `item at 3 of LIST` to be written as `item 3 of LIST`
-    var interface = CallableInterface(
-        name: "item",
-        parameters: [(name: "at", coercion: asInt)], // `item (INDEX)` is shortcut for `item at INDEX`
+    // command-based shortcut for constructing the most commonly-used reference form, which for ordered collections is by-index
+    // e.g. `item 3 of LIST` (which is syntactic sugar for `item(at:3) of LIST`) is shorthand for `item at 3 of LIST`
+    lazy var interface = CallableInterface(
+        name: self.elementsName,
+        parameters: [(name: "at", coercion: asInt)], // TO DO: use `Variant([asRange, asInt])` (need to implement `Variant` Coercion subclass first; Q. how to unpack as typesafe enum which switch block can use directly rather than having to do a further round of `as?` casts?)
         returnType: asAnything
     )
     
     private let list: List // TO DO: type as OrderedCollection protocol?
     
-    init(_ list: List) {
+    init(_ list: List, _ elementsName: String) {
         self.list = list
+        self.elementsName = elementsName
     }
     
     // TO DO: to support selectors; `call` invokes preferred selector form (`at` for ordered list, `named` for key-value list); define `Selectable` protocol (Q. how to provide default implementations for unsupported forms?)
@@ -119,8 +123,12 @@ class OrderedListItems: CallableValue, Selectable { // `items of LIST` specifier
         switch index {
         case let text as Text:
             if let n = Int(text.swiftValue) { return try self.list.getByIndex(n) }
-        case let range as Command where range.normalizedName == "thru" && range.arguments.count == 2: // TO DO: use `'thru'(m,n)` command here? (i.e. should range always be written as a literal, not passed as result of evaluating expression?)
-            return try self.byRange(from: range.arguments[0], to: range.arguments[1])
+        case let range as Range:
+            guard let startText = range.start as? Text, let endText = range.stop as? Text,
+                let startIndex = Int(startText.swiftValue), let endIndex = Int(endText.swiftValue) else {
+                    throw NotYetImplementedError("Non-numeric list range is not yet supported: \(range)")
+            }
+            return try List(self.list.getByRange(from: startIndex, to: endIndex))
         default:
             () // fall thru
         }
@@ -131,14 +139,14 @@ class OrderedListItems: CallableValue, Selectable { // `items of LIST` specifier
         throw UnsupportedSelectorError(name: "named", value: self)
     }
     
-    func byRange(from startReference: Value, to endReference: Value) throws -> Value {
-        // TO DO: currently only supports by-index; need to accept references as well
-        guard let startText = startReference as? Text, let endText = endReference as? Text,
-            let startIndex = Int(startText.swiftValue), let endIndex = Int(endText.swiftValue) else {
-                throw NotYetImplementedError("Non-numeric list range is not yet supported: \(startReference) thru \(endReference)")
-        }
-        return try List(self.list.getByRange(from: startIndex, to: endIndex))
+    func byID(_ name: Value) throws -> Value {
+        throw UnsupportedSelectorError(name: "by_ID", value: self) // TO DO: what to call this operator?
     }
+    
+    func byTest(_ test: Value) throws -> Value {
+        throw UnsupportedSelectorError(name: "where", value: self)
+    }
+    
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // `item INDEX` -> `item(at:INDEX)`
         let index = try asInt.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)

@@ -29,6 +29,9 @@
 
 // TO DO: how would 'AsPipe(TYPE)' work? (this should work across *nix pipes, coroutines/generators, SAX readers, and anything else that resembles streaming data)
 
+// TO DO: how practical to support `COLLECTION_TYPE of TYPE`, e.g. `list of text` as synonym for `list (text)`? (particularly when one or both has arguments, e.g. `list(min,max) of `text(pattern)`); this'd require Coercion to support Attributed, implementing `get(_:)` method that looks up the named coercion value (where? in current context? in global CoercionRegistry?) and call it, passing self as first argument, to construct the more specialized coercion, e.g. AsList(AsText()); Q. if coercions support constructor call chaining, each time returning a more specialized copy of self, e.g. `list(max_length:10)(of_type:text)`, `list(anything) -> list(anything,max_length:10) -> list(of_type:text,max_length:10)`, could this approach be generalized for intersecting coercions as well, e.g. `list(text) ∩ list(number(min:0),max_length:10)`? (this'd go a long way to streamlining how return values are coerced [currently 2 coercions are performed; first to the handler's return type, then to the caller's input type])
+
+
 
 typealias Coercion = Value & CoercionProtocol // TO DO: rename `Constraint`?
 
@@ -46,7 +49,7 @@ protocol CoercionProtocol { // all Coercions are Value subclass, allowing them t
 
 extension CoercionProtocol {
     
-    var normalizedName: String { return self.coercionName }
+    var key: String { return self.coercionName }
     
 }
 
@@ -390,7 +393,7 @@ class AsDefault: Coercion, Callable {
     
     var coercionName: String { return "default" }
     
-    var normalizedName: String { return self.interface.normalizedName } // TO DO: currently need this as both Callable and Coercion implement `normalizedName` via extensions
+    var key: String { return self.interface.key } // TO DO: currently need this as both Callable and Coercion implement `key` via extensions
     
     override var description: String { return "\(self.coercionName)(\(self.defaultValue), \(self.coercion))" }
     
@@ -562,6 +565,7 @@ class AsIs: BridgingCoercion { // the value is passed thru as-is, without evalua
     }
 }
 
+
 class AsAnything: BridgingCoercion { // any value including `nothing`; used to evaluate expressions
     
     var coercionName: String { return "anything" }
@@ -587,27 +591,38 @@ class AsAnything: BridgingCoercion { // any value including `nothing`; used to e
     }
 }
 
-//
 
-class AsIdentifier: BridgingCoercion { // the Identifier is passed thru as-is, without evaluation, or an error thrown if wrong type
+// nominal type checks
+
+class AsTypeChecked<T: Value>: BridgingCoercion { // if the given Value is instance of ValueType [sub]class it is passed thru as-is, without any evaluation, otherwise an error is thrown; used by values that cannot be meaningfully coerced to anything else
     
-    var coercionName: String { return "identifier" }
+    var coercionName: String { fatalError("Not yet implemented: \(type(of:self)).coercionName") }
     
     override var description: String { return self.coercionName }
     
-    typealias SwiftType = Identifier
+    typealias SwiftType = T
     
     func coerce(value: Value, env: Scope) throws -> Value {
         return try self.unbox(value: value, env: env)
     }
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        guard let result = value as? Identifier else { throw CoercionError(value: value, coercion: self) }
+        guard let result = value as? SwiftType else { throw CoercionError(value: value, coercion: self) }
         return result
     }
     func box(value: SwiftType, env: Scope) throws -> Value {
         return value
     }
 }
+
+
+class AsIdentifier: AsTypeChecked<Identifier> {
+    override var coercionName: String { return "identifier" }
+}
+
+class AsCommand: AsTypeChecked<Command> {
+    override var coercionName: String { return "command" }
+}
+
 
 /******************************************************************************/
 // defining handler signatures
@@ -626,6 +641,7 @@ class AsParameter: BridgingCoercion {
     }
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
+        // `to`/`when` operator expects each parameter to be declared as `IDENTIFIER` or `IDENTIFIER as COERCION` and decomposes it automatically to `[IDENTIFIER]` or `[IDENTIFIER, COERCION]` (TO DO: eventually these should be KV-list or record [assuming we implement a first-class tuple/record datatype to maintain homoiconicity])
         let fields: [Value]
         if let list = value as? List { fields = list.swiftValue } else { fields = [value] } // kludge; we don't want to expand Identifier
         let coercion: Coercion
@@ -780,6 +796,7 @@ let asCoercion = AsCoercion()
 let asIs = AsIs() // supplied value is returned as-is, without expanding or thunking it; used in primitive handlers to take lazily-evaluated arguments that will be evaluated using the supplied `commandEnv` (primitive handlers should only need to thunk values that will be evaluated after the handler is returned)
 
 let asIdentifier = AsIdentifier()
+let asCommand = AsCommand()
 
 let asBlock = asIs // primitive handlers don't really care if an argument is a block or an expression (to/if/repeat/etc operators should check for block syntax themselves), so for now just pass it to the handler body as-is (there's no need to thunk it either, unless the supplied block/expression needs to be retained beyond the handler call in which case it must be captured with the command scope, either by declaring the parameter coercion asThunk or by calling asThunk.coerce in the handler body)
 
@@ -790,3 +807,6 @@ let asNoResult = AsNoResult() // expands value to anything, ignoring any result,
 
 let asAttributedValue = AsAttributedValue()
 let asAttribute = AsAttribute()
+
+let asReference = AsAnything() // TO DO: implement AsReference
+let asTestReference = asReference // TO DO: how easy to implement this? (being able to distinguish reference types will improve runtime error checking and tooling support)

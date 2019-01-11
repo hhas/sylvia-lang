@@ -14,30 +14,40 @@
 import Foundation
 
 
-
-typealias OperatorName = String
 typealias OperatorDefinition = (name: OperatorName, precedence: Int, parseFunc: ParseFunc, aliases: [OperatorName], handlerName: String?)
 
 
-//
-
-enum OperatorNameType { // TO DO: merge into `OperatorName` coercion and implement init(stringLiteral:) (ExpressibleByStringLiteral)
-    case word
-    case symbol
-    case invalid
+enum OperatorName : ExpressibleByStringLiteral, Hashable { // advantage of defining OperatorName as enum rather than simple string is that code-generated operator tables can specify operator form in advance, avoiding need to call init(_:) at load-time
+    
+    case word(String, String)   // e.g. `lt`, `is_before`
+    case symbol(String, String) // e.g. `+`, `>=`
+    
+    init(stringLiteral: String) { self.init(stringLiteral) }
     
     init(_ name: String) {
-        if let p = name.first?.unicodeScalars.first { // TO DO: as elsewhere, doesn't support multiple glyphs
+        if let p = name.first?.unicodeScalars.first { // TO DO: as elsewhere, this won't work right if first character is composed of >1 codepoint
             let chars = CharacterSet(charactersIn: name)
             if identifierCharacters.contains(p) && chars.subtracting(identifierAdditionalCharacters).isEmpty {
-                self = .word
+                self = .word(name, name.lowercased())
+                return
             } else if chars.subtracting(symbolicCharacters).isEmpty {
-                self = .symbol
-            } else {
-                self = .invalid
+                self = .symbol(name, name.lowercased())
+                return
             }
-        } else {
-            self = .invalid
+        }
+        // following will only happen on operator tables hand-coded in Swift
+        fatalError("Invalid operator name (contains illegal characters): \(name.debugDescription)")
+    }
+    
+    var name: String {
+        switch self {
+        case .word(let name, _), .symbol(let name, _): return name
+        }
+    }
+    
+    var key: String { // TO DO: rename 'key' throughout
+        switch self {
+        case .word(_, let name), .symbol(_, let name): return name
         }
     }
 }
@@ -46,6 +56,8 @@ enum OperatorNameType { // TO DO: merge into `OperatorName` coercion and impleme
 //
 
 class SymbolSearchTree: CustomDebugStringConvertible { // performs longest-match identification of symbol-based operator names // TO DO: probably make this private once development/debugging is done (OperatorRegistry should provide a better `debugDescription` implementation that returns hierarchical representation of loaded symbol-matching tables and the operators to which they match for troubleshooting purposes)
+    
+    // TO DO: for stdlib, consider serializing this entire data structure, avoiding need to populate it from scratch during interpreter startup (operator definitions supplied by other libraries would still need to be added to it)
     
     typealias SymbolTable = [Character: SymbolSearchTree]
     
@@ -89,7 +101,7 @@ class SymbolSearchTree: CustomDebugStringConvertible { // performs longest-match
 
 class OperatorRegistry { // once populated, a single OperatorRegistry instance can be used by multiple Lexer instances (as long as they're all using the same operator definitions)
 
-    typealias OperatorTable = [OperatorName: OperatorDefinition]
+    typealias OperatorTable = [String: OperatorDefinition] // key is normalized name
     
     // all operator definitions by name/alias (each operator definition appears once under its canonical name, and once for each of its aliases, e.g. `(name:"÷",…,aliases:["/"])` inserts two entries)
     // note that the pretty printer will normally replace aliases with canonical names for consistency, e.g. `2/3` would prettify as `2 ÷ 3`
@@ -98,22 +110,17 @@ class OperatorRegistry { // once populated, a single OperatorRegistry instance c
     
     private(set) var symbolLookup = SymbolSearchTree() // tree structure used to perform longest match of symbol-based operator names; topmost node matches 1st character of symbol name, 2nd level matches 2nd character (if any), and so on
     
-    private func add(_ definition: OperatorDefinition, named name: String, to table: inout OperatorTable) {
-        let normalizedName = name.lowercased() // operator names are case-insensitive
-        guard table[normalizedName] == nil else {
-            print("Can't redefine existing operator: \(name.debugDescription)") // TO DO: how to report error if already defined in table? (e.g. pass error info to a callback function/delegate supplied by caller; from UX POV, typically want to deal with all problem operators on completion at once rather than one at a time as they're encountered; e.g. a code editor would prompt user to fix whereas CLI would just abort)
+    private func add(_ definition: OperatorDefinition, named operatorName: OperatorName, to table: inout OperatorTable) {
+        guard table[operatorName.key] == nil else {
+            print("Can't redefine existing operator: \(operatorName.name.debugDescription)") // TO DO: how to report error if already defined in table? (e.g. pass error info to a callback function/delegate supplied by caller; from UX POV, typically want to deal with all problem operators on completion at once rather than one at a time as they're encountered; e.g. a code editor would prompt user to fix whereas CLI would just abort)
             return
         }
         // need to distinguish symbol-based name from word-based name (operator names must be all symbols or all letters)
-        switch OperatorNameType(normalizedName) {
-        case .word: () // whole word matching
-        case .symbol:
-            self.symbolLookup.add(normalizedName) // symbol operators can consist of one or more characters, with or without delimiting text, so need to build longest-match tables, e.g. `let x=+1+-2==-1` contains 6 operators (= + + - == -) only partially delimited by code
-        case .invalid:
-            print("Invalid operator name: \(name.debugDescription)")
-            return
+        switch operatorName {
+        case .word:   () // whole word matching
+        case .symbol: self.symbolLookup.add(operatorName.key) // symbol operators can consist of one or more characters, with or without delimiting text, so need to build longest-match tables, e.g. `let x=+1+-2==-1` contains 6 operators (= + + - == -) only partially delimited by code
         }
-        table[normalizedName] = definition
+        table[operatorName.key] = definition
     }
     
     private func add(_ definition: OperatorDefinition, to table: inout OperatorTable) {
@@ -137,8 +144,8 @@ class OperatorRegistry { // once populated, a single OperatorRegistry instance c
     
     // get definition(s) for a word-based operator, if it exists (e.g. `matchWord("mod")` returns infix operator definition for modulus handler)
     func matchWord(_ name: String) -> (OperatorDefinition?, OperatorDefinition?) { // note: this can also match explicitly delimited symbol operators
-        let normalizedName = name.lowercased()
-        return (self.prefixOperators[normalizedName], self.infixOperators[normalizedName])
+        let key = name.lowercased()
+        return (self.prefixOperators[key], self.infixOperators[key])
     }
     
     // get definition(s) for a symbol-based operator, if it exists (e.g. `matchSymbol("==")` returns infix operator definition for equality handler)

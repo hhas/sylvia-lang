@@ -11,6 +11,8 @@
 
 // TO DO: eventually move error raising APIs onto Env, allowing behavior to be customized (e.g. when running in debugger mode, instead of unwinding the stack, a coercion error might suspend execution and activate UI interaction mode where user can inspect, and potentially modify, the problem values, then resume execution from that same point)
 
+// TO DO: error message generation should be moved to external class[es] that can analyze the entire stack trace and construct a clear description of the problem (currently each error class adds its own message, which results in lengthy, duplicative, and sometimes confusingly/misleadingly phrased message; e.g. if the root cause is "value not found", rest of the message chain should not talk about "coercion")
+
 
 class GeneralError: Error, CustomStringConvertible {
     
@@ -41,7 +43,16 @@ class GeneralError: Error, CustomStringConvertible {
 /******************************************************************************/
 // implementation bugs
 
-class InternalError: GeneralError {}
+class InternalError: GeneralError {} // an error that should never occur, unless [e.g.] triggered by an implementation bug elsewhere
+
+
+class NotYetImplementedError: GeneralError {
+    
+    init(_ message: String? = nil, function: String = #function) {
+        super.init("\(function)" + (message == nil ? "." : ": \(message!)"))
+    }
+}
+
 
 /******************************************************************************/
 // parse error
@@ -69,7 +80,7 @@ class CoercionError: GeneralError {
     }
     
     override var message: String {
-        return "Can’t coerce this \(self.value.nominalType) to \(self.coercion): \(self.value)"
+        return "Can’t coerce the following \(self.value.nominalType) to \(self.coercion): \(self.value)"
     }
 }
 
@@ -110,14 +121,6 @@ class ConstraintError: Error, CustomStringConvertible {
 
 struct EvaluationError: Error, CustomStringConvertible {
     let description: String // TO DO: separate message and `var description: String { return "\(type(of:self)): \(self.message)" }`
-}
-
-
-class NotYetImplementedError: GeneralError {
-
-    init(_ message: String? = nil, function: String = #function) {
-        super.init("\(function)" + (message == nil ? "." : ": \(message!)"))
-    }
 }
 
 
@@ -190,7 +193,7 @@ class HandlerFailedError: GeneralError {
         super.init()
     }
     override var message: String {
-        return "‘\(self.handler.name)’ handler failed on command: \(self.command)"
+        return "The ‘\(self.handler.name)’ handler failed on the following command: \(self.command)"
     }
 }
 
@@ -211,7 +214,7 @@ class BadArgumentError: GeneralError {
     override var message: String {
         let parameter = self.handler.interface.parameters[self.index]
         let argument = self.index < self.command.arguments.count ? self.command.arguments[self.index] : noValue
-        return "‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter requires \(parameter.coercion.normalizedName) but received \(argument.nominalType): \(argument)" // TO DO: better coercion descriptions needed
+        return "The ‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter expected \(parameter.coercion.key) but received the following \(argument.nominalType): \(argument)" // TO DO: better coercion descriptions needed // TO DO: error message phrasing is misleading, as it implies a type error but can be triggered by other evaluation failures (e.g. value not found)
     }
 }
 

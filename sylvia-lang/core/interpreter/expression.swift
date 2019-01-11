@@ -16,7 +16,7 @@ class Expression: Value {
     
     // forward all Expression.toTYPE() calls to bridgingEval()/nativeEval()
     
-    override var nominalType: Coercion { return asAnything }
+    override class var nominalType: Coercion { return asAnything }
     
     //
     
@@ -69,18 +69,20 @@ class Identifier: Expression {
     
     override var description: String { return "\(self.name)" }
     
-    let name: String // used by assignment operator
-    let normalizedName: String
+    override class var nominalType: Coercion { return asIdentifier }
     
-    // TO DO: use normalizedName (all-lowercase) for env lookups
+    let name: String // used by assignment operator
+    let key: String
+    
+    // TO DO: use key (all-lowercase) for env lookups
     
     init(_ name: String) {
         self.name = name // TO DO: how/when to check if name should be quoted? (this will require access to lexer's character tables and to operator tables; lexer itself might want to offer quoting hints based on whether or not the identifier was already quoted in source code; also, if operator table is going to be extended by imported libraries, this *will* require a special form, `use LIBRARY [with_syntax VERSION]`, that lexer can recognize and process at top-level of code)
-        self.normalizedName = name.lowercased()
+        self.key = name.lowercased()
     }
     
     override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
-        let (value, lexicalEnv) = try env.get(self.normalizedName)
+        let (value, lexicalEnv) = try env.get(self.key)
         // TO DO: catch null coercions, c.f. below?
         do {
             return try value.nativeEval(env: lexicalEnv, coercion: coercion)
@@ -106,13 +108,15 @@ class Command: Expression {
     
     override var description: String { return "‘\(self.name)’ (\((self.arguments.map{$0.description}).joined(separator:", ")))" }
     
+    override class var nominalType: Coercion { return asCommand }
+    
     let name: String
-    let normalizedName: String
+    let key: String
     let arguments: [Value]
     
     init(_ name: String, _ arguments: [Value]) {
         self.name = name
-        self.normalizedName = name.lowercased()
+        self.key = name.lowercased()
         self.arguments = arguments
     }
     
@@ -123,7 +127,7 @@ class Command: Expression {
     // TO DO: caching? (the challenge here is that `A.B()`/`B() of A` requires that A supply the Env [or Env-like object], but there's no guarantee that A will be the same every time; one possible solution is to implement `nativeEval(inScope:Accessor,env:Env,…)`), which would allow commands and identifiers to lookup in scope instead of env; given `of(B(),A)`, the` of` `handler` implements nativeEval() to look up the B handler in A then call()s it with current scope as commandEnv and A as handlerEnv
 
     override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
-        let (value, handlerEnv) = try env.get(self.normalizedName)
+        let (value, handlerEnv) = try env.get(self.key)
         guard let handler = value as? Callable else { throw HandlerNotFoundError(name: self.name, env: env) }
         return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, coercion: coercion)
     }

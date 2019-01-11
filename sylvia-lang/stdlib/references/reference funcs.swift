@@ -12,7 +12,7 @@ func ofClause(attribute: Value, value: Value, commandEnv: Scope) throws -> Value
     switch attribute {
     case let command as Command:
         // TO DO: copypasted from Command.eval; might be better to put implementation on Command/Scope
-        let (value, handlerEnv) = try scope.get(command.normalizedName)
+        let (value, handlerEnv) = try scope.get(command.key)
         guard let handler = value as? Callable else { throw HandlerNotFoundError(name: command.name, env: scope) }
         return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: asAnything)
     case let identifier as Identifier:
@@ -26,14 +26,27 @@ func ofClause(attribute: Value, value: Value, commandEnv: Scope) throws -> Value
 /******************************************************************************/
 // selectors
 
-// TO DO: can this be folded into selector.swift?
-
-func atClause(elementType name: String, selectorData index: Value, commandEnv parentObject: Scope) throws -> Value { // TO DO: see TODO on AsAnything re. limiting scope of `didNothing` result
-    guard let elements = try parentObject.get(name).value as? Selectable else { // e.g. `items [of LIST]`
-        throw ValueNotFoundError(name: name, env: parentObject)
+private func elements(ofType elementType: String, from parentObject: Scope) throws -> Selectable {
+    guard let elements = try parentObject.get(elementType).value as? Selectable else { // e.g. `items [of LIST]`
+        throw ValueNotFoundError(name: elementType, env: parentObject) // TO DO: distinguish between 'not found' and 'not elements'
     }
-    return try elements.byIndex(index)
+    return elements
 }
 
+func indexSelector(elementType: String, selectorData: Value, commandEnv parentObject: Scope) throws -> Value { // also implements by-range
+    return try elements(ofType: elementType, from: parentObject).byIndex(selectorData)
+}
+
+func nameSelector(elementType: String, selectorData: Value, commandEnv parentObject: Scope) throws -> Value {
+    return try elements(ofType: elementType, from: parentObject).byName(selectorData)
+}
+
+func uidSelector(elementType: String, selectorData: Value, commandEnv parentObject: Scope) throws -> Value {
+    return try elements(ofType: elementType, from: parentObject).byID(selectorData)
+}
+
+func testSelector(elementType: String, selectorData: Value, commandEnv parentObject: Scope) throws -> Value {
+    return try elements(ofType: elementType, from: parentObject).byTest(selectorData)
+}
 
 

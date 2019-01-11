@@ -55,6 +55,8 @@
 
 // TO DO: `@UID`, `#TAG`?
 
+// TO DO: how should AST represent interpolated text literals, e.g. `“Hello, ««name»»!««return»»”`? (e.g. a thunk around `expand_text(TEXT_LITERAL)` command, a self-thunking Text subclass? [possible advantage of the latter is it can be passed around as a 'normal' Text value])
+
 import Foundation
 
 
@@ -183,12 +185,9 @@ class Parser {
             case .groupLiteral: // read zero or more parenthesized arguments
                 self.advance(ignoringLineBreaks: false) // advance cursor onto "("
                 value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple
-            case .listLiteral, .textLiteral, .symbolLiteral, .identifier, .number: // read single unparenthesized argument
+            case .listLiteral, .textLiteral, .symbolLiteral, .identifier, .number: // read single unparenthesized argument (note: a .blockLiteral argument must be parenthesized to avoid ambiguity in `PREFIX_OPERATOR IDENTIFIER BLOCK` pattern commonly used by flow control)
                 self.advance(ignoringLineBreaks: false)
                 value = try Command(name, [self.parseAtom()])
-//            case .operatorName(value: _, prefix: let definition, infix: _) where definition != nil: // TO DO: we need this to allow negative numbers
-//                self.advance(ignoringLineBreaks: false)
-//                value = try Command(name, [self.parseAtom()])
             default:
                 value = Identifier(name)
             }
