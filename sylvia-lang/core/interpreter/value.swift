@@ -5,6 +5,10 @@
 //
 
 
+// other native values might include Boolean, Number, Date (if distinct from Text, which can easily represent these data types as text, caching any underlying representations for performance if needed, if Perl-style 'scalar' representation is preferred); Symbol (enum); Table (dict); Block, Identifier, Command, Handler, Thunk (being an Algol-style language, these latter value types aren't exposed as first-class datatypes in language, although a more Lisp-ish flavor could represent all code structures as data); downside is each new native coercion requires another `toType()` method added to Value and to each subclass that supports that coercion (though these can at least be organized into class extensions so don't clog up the main class implementations)
+
+
+
 // Q. how should pretty printer apply rich text styles, e.g. annotations should probably appear italicized; should [some user-defined] command names appear emboldened? (thinking here is that operators tend to be defined for small general operations that are very frequently performed, e.g. math); TBH, only user really knows which of their handlers are "significant" and which are supporting (and this assumes that all library-defined handlers are support); maybe auto-embolden all names defined by current package (eventually, editor might provide command line where users can specify how they want code highlighted/selected at any time, e.g. `highlight every command whose handler is_in LIBRARY`)
 
 // TO DO: how to denote symbol literals?
@@ -103,8 +107,64 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
 }
 
 
-// concrete classes
 
+// abstract base classes for values (blocks, identifiers, commands) that evaluate to yield other values
+
+class Expression: Value {
+    
+    // forward all Expression.toTYPE() calls to bridgingEval()/nativeEval()
+    
+    override class var nominalType: Coercion { return asAnything }
+    
+    //
+    
+    // not sure this helps (also hits speed); need to check if/where Expression.toTYPE() methods could be called, given that they implement their own eval entry points
+    internal func safeRun<T: Value>(env: Scope, coercion: Coercion, function: String = #function) throws -> T {
+        let value: Value
+        // do {
+        value = try self.nativeEval(env: env, coercion: coercion)
+        // } catch let e as NullCoercionError { // check
+        //     print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
+        //    //throw CoercionError(value: self, coercion: coercion)
+        //     throw e
+        // }
+        return value as! T
+        //guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
+        //    throw InternalError("\(type(of:self)) \(function) expected \(coercion) coercion to return \(T.self) but got \(type(of: value)): \(value)")
+        //}
+        //return result
+    }
+    
+    //
+    
+    override func toAny(env: Scope, coercion: Coercion) throws -> Value { // still gets called on Identifier, Command, Block
+        //        print("\(type(of:self)).\(#function) was called")
+        return try self.nativeEval(env: env, coercion: coercion)
+    }
+    
+    override func toText(env: Scope, coercion: Coercion) throws -> Text {
+        //        print("\(type(of:self)).\(#function) was called")
+        return try self.safeRun(env: env, coercion: coercion)
+    }
+    
+    override func toList(env: Scope, coercion: AsList) throws -> List {
+        //        print("\(type(of:self)).\(#function) was called")
+        return try self.safeRun(env: env, coercion: coercion) // ditto
+    }
+    
+    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
+        print("\(type(of:self)).\(#function) was called")
+        return try self.bridgingEval(env: env, coercion: coercion)
+    }
+}
+
+
+
+
+
+
+
+// TO DO: putting the following in separate nothing.swift file causes swiftc to blow up with abort trap 6; need to file bug report on this
 
 class Nothing: Value {
     
@@ -130,141 +190,8 @@ class Nothing: Value {
 }
 
 
-class DidNothing: Nothing {
+class DidNothing: Nothing { // used by flow control operators
     
     override var description: String { return "did_nothing" }
     
 }
-
-
-
-class Text: Value { // TO DO: Scalar?
-    
-    override var description: String { return "“\(self.swiftValue)”" } // TO DO: pretty printing
-    
-    override class var nominalType: Coercion { return asText }
-    
-    internal(set) var scalar: Scalar? // TO DO: any way to make this lazily self-initialize if not set by init?
-    
-    // TO DO: need ability to capture raw Swift value in case of numbers, dates, etc; while this could be done in annotations, it might be quicker to have a dedicated private var containing enum of standard raw types we want to cache (.int, .double, .scalar, .date, whatever); another option is for annotations to be linked list/B-tree where entries are ordered according to predefined importance or frequency of use (would need to see how this compares to a dictionary, which should be pretty fast out of the box with interned keys)
-    
-    private(set) var swiftValue: String // TO DO: restricted mutability; e.g. perform appends in-place only if refcount==1, else copy self and append to that
-    
-    init(_ swiftValue: String, scalar: Scalar? = nil) { // TO DO: what constraints are appropriate here? e.g. nonEmpty, minLength, maxLength, pattern, etc are all possibilities; simplest from API perspective is regexp, although that's also the most complex (unless standard patterns for describing the other constraints - e.g. "."/".+"/"\A.+\Z" are common patterns for indicating 'nonEmpty:true' - are recognized and optimized away)
-        self.swiftValue = swiftValue
-        self.scalar = scalar
-    }
-    
-    override func toText(env: Scope, coercion: Coercion) throws -> Text {
-        return self
-    }
-}
-
-
-
-
-extension Text {
-    
-    convenience init(_ scalar: Scalar)  { self.init(scalar.literalRepresentation(), scalar: scalar) }
-    convenience init(_ n: Int)          { self.init(Scalar(n)) }
-    convenience init(_ n: Double)       { self.init(Scalar(n)) }
-    
-    func toScalar() throws -> Scalar { // initializes scalar property on first use
-        if let scalar = self.scalar { return scalar }
-        do {
-            let scalar = try Scalar(self.swiftValue)
-            self.scalar = scalar
-            return scalar
-        } catch {
-            self.scalar = .invalid(self.swiftValue) // set Text.scalar property to .invalid, which will always throw when used
-            throw error
-        }
-    }
-    func toInt() throws -> Int { return try self.toScalar().toInt() }
-    func toDouble() throws -> Double { return try self.toScalar().toDouble() }
-}
-
-
-class Symbol: Value {
-    
-    override var description: String { return "\(symbolLiteralPrefix)‘\(self.swiftValue)’" }
-    
-    override class var nominalType: Coercion { return asSymbol }
-    
-    let key: String
-    
-    let swiftValue: String
-    
-    init(_ swiftValue: String) {
-        self.swiftValue = swiftValue
-        self.key = swiftValue.lowercased()
-    }
-    
-    override func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
-        return self
-    }
-}
-
-
-class List: Value { // TO DO: how best to represent ordered (Array) vs key-value (Dictionary) vs unique (Set) lists? subclasses? internal enum?
-    
-    override var description: String { return "\(self.swiftValue)" } // note: this assumes native `[…,…]` list syntax is same as Swift Array syntax; if that changes then use "[\(self.swiftValue.map{$0.description}.joined(separator:","))]" // TO DO: pretty printer needs to support line wrapping and indentation of long lists
-    
-    override class var nominalType: Coercion { return asList }
-    
-    private(set) var swiftValue: [Value]
-    
-    init(_ swiftValue: [Value]) {
-        self.swiftValue = swiftValue
-    }
-    
-    override func toAny(env: Scope, coercion: Coercion) throws -> Value {
-        return try List(self.swiftValue.map {
-            do {
-                return try $0.nativeEval(env: env, coercion: coercion)
-            } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-                throw CoercionError(value: $0, coercion: coercion).from(error)
-            }
-        })
-    }
-    
-    override func toList(env: Scope, coercion: AsList) throws -> List {
-        return try List(self.swiftValue.map {
-            do {
-                return try $0.nativeEval(env: env, coercion: coercion.elementType)
-            } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors, i.e. `[nothing] as list(optional) => [nothing]`, but `[nothing] as optional => CoercionError`
-                throw CoercionError(value: $0, coercion: coercion.elementType).from(error)  // TO DO: more detailed error message indicating which list item couldn't be evaled
-            }
-        })
-    }
-    
-    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
-        return try self.swiftValue.map {
-            do {
-                return try $0.bridgingEval(env: env, coercion: coercion.elementType)
-            } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-                throw CoercionError(value: $0, coercion: coercion.elementType).from(error)
-            }
-        }
-    }
-}
-
-
-// other native values might include Boolean, Number, Date (if distinct from Text, which can easily represent these data types as text, caching any underlying representations for performance if needed, if Perl-style 'scalar' representation is preferred); Symbol (enum); Table (dict); Block, Identifier, Command, Handler, Thunk (being an Algol-style language, these latter value types aren't exposed as first-class datatypes in language, although a more Lisp-ish flavor could represent all code structures as data); downside is each new native coercion requires another `toType()` method added to Value and to each subclass that supports that coercion (though these can at least be organized into class extensions so don't clog up the main class implementations)
-
-
-
-
-
-// convenience constants
-
-
-let noValue = Nothing()
-let didNothing = DidNothing()
-let emptyText = Text("")
-let emptyList = List([])
-
-let trueValue = Text("ok")
-let falseValue = emptyText
-
-let piValue = Text(String(Double.pi))

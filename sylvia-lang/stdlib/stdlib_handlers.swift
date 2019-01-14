@@ -1043,6 +1043,33 @@ func function_nameSelector_elementType_selectorData_commandEnv(command: Command,
 }
 
 
+// for_id (element_type, selector_data)
+let signature_idSelector_elementType_selectorData_commandEnv = (
+    paramType_0: asAttributeName,
+    paramType_1: asAnything,
+    returnType: asIs
+)
+let interface_idSelector_elementType_selectorData_commandEnv = CallableInterface(
+    name: "for_id",
+    parameters: [
+        ("element_type", signature_idSelector_elementType_selectorData_commandEnv.paramType_0),
+        ("selector_data", signature_idSelector_elementType_selectorData_commandEnv.paramType_1),
+    ],
+    returnType: signature_idSelector_elementType_selectorData_commandEnv.returnType
+)
+func function_idSelector_elementType_selectorData_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_idSelector_elementType_selectorData_commandEnv.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_idSelector_elementType_selectorData_commandEnv.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    let result = try idSelector(
+        elementType: arg_0,
+        selectorData: arg_1,
+		commandEnv: commandEnv
+    )
+    return try signature_idSelector_elementType_selectorData_commandEnv.returnType.box(value: result, env: handlerEnv)
+}
+
+
 // where (element_type, selector_data)
 let signature_testSelector_elementType_selectorData_commandEnv = (
     paramType_0: asAttributeName,
@@ -1067,6 +1094,31 @@ func function_testSelector_elementType_selectorData_commandEnv(command: Command,
 		commandEnv: commandEnv
     )
     return try signature_testSelector_elementType_selectorData_commandEnv.returnType.box(value: result, env: handlerEnv)
+}
+
+
+// thru (from, to)
+let signature_Range_from_to = (
+    paramType_0: asValue,
+    paramType_1: asValue,
+    returnType: asIs
+)
+let interface_Range_from_to = CallableInterface(
+    name: "thru",
+    parameters: [
+        ("from", signature_Range_from_to.paramType_0),
+        ("to", signature_Range_from_to.paramType_1),
+    ],
+    returnType: signature_Range_from_to.returnType
+)
+func function_Range_from_to(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    let arg_0 = try signature_Range_from_to.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: handler)
+    let arg_1 = try signature_Range_from_to.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: handler)
+    if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    return Range(
+        from: arg_0,
+        to: arg_1
+    )
 }
 
 
@@ -1112,5 +1164,7 @@ func stdlib_loadHandlers(env: Env) throws {
     try env.add(interface_ofClause_attribute_value_commandEnv, function_ofClause_attribute_value_commandEnv)
     try env.add(interface_indexSelector_elementType_selectorData_commandEnv, function_indexSelector_elementType_selectorData_commandEnv)
     try env.add(interface_nameSelector_elementType_selectorData_commandEnv, function_nameSelector_elementType_selectorData_commandEnv)
+    try env.add(interface_idSelector_elementType_selectorData_commandEnv, function_idSelector_elementType_selectorData_commandEnv)
     try env.add(interface_testSelector_elementType_selectorData_commandEnv, function_testSelector_elementType_selectorData_commandEnv)
+    try env.add(interface_Range_from_to, function_Range_from_to)
 }

@@ -5,6 +5,8 @@
 
 // TO DO: decide on `#` vs `\` for Symbol prefix; currently `#SYMBOL`, but advantage of `\SYMBOL` is that is frees up `#` for use in hashtags (assuming that symbols aren't already conceptually close enough to hashtags to cover both roles?)
 
+// TO DO: FIX: problem with lexer binding positive/negative symbol to subsequent numeric literal: `1 - 1` -> `“1” - “1”`, but `1-1` -> `“1” LF “-1”` which is very wrong; suspect this may have been a bad idea and need to move this decision back to parser, with caveat that it will probably need special-cased when it appear in numeric argument of a parens-less `IDENTIFIER ARGUMENT` command, e.g. parsing `item -2 of LIST` can deduce intent by checking if whitespace was present on one/both/neither side of the '-'
+
 
 import Foundation
 

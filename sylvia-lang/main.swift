@@ -14,6 +14,7 @@ let e = Env()
 
 do {
     try stdlib_load(env: e)
+    try aelib_load(env: e)
 } catch {
     print("ImportError: Can’t import stdlib due to \(type(of:error)): \(error)")
     exit(1)
@@ -250,6 +251,12 @@ if y > 8 {
 code = "Store (“N”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item at -n of [5,6,7,8,9], \n\t ITEM at 2 thru -2 of [5,6,7,8,9]\n]" // [7, 6]
 
 
+code = "show ({ 1 + 1 })"
+
+
+code = "color of text of documents of app “TextEdit”" // TO DO: element selectors aren't working yet
+
+
 let lexer = Lexer(code: code, operatorRegistry: ops)
 
 let tokens = lexer.tokenize()
@@ -277,3 +284,7 @@ do {
 
 
 print("Duration: \(Date().timeIntervalSince(sd) * 1000)ms")
+
+
+
+//print(appData.glueTable.elementsByName["documents"])

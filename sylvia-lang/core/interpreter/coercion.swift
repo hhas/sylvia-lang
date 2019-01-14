@@ -125,7 +125,7 @@ class AsString: BridgingCoercion { // Q. what about constraints?
     
     var coercionName: String { return "text" }
     
-    override var description: String { return self.coercionName } // TO DO: all coercion descriptions should be coercionName + any constraints (probably simplest to implement Callable and asCommand() first, then generate description string from Command)
+    override var description: String { return self.coercionName } // TO DO: all coercion descriptions should be coercionName + any constraints (probably simplest to implement Callable and asCommandLiteral() first, then generate description string from Command)
     
     typealias SwiftType = String
     
@@ -177,12 +177,12 @@ class AsInt: BridgingCoercion {
     
     func coerce(value: Value, env: Scope) throws -> Value {
         let result = try value.toText(env: env, coercion: self)
-        if Int(result.swiftValue) == nil { throw CoercionError(value: value, coercion: self) } // note: this only validates; it doesn't rewrite (Q. should it return `Text(String(n))`?)
+        if Int(result.swiftValue) == nil { throw CoercionError(value: value, coercion: self) } // note: this only validates; it doesn't rewrite (Q. should it return `Text(String(n))`?) // TO DO: FIX: use toScalar().toInt(); see AsDouble below
         return result
     }
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        guard let n = try Int(value.toText(env: env, coercion: self).swiftValue) else { throw CoercionError(value: value, coercion: self) }
+        guard let n = try Int(value.toText(env: env, coercion: self).swiftValue) else { throw CoercionError(value: value, coercion: self) } // TO DO: FIX: ditto
         return n
     }
     
@@ -203,7 +203,7 @@ class AsDouble: BridgingCoercion {
     func coerce(value: Value, env: Scope) throws -> Value {
         let result = try value.toText(env: env, coercion: self)
         do {
-            let _ = try result.toScalar().toDouble()
+            let _ = try result.toScalar().toDouble() // TO DO: should toScalar be non-throwing (in which case just have lazy-initializing `scalar` ivar), and rely on toDouble() to do all throwing [since 'scalar' ivar should be .invalid after first use]
         } catch {
             throw CoercionError(value: value, coercion: self)
         }
@@ -594,9 +594,9 @@ class AsAnything: BridgingCoercion { // any value including `nothing`; used to e
 
 // nominal type checks
 
-class AsTypeChecked<T: Value>: BridgingCoercion { // if the given Value is instance of ValueType [sub]class it is passed thru as-is, without any evaluation, otherwise an error is thrown; used by values that cannot be meaningfully coerced to anything else
+class AsLiteral<T: Value>: BridgingCoercion { // if the input Value is an instance of T [sub]class, it is passed thru as-is without evaluation, otherwise an error is thrown;
     
-    var coercionName: String { fatalError("Not yet implemented: \(type(of:self)).coercionName") }
+    var coercionName: String { fatalError("Missing implementation: \(type(of:self)).\(#function)") }
     
     override var description: String { return self.coercionName }
     
@@ -614,15 +614,29 @@ class AsTypeChecked<T: Value>: BridgingCoercion { // if the given Value is insta
     }
 }
 
+class AsTypeChecked<T: Value>: AsLiteral<T> {
+    
+    override func unbox(value: Value, env: Scope) throws -> SwiftType {
+        guard let result = try value.nativeEval(env: env, coercion: asAnything) as? SwiftType else {
+            throw CoercionError(value: value, coercion: self)
+        }
+        return result
+    }
+}
 
-class AsIdentifier: AsTypeChecked<Identifier> {
+//
+
+class AsIdentifierLiteral: AsLiteral<Identifier> {
     override var coercionName: String { return "identifier" }
 }
 
-class AsCommand: AsTypeChecked<Command> {
+class AsCommandLiteral: AsLiteral<Command> {
     override var coercionName: String { return "command" }
 }
 
+class AsReference: AsTypeChecked<Reference> {
+    override var coercionName: String { return "reference" }
+}
 
 /******************************************************************************/
 // defining handler signatures
@@ -717,14 +731,14 @@ class AsAttributedValue: BridgingCoercion { // a value that implements the `get(
     
     override var description: String { return self.coercionName }
     
-    typealias SwiftType = Value
+    typealias SwiftType = AttributedValue
     
     func coerce(value: Value, env: Scope) throws -> Value {
-        if !(value is AttributedValue) { throw CoercionError(value: value, coercion: self) }
-        return value
+        return try self.unbox(value: value, env: env)
     }
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        if !(value is AttributedValue) { throw CoercionError(value: value, coercion: self) }
+        let result = try value.toAny(env: env, coercion: self)
+        guard let value = result as? AttributedValue else { throw CoercionError(value: result, coercion: self) }
         return value
     }
     func box(value: SwiftType, env: Scope) throws -> Value {
@@ -795,8 +809,8 @@ let asCoercion = AsCoercion()
 
 let asIs = AsIs() // supplied value is returned as-is, without expanding or thunking it; used in primitive handlers to take lazily-evaluated arguments that will be evaluated using the supplied `commandEnv` (primitive handlers should only need to thunk values that will be evaluated after the handler is returned)
 
-let asIdentifier = AsIdentifier()
-let asCommand = AsCommand()
+let asIdentifierLiteral = AsIdentifierLiteral()
+let asCommandLiteral = AsCommandLiteral()
 
 let asBlock = asIs // primitive handlers don't really care if an argument is a block or an expression (to/if/repeat/etc operators should check for block syntax themselves), so for now just pass it to the handler body as-is (there's no need to thunk it either, unless the supplied block/expression needs to be retained beyond the handler call in which case it must be captured with the command scope, either by declaring the parameter coercion asThunk or by calling asThunk.coerce in the handler body)
 
@@ -808,5 +822,5 @@ let asNoResult = AsNoResult() // expands value to anything, ignoring any result,
 let asAttributedValue = AsAttributedValue()
 let asAttribute = AsAttribute()
 
-let asReference = AsAnything() // TO DO: implement AsReference
+let asReference = AsReference() // TO DO: implement AsReference
 let asTestReference = asReference // TO DO: how easy to implement this? (being able to distinguish reference types will improve runtime error checking and tooling support)

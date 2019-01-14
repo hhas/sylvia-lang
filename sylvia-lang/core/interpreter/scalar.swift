@@ -129,6 +129,7 @@ func scalarComparisonOperation(_ lhs: Scalar, _ rhs: Scalar, intOperator: (Int,I
 // Arithmetic and comparison operators are defined on Scalar so that primitive procs can perform basic
 // numerical operations without having to check or care about underlying representations (Int or Double).
 
+// TO DO: once BigNum support is implemented, only other reason for throwing is if scalar is .invalid, in which case might be as well just to concatenate both scalar string representations with operator symbol and return as 'unevaluated expression string' instead of throwing (since throwing creates work of its own)
 
 typealias ScalarArithmeticFunction = (Scalar, Scalar) throws -> Scalar
 typealias ScalarComparisonFunction = (Scalar, Scalar) throws -> Bool

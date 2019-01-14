@@ -27,7 +27,7 @@ class Range: Value {
 
 // coercion
 
-class AsRange: AsTypeChecked<Range> {
+class AsRange: AsLiteral<Range> {
     override var coercionName: String { return "range" }
 }
 

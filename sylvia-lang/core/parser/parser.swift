@@ -183,6 +183,7 @@ class Parser {
         case .identifier(value: let name, isQuoted: _): // found `NAME`
             switch self.peek(ignoringLineBreaks: false) {  // is there an argument tuple after NAME (i.e. is it a command name or identifier?) // TO DO: how safe to accept a single unparenthesized argument? e.g. `get file 1` = `get (file (1))`
             case .groupLiteral: // read zero or more parenthesized arguments
+                // TO DO: call parseRecord/parseTuple to read arg list; this should know how to read Pairs (this is context-sensitive: pair labels that lexer marks as .operator must be converted to .identifier)
                 self.advance(ignoringLineBreaks: false) // advance cursor onto "("
                 value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple
             case .listLiteral, .textLiteral, .symbolLiteral, .identifier, .number: // read single unparenthesized argument (note: a .blockLiteral argument must be parenthesized to avoid ambiguity in `PREFIX_OPERATOR IDENTIFIER BLOCK` pattern commonly used by flow control)

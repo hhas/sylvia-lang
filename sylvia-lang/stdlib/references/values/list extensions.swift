@@ -1,9 +1,11 @@
 //
 //  list.swift
 //
+//  TO DO: this is extension on List, so will need to be builtin
+//
 
 
-// TO DO: how best to define bridging glue for native attributes?
+// TO DO: how best to define bridging glue for native attributes? (for now we just use handcoded `switch` blocks in `get()`; eventually the get method should presumably be in code-generated extension)
 
 //
 // attribute types: primitive(?), to-one relationship, to-many relationship; Q. how/when should these be resolved for native values? e.g. , `show (items 1 thru 5 of my_list)` [shows 5-item list], `foo: items 1 thru 5 of my_list` [expr should eval to 5-item list], `foo: reference_to items 1 thru 5 of my_list` [expr will evaluate to reference value], `delete (items 1 thru 5 of my_list)` [`delete` handler will receive specifier as argument]
@@ -41,24 +43,20 @@
 
 
 
-extension List: Scope { // TO DO: List should be Attributed, not Scope (which is intended for stack frames, JS-style Objects, etc); this needs more thought/work (for starters, it needs to be compiled as part of core, not library, so next step will be to split value.swift into per-class files for easier maintainability and move this there)
-    
-    func child() -> Scope { // TO DO: normally used by NativeHandler; could also be used by nested `tell` blocks; any reason why it might be used here?
-        return self // what to return?
-    }
+extension List: Attributed { // TO DO: List should be Attributed, not Scope (which is intended for stack frames, JS-style Objects, etc); this needs more thought/work (for starters, it needs to be compiled as part of core, not library, so next step will be to split value.swift into per-class files for easier maintainability and move this there)
     
     // attributes
     
-    func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws { // TO DO: really want to get rid of this: there shouldn't be any use case where a list attribute (e.g. "items") is set directly, e.g. `set(items of LIST, to:…)`
+    func set(_ name: String, to value: Value) throws { // TO DO: really want to get rid of this: there shouldn't be any use case where a list attribute (e.g. "items") is set directly, e.g. `set(items of LIST, to:…)`
         fatalError() // TO DO: any settable attributes? if not, throw ReadOnly error
     }
     
-    func get(_ name: String) throws -> (value: Value, scope: Scope) { // e.g. `items of LIST`; TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv); in this case, scope is List value (i.e. self)
+    func get(_ name: String) throws -> Value { // e.g. `items of LIST`; TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv); in this case, scope is List value (i.e. self)
         switch name {
         case "items", "item": // singular/plural naming conventions aren't consistent, so have to treat them as synonyms; TO DO: where both spellings are available, pretty printer should choose according to to-one/to-many selector, e.g. `item at 1`, `items at 1 thru 3`
-            return (AllListItemsSpecifier(self, name), self) // TO DO: kludge; don't really want to pass nullEnv here
+            return AllListItemsSpecifier(self, name)
         case "at": // `item at 1 of LIST` -> `'of' ('at' (item, 1), LIST)`, which looks up `at` on LIST
-            return (IndexSelectorMethod(parentObject: self), self)
+            return IndexSelector(for: self)
         default:
             throw UnrecognizedAttributeError(name: name, value: self)
         }

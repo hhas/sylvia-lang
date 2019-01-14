@@ -99,6 +99,7 @@ def _camelCase(s):
 
 # flags
 primitiveHandlerName = 'swift_handler'
+primitiveClassName = 'swift_class'
 
 requiresScopes = 'requires_scopes'
 commandEnv = 'command'
@@ -106,7 +107,6 @@ handlerEnv = 'handler'
 bodyEnv = 'body'
 
 canError = 'can_error'
-isConstructor = 'value_constructor'
 
 ignoreUnknownArguments = 'ignore_unknown_arguments' # event handler
 
@@ -115,7 +115,7 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
     defineHandlers = []
     loadHandlers = []
     for name, parameters, returnType, requirements in handlers:
-        swiftFuncName = requirements.get(primitiveHandlerName) or _camelCase(name)
+        swiftFuncName = requirements.get(primitiveClassName) or requirements.get(primitiveHandlerName) or _camelCase(name)
         # create unique identifier for handler's generated code (e.g. `FUNCTIONNAME_ARG1_ARG2_ARG3`)
         primitiveSignatureName = [swiftFuncName] + [_camelCase(k) for k,v in parameters]
         scopes = requirements.get(requiresScopes, set())
@@ -143,7 +143,7 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
         if commandEnv in scopes: functionArguments.append("\n\t\tcommandEnv: commandEnv")
         if handlerEnv in scopes: functionArguments.append("\n\t\thandlerEnv: handlerEnv")
         
-        if isConstructor in scopes:
+        if requirements.get(primitiveClassName):
             resultAssignment = "return "
             functionReturn = ""
         elif returnType == "asNoResult":
@@ -276,12 +276,19 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
             
             ("of", [("attribute", "asAttribute"), ("value", "asAttributedValue")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="ofClause")),
+            
+            # TO DO: should element_type be Symbol? (i.e. underlying commands should allow runtime parameterization)
             ("at", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="indexSelector")),
             ("named", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
-             dict(can_error=True, requires_scopes={commandEnv}, swift_handler="nameSelector")),
+                    dict(can_error=True, requires_scopes={commandEnv}, swift_handler="nameSelector")),
+            ("with_id", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
+                    dict(can_error=True, requires_scopes={commandEnv}, swift_handler="idSelector")),
             ("where", [("element_type", "asAttributeName"), ("selector_data", "asReference")], "asIs",
-             dict(can_error=True, requires_scopes={commandEnv}, swift_handler="testSelector")),
+                    dict(can_error=True, requires_scopes={commandEnv}, swift_handler="testSelector")),
+            
+            ("thru", [("from", "asValue"), ("to", "asValue")], "asIs",
+                    dict(swift_class="Range")),
            
     ]
 

@@ -20,9 +20,35 @@ protocol Attributed {
     
     func set(_ name: String, to value: Value) throws // used to set (via `store` command/`IDENTIFIER:VALUE` assignment) [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that); TO DO: this needs more thought, as `set(REFERENCE,to:VALUE)` is also used particularly in aelib; it might be that we standardize on `set(_:to:)` for *all* assignment
     
-    func get(_ name: String) throws -> (value: Value, scope: Scope) // TO DO: returning Scope (for use as handlerEnv) rather than Attributed is problematic, tightly coupling non-scope objects (e.g. List and other AttributedValues) to unrelated subclasses (Env)
+    func get(_ name: String) throws -> Value
         
 }
+
+
+
+
+class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue where a full Scope is currently expected
+    
+    private let value: AttributedValue
+    
+    init(_ value: AttributedValue) {
+        self.value = value
+    }
+    
+    func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws {
+        throw GeneralError()
+    }
+    
+    func child() -> Scope {
+        return self
+    }
+    
+    func get(_ name: String) throws -> (value: Value, scope: Scope) {
+        return (try self.value.get(name), self)
+    }
+}
+
+
 
 
 protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Env.find() to retrieve the slot's value AND its lexical scope so that it can eval the value in its original context when coercing it to the requested return type (one option is for `get` to return both, although the scope needs to be protocol based and restricted to read-only [note: a read-only protocol will discourage, but won't prevent, upcasting of a returned Env; a safer option is to wrap the env in a shim, or maybe ask the env for a read-only version of itself which prevents any fiddling]) //
@@ -31,8 +57,17 @@ protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Env.find() to
     
     func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws
     
+    func get(_ name: String) throws -> (value: Value, scope: Scope) // TO DO: returning Scope (for use as handlerEnv) rather than Attributed is problematic, tightly coupling non-scope objects (e.g. List and other AttributedValues) to unrelated subclasses (Env)
+    
     func child() -> Scope // TO DO: what about scope name, global/local, writable flag?
     
+}
+
+extension Scope {
+    func get(_ name: String) throws -> Value {
+        let result: (Value, Scope) = try self.get(name)
+        return result.0
+    }
 }
 
 

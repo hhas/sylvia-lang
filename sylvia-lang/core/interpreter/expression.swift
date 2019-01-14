@@ -10,56 +10,6 @@
 // TO DO: operator-generated commands/identifiers should be annotated with operator definition; this can be used by pretty-printer and in error message generation (e.g. "‘-’ handler’s ‘left’ parameter" should read as "‘-’ operator’s ‘left’ operand" in BadArgumentError message)
 
 
-// abstract base classes for values (blocks, identifiers, commands) that evaluate to yield other values
-
-class Expression: Value {
-    
-    // forward all Expression.toTYPE() calls to bridgingEval()/nativeEval()
-    
-    override class var nominalType: Coercion { return asAnything }
-    
-    //
-    
-    // not sure this helps (also hits speed); need to check if/where Expression.toTYPE() methods could be called, given that they implement their own eval entry points
-    internal func safeRun<T: Value>(env: Scope, coercion: Coercion, function: String = #function) throws -> T {
-        let value: Value
-       // do {
-            value = try self.nativeEval(env: env, coercion: coercion)
-       // } catch let e as NullCoercionError { // check
-       //     print("\(self).safeRun(coercion:\(coercion)) caught null coercion result.")
-        //    //throw CoercionError(value: self, coercion: coercion)
-       //     throw e
-       // }
-        return value as! T
-        //guard let result = value as? T else { // kludgy; any failure is presumably an implementation bug in a Coercion.coerce()/Value.toTYPE() method
-        //    throw InternalError("\(type(of:self)) \(function) expected \(coercion) coercion to return \(T.self) but got \(type(of: value)): \(value)")
-        //}
-        //return result
-    }
-    
-    //
-    
-    override func toAny(env: Scope, coercion: Coercion) throws -> Value { // still gets called on Identifier, Command, Block
-//        print("\(type(of:self)).\(#function) was called")
-        return try self.nativeEval(env: env, coercion: coercion)
-    }
-    
-    override func toText(env: Scope, coercion: Coercion) throws -> Text {
-//        print("\(type(of:self)).\(#function) was called")
-        return try self.safeRun(env: env, coercion: coercion)
-    }
-    
-    override func toList(env: Scope, coercion: AsList) throws -> List {
-//        print("\(type(of:self)).\(#function) was called")
-        return try self.safeRun(env: env, coercion: coercion) // ditto
-    }
-    
-    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
-        print("\(type(of:self)).\(#function) was called")
-        return try self.bridgingEval(env: env, coercion: coercion)
-    }
-}
-
 
 // concrete expression classes
 
@@ -69,14 +19,16 @@ class Identifier: Expression {
     
     override var description: String { return "\(self.name)" }
     
-    override class var nominalType: Coercion { return asIdentifier }
+    override class var nominalType: Coercion { return asIdentifierLiteral }
     
-    let name: String // used by assignment operator
-    let key: String
+    let name: String
+    let key: String // used by assignment
+    let symbol: Symbol // may be used by operator parsers, e.g. `item at 1` -> `'at'(#item,1)`
     
     // TO DO: use key (all-lowercase) for env lookups
     
     init(_ name: String) {
+        self.symbol = Symbol(name)
         self.name = name // TO DO: how/when to check if name should be quoted? (this will require access to lexer's character tables and to operator tables; lexer itself might want to offer quoting hints based on whether or not the identifier was already quoted in source code; also, if operator table is going to be extended by imported libraries, this *will* require a special form, `use LIBRARY [with_syntax VERSION]`, that lexer can recognize and process at top-level of code)
         self.key = name.lowercased()
     }
@@ -93,7 +45,7 @@ class Identifier: Expression {
     }
     
     override func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
-        let (value, lexicalEnv) = try env.get(self.name)
+        let (value, lexicalEnv) = try env.get(self.key)
         // TO DO: where should null coercion errors become permanent?
         //do {
         return try value.bridgingEval(env: lexicalEnv, coercion: coercion)
@@ -108,7 +60,7 @@ class Command: Expression {
     
     override var description: String { return "‘\(self.name)’ (\((self.arguments.map{$0.description}).joined(separator:", ")))" }
     
-    override class var nominalType: Coercion { return asCommand }
+    override class var nominalType: Coercion { return asCommandLiteral }
     
     let name: String
     let key: String
@@ -189,6 +141,8 @@ class Thunk: Expression {
 
 
 // expression sequences
+
+// TO DO: under what circumstances can/should blocks implement Callable? (in normal use, a literal block is evaluated same as any other literal value: any command can take a block as argument, coercing its result to the required type)
 
 class Block: Expression { // a sequence of zero or more Values to evaluate in turn; result is last value evaluated; TO DO: use Icon-style evaluation, where 'failure' result causes subsequent evals to be skipped? (this might be done via exceptions, c.f. null coercion, rather than actual return values)
     

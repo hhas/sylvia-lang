@@ -10,6 +10,9 @@
 // TO DO: need to decide policy on operator synonyms, particularly for symbol operators (which must map to word-based names in Swift code): either all operator symbols must map to word-based command names, or handler code generator needs option to specify both symbol name and Swift func name
 
 
+// TO DO: should comparison operators return Boolean result or Icon-style input value/failure result (Icon approach has advantage of supporting operator chaining, e.g. `0 < x <= 10`, but is less familiar; if using Boolean, need to decide on `true`/`false` and/or non-empty/empty; true/false is desirable from formal education POV, though not especially helpful from everyday scripting POV)
+
+
 /******************************************************************************/
 // custom parse funcs
 
@@ -19,18 +22,44 @@ func parseNothingOperator(_ parser: Parser, operatorName: String, definition: Op
 
 
 func parseNumericSignOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value { // `SIGN NUMBER` tokens -> `SIGNED_NUMBER` value
-    if numericSigns.contains(operatorName), case .number(value: let number, _) = parser.peek() {
+    if numericSigns.contains(operatorName), case .number(value: let number, scalar: let scalar) = parser.peek() {
         parser.advance()
-        return Text(operatorName + number) // TO DO: cache numeric (Scalar) representation
+        // TO DO: this is a bit grotty (aside from assuming numericSigns is strictly +/-, it must allow for possibility that negation operator can throw, e.g. if number is out of range)
+        if operatorName == "+" {
+            return Text(operatorName + number, scalar: scalar)
+        } else if let n = try? -scalar {
+            return Text(operatorName + number, scalar: n)
+        } else {
+            return Text(operatorName + number)
+        }
     } else {
         parser.advance()
-        return Command(definition.handlerName ?? operatorName, leftOperand: try parser.parseExpression(definition.precedence))
+        return Command(definition.handlerName ?? operatorName, rightOperand: try parser.parseExpression(definition.precedence))
     }
 }
 
 
+func parseInfixSelectorOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    // similar to parseInfixOperator, except requires left operand to be an Identifier which it converts to Symbol for use in Command
+    parser.advance()
+    guard let left = leftExpr as? Identifier else {
+        throw SyntaxError("\(operatorName) expected ‘left’ operand to be identifier but received \(leftExpr.nominalType) instead.")
+    }
+    return Command(definition.handlerName ?? operatorName, leftOperand: left.symbol, rightOperand: try parser.parseExpression(definition.precedence))
+}
 
-func handlerConstructorOperatorParser(_ isEventHandler: Bool) -> ParseFunc.Prefix { // used by `to`/`when` operators
+func parseInfixRelativeSelectorOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    // similar to parseInfixSelectorOperator, except invokes method of right operand
+    parser.advance()
+    guard let left = leftExpr as? Identifier else {
+        throw SyntaxError("\(operatorName) expected ‘left’ operand to be identifier but received \(leftExpr.nominalType) instead.")
+    }
+    return Command("of", leftOperand: Command(definition.handlerName ?? operatorName, leftOperand: left.symbol),
+                        rightOperand: try parser.parseExpression(definition.precedence))
+}
+
+
+func parseHandlerOperator(_ isEventHandler: Bool) -> ParseFunc.Prefix { // returns parsefuncs used by `to`/`when` operators
     return { (_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value in
         parser.advance() // step over 'to'/'when'
         
@@ -54,8 +83,6 @@ func handlerConstructorOperatorParser(_ isEventHandler: Bool) -> ParseFunc.Prefi
     }
 }
 
-let parseCommandHandlerConstructorOperator = handlerConstructorOperatorParser(false)
-let parseEventHandlerConstructorOperator = handlerConstructorOperatorParser(true)
 
 
 /******************************************************************************/
@@ -88,11 +115,11 @@ let stdlib_operators: [OperatorDefinition] = [
     
     // TO DO: what about word-based names for all symbol operators? (useful for auto-documentation, and also voice support)
     
-    ("^",   500, .infix(parseRightInfixOperator), ["exponent", "to_power"], nil),
-    
     // unary +/- must bind tighter than `of`, `at`, etc
     ("+",   2000, .prefix(parseNumericSignOperator), [], "positive"),
     ("-",   2000, .prefix(parseNumericSignOperator), [], "negative"),
+    
+    ("^",   500, .infix(parseRightInfixOperator), ["exponent", "to_power"], nil),
     
     ("×",   480, .infix(parseInfixOperator),      ["*"], nil),
     ("÷",   480, .infix(parseInfixOperator),      ["/"], nil),
@@ -119,8 +146,8 @@ let stdlib_operators: [OperatorDefinition] = [
     ("gt", 400, .infix(parseInfixOperator), ["is_after"], nil),
     ("ge", 400, .infix(parseInfixOperator), ["is_not_after"], nil),
     
-    // identity comparison
-    ("is_a",              400, .infix(parseInfixOperator), [], nil), // try coercing value to specified coercion and return 'true' if it succeeds
+    // value info
+    ("is_a", 400, .infix(parseInfixOperator), [], nil), // try coercing value to specified coercion and return 'true' if it succeeds else 'false'
     
     // assignment
     // TO DO: if using NAME:VALUE for general assignment, we'll have to rely on coercions to specify read/write, e.g. `foo: 1 as editable(number)`, or else use `[let|var] NAME:VALUE`; using coercions is arguably better as the same syntax then works for handler signatures, allowing handler to indicate if it shares caller's argument value (c.f. pass-by-reference) or makes its own copy if needed (c.f. pass-by-value) (in keeping with existing read-only-by-default assignment policy, the latter behavior would be default and the former behavior explicitly requested using `EXPR as editable(…)`, or maybe even make `editable an atom/prefix operator for cleaner syntax, e.g. `EXPR as editable`, `EXPR as editable text`, etc, `EXPR as editable list(text)`); if we can be really sneaky, `A of B` operator could work by passing B as first argument to A, e.g. `EXPR as editable list of text`, `EXPR as editable list (max:10) of text`
@@ -144,8 +171,8 @@ let stdlib_operators: [OperatorDefinition] = [
     ("as", 80, .infix(parseInfixOperator), [], nil),
     
     // define handlers
-    ("to",   0, .prefix(parseCommandHandlerConstructorOperator), [], "define_handler"), // TO DO: should aliases redeclare canonical name?
-    ("when", 0, .prefix(parseEventHandlerConstructorOperator),   [], "define_handler"),
+    ("to",   0, .prefix(parseHandlerOperator(false)), [], "define_handler"), // TO DO: should aliases redeclare canonical name?
+    ("when", 0, .prefix(parseHandlerOperator(true)),  [], "define_handler"),
     
     // flow control
     ("if",          10, .prefix(parsePostfixOperatorWithBlock), [], nil), // TO DO: how sensible/safe to allow infix `EXPR if TEST` c.f. Ruby, e.g. `error if problem`? // TO DO: also implement `unless`?
@@ -156,19 +183,35 @@ let stdlib_operators: [OperatorDefinition] = [
     ("else",         5, .infix(parseInfixOperator),    [], nil),
     ("catching",     4, .infix(parseInfixOperator),    [], nil), // "defineErrorHandler"?
     
+    // range value constructor
+    ("thru",       1210, .infix(parseInfixOperator),   [], nil),
+    
     // reference
-    ("of",         1000, .infix(parseInfixOperator),   [], nil),
-    //(".",         1000, .infix(parseReverseInfixOperator), [], "of_clause"), // TO DO: dot notation is useful for reverse domain name-style references
+    ("of",         1000, .infix(parseRightInfixOperator),    [], nil),
+    //(".",         1000, .infix(parseReverseInfixOperator), [], "of"), // TO DO: dot notation is useful for reverse domain name-style references, e.g. `com.example.foo`, which are more natural than `of` for accessing a Frontier-style namespace, but need to confirm it's syntactically solid
     
     // selectors
-    ("at",         1200, .infix(parseInfixOperator),   [], nil),
-    ("named",      1200, .infix(parseInfixOperator),   [], nil),
-    // TO DO: what to call by-id operator? could use `id`, although that will require user to single-quote ‘id’ when referring to an `id` property
-    ("whose",      1200, .infix(parseInfixOperator),   [], nil),
-    ("every",      1200, .prefix(parsePrefixOperator), [], nil),
+    ("at",         1200, .infix(parseInfixSelectorOperator), [], nil), // by-index/by-range
+    ("named",      1200, .infix(parseInfixSelectorOperator), [], nil),
+    ("for_id",     1200, .infix(parseInfixSelectorOperator), [], nil),
+    ("where",      1200, .infix(parseInfixSelectorOperator), [], nil),
     
-    // range
-    ("thru",       1210, .infix(parseInfixOperator),   [], nil),
+    // ordinal
+    ("first",      1220, .prefix(parsePrefixOperator), [], nil),
+    ("middle",     1220, .prefix(parsePrefixOperator), [], nil),
+    ("last",       1220, .prefix(parsePrefixOperator), [], nil),
+    ("any",        1220, .prefix(parsePrefixOperator), [], nil),
+    ("every",      1220, .prefix(parsePrefixOperator), [], nil),
+    
+    // relative
+    ("before",     1220, .infix(parseInfixRelativeSelectorOperator), [], "previous"), // `IDENTIFIER before ELEMENT` ➞ 'of'(previous(SYMBOL),REFERENCE)
+    ("after",      1220, .infix(parseInfixRelativeSelectorOperator), [], "next"),     // `IDENTIFIER after ELEMENT`  ➞ 'of'(next(SYMBOL),REFERENCE)
+    
+    // insertion
+    ("before",     1220, .prefix(parsePrefixOperator), [], nil), // `before ELEMENT`
+    ("after",      1220, .prefix(parsePrefixOperator), [], nil), // `after ELEMENT`
+    ("beginning",  1220, .atom(parseAtomOperator),     [], nil), // `beginning of ELEMENTS`
+    ("end",        1220, .atom(parseAtomOperator),     [], nil), // `end of ELEMENTS`
     
     // note: default precedence is 0; punctuation is -ve; annotation is high; infix/postfix ops should come somewhere inbetween (hardcoding precedence as ints is icky, requiring sufficient sized gaps between different operator sets to allow for new operators to be defined inbetween, but will do for now); TO DO: if sticking to ints, consider defining operator precedence as CATEGORYOperatorPrecedence+relativePrecedence, e.g. booleanOperatorPrecedence = 0x00010000, with NOT,AND,XOR,OR having relative precedence of 3,2,1,0 to each other
     
