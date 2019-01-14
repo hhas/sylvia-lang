@@ -89,6 +89,17 @@ extension BridgingProtocol {
     }
 }
 
+extension BridgingProtocol where SwiftType: Value { // Q. why doesn't this work when SwiftType is (e.g.) Coercion (which is typealias of `Value & CoercionProtocol`)? presumably because resulting type represents a subset of all possible values; in which case is there any way to make `where` clause allow for this (i.e. `implements` rather than `isa`)?
+    
+    func coerce(value: Value, env: Scope) throws -> Value {
+        return try self.unbox(value: value, env: env)
+    }
+    
+    func box(value: SwiftType, env: Scope) throws -> Value {
+        return value
+    }
+}
+
 
 /******************************************************************************/
 // concrete coercion classes
@@ -107,16 +118,8 @@ class AsValue: BridgingCoercion { // any value *except* `nothing`
     
     typealias SwiftType = Value
     
-    func coerce(value: Value, env: Scope) throws -> Value {
-        return try value.toAny(env: env, coercion: self)
-    }
-    
     func unbox(value: Value, env: Scope) throws -> SwiftType {
         return try value.toAny(env: env, coercion: self)
-    }
-    
-    func box(value: SwiftType, env: Scope) throws -> Value {
-        return value
     }
 }
 
@@ -304,16 +307,8 @@ class AsText: BridgingCoercion { // Q. what about constraints? // TO DO: would b
     
     typealias SwiftType = Text
     
-    func coerce(value: Value, env: Scope) throws -> Value {
+    func unbox(value: Value, env: Scope) throws -> SwiftType {
         return try value.toText(env: env, coercion: self)
-    }
-    
-    func unbox(value: Value, env: Scope) throws -> SwiftType { // also add this via extension? (it'd need to cast `return self.coerce(…) as! SwiftType`, which isn't ideal)
-        return try value.toText(env: env, coercion: self)
-    }
-    
-    func box(value: SwiftType, env: Scope) throws -> Value { // add this method automatically via `extension BridgingCoercion where SwiftType: Value {}`
-        return value
     }
 }
 
@@ -326,21 +321,35 @@ class AsSymbol: BridgingCoercion {
     
     typealias SwiftType = Symbol
     
+    func unbox(value: Value, env: Scope) throws -> SwiftType {
+        return try value.toSymbol(env: env, coercion: self)
+    }
+}
+
+
+class AsSymbolKey: BridgingCoercion { // TO DO: rename AsKey?
+    
+    var coercionName: String { return "symbol" }
+    
+    override var description: String { return self.coercionName }
+    
+    typealias SwiftType = String
+    
     func coerce(value: Value, env: Scope) throws -> Value {
         return try value.toSymbol(env: env, coercion: self)
     }
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        return try value.toSymbol(env: env, coercion: self)
+        return try value.toSymbol(env: env, coercion: self).key
     }
     
     func box(value: SwiftType, env: Scope) throws -> Value {
-        return value
+        return Symbol(value)
     }
 }
 
 
-// native-only coercions // TO DO: this smells
+// native-only coercions // TO DO: this smells; it should be able to bridge as long as items are coerced, not unboxed
 
 class AsList: Coercion {
     
@@ -447,10 +456,6 @@ class AsOptionalValue: BridgingCoercion { // native optional
             return noValue
         }
     }
-    
-    func box(value: SwiftType, env: Scope) throws -> Value {
-        return value
-    }
 }
 
 
@@ -512,16 +517,8 @@ class AsThunk<T: BridgingCoercion>: BridgingCoercion {
         self.coercion = coercion
     }
     
-    func coerce(value: Value, env: Scope) throws -> Value {
-        return Thunk(value, env: env, coercion: self.coercion)
-    }
-    
     func unbox(value: Value, env: Scope) throws -> SwiftType {
         return Thunk(value, env: env, coercion: self.coercion)
-    }
-    
-    func box(value: SwiftType, env: Scope) throws -> Value {
-        return value
     }
 }
 
@@ -546,21 +543,15 @@ class AsLazy: Coercion { // native only; TO DO: what about bridging?
 
 class AsIs: BridgingCoercion { // the value is passed thru as-is, without evaluation; unlike AsThunk, its context (env) is not captured
     
-    var coercionName: String { return "optional" }
+    var coercionName: String { return "anything" }
     
     override var description: String { return self.coercionName }
     
     typealias SwiftType = Value
     
-    // TO DO: take coercion for display purposes?
-    
-    func coerce(value: Value, env: Scope) throws -> Value {
-        return value
-    }
+    // TO DO: add initializer that takes a Coercion object for display purposes only (i.e. the primitive implementation is known to return a value of that type which it doesn't want evaluated again for whatever reason); glue generator may want to use that 'true' coercion in interface signature, but ignore it when returning value; alternatively make this a `return_as_is` option on glue generator, avoiding need for this class entirely
+
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        return value
-    }
-    func box(value: SwiftType, env: Scope) throws -> Value {
         return value
     }
 }
@@ -574,20 +565,12 @@ class AsAnything: BridgingCoercion { // any value including `nothing`; used to e
     
     typealias SwiftType = Value
     
-    func coerce(value: Value, env: Scope) throws -> Value {
+    func unbox(value: Value, env: Scope) throws -> SwiftType {
         do {
             return try value.toAny(env: env, coercion: self)
         } catch let error as NullCoercionError {
             return error.value // TO DO: how far should `didNothing` result propagate before being converted to `nothing`/permanent coercion error? it probably shouldn't go beyond an immediate `else` clause, e.g. `(if x action) else (y)` but not `(moreStuff(if x action)) else (y)`; might need to define an additional return type for handlers that can return `didNothing`, and have AsAnything/AsOptional catch and return noValue
         }
-    }
-    
-    func unbox(value: Value, env: Scope) throws -> SwiftType {
-        return try self.coerce(value: value, env: env)
-    }
-    
-    func box(value: SwiftType, env: Scope) throws -> Value {
-        return value
     }
 }
 
@@ -602,15 +585,9 @@ class AsLiteral<T: Value>: BridgingCoercion { // if the input Value is an instan
     
     typealias SwiftType = T
     
-    func coerce(value: Value, env: Scope) throws -> Value {
-        return try self.unbox(value: value, env: env)
-    }
     func unbox(value: Value, env: Scope) throws -> SwiftType {
         guard let result = value as? SwiftType else { throw CoercionError(value: value, coercion: self) }
         return result
-    }
-    func box(value: SwiftType, env: Scope) throws -> Value {
-        return value
     }
 }
 
@@ -683,7 +660,7 @@ class AsCoercion: BridgingCoercion {
     
     override var description: String { return self.coercionName }
     
-    typealias SwiftType = Coercion
+    typealias SwiftType = Coercion // note that Coercion is subset of Values, so coerce and box won't be supplied by extension
     
     func coerce(value: Value, env: Scope) throws -> Value {
         return try self.unbox(value: value, env: env)
@@ -700,7 +677,7 @@ class AsCoercion: BridgingCoercion {
 }
 
 
-class AsNoResult: Coercion { // value is discarded; noValue is returned (used in primitive handler coercion sigs when handler returns no result)
+class AsNoResult: Coercion { // value is evaluated and its result discarded; noValue is returned (used in primitive handler coercion sigs when handler returns no result)
     
     var coercionName: String { return "no_result" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asValue`] from 'returns nothing')
     
@@ -709,13 +686,14 @@ class AsNoResult: Coercion { // value is discarded; noValue is returned (used in
     typealias SwiftType = Value
     
     func coerce(value: Value, env: Scope) throws -> Value {
-        let _ = try asAnything.coerce(value: value, env: env)
-        return noValue
+        return try self.unbox(value: value, env: env)
     }
+    
     func unbox(value: Value, env: Scope) throws -> SwiftType {
         let _ = try asAnything.coerce(value: value, env: env)
         return noValue
     }
+    
     func box(value: SwiftType, env: Scope) throws -> Value {
         return noValue
     }
@@ -736,11 +714,13 @@ class AsAttributedValue: BridgingCoercion { // a value that implements the `get(
     func coerce(value: Value, env: Scope) throws -> Value {
         return try self.unbox(value: value, env: env)
     }
+    
     func unbox(value: Value, env: Scope) throws -> SwiftType {
         let result = try value.toAny(env: env, coercion: self)
         guard let value = result as? AttributedValue else { throw CoercionError(value: result, coercion: self) }
         return value
     }
+    
     func box(value: SwiftType, env: Scope) throws -> Value {
         return value
     }
@@ -755,10 +735,6 @@ class AsAttribute: BridgingCoercion { // an identifier/command (i.e. a value who
     override var description: String { return self.coercionName }
     
     typealias SwiftType = Value
-
-    func coerce(value: Value, env: Scope) throws -> Value {
-        return try self.unbox(value: value, env: env)
-    }
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
         switch value {
@@ -769,10 +745,6 @@ class AsAttribute: BridgingCoercion { // an identifier/command (i.e. a value who
         default:
             throw CoercionError(value: value, coercion: self)
         }
-    }
-    
-    func box(value: SwiftType, env: Scope) throws -> Value {
-        return value
     }
 }
 
@@ -789,6 +761,7 @@ let asAnything = AsAnything() // any value or `nothing`; this is the default ret
 
 let asText = AsText()
 let asSymbol = AsSymbol()
+let asSymbolKey = AsSymbolKey()
 let asBool = AsBool()
 let asScalar = AsScalar()
 let asInt = AsInt()

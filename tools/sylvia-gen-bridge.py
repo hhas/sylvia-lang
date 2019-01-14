@@ -255,14 +255,14 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
             ("format_code", [("value", "asAnything")], "asString",
                     dict()),
             
-            ("define_handler", [("name", "asString"),
+            ("define_handler", [("name", "asString"), # TO DO: use asSymbolKey
                                ("parameters", "AsArray(asParameter)"),
                                ("return_type", "asCoercion"),
                                ("action", "asIs"),
                                ("is_event_handler", "asBool")
                                ], "asNoResult", 
                     dict(can_error=True, requires_scopes={commandEnv})),
-            ("store", [("name", "asString"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs",
+            ("store", [("name", "asSymbolKey"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv})),
             
             ("if", [("condition", "asBool"), ("action", "asBlock")], "asIs", 
@@ -277,14 +277,13 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
             ("of", [("attribute", "asAttribute"), ("value", "asAttributedValue")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="ofClause")),
             
-            # TO DO: should element_type be Symbol? (i.e. underlying commands should allow runtime parameterization)
-            ("at", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
+            ("at", [("element_type", "asSymbolKey"), ("selector_data", "asAnything")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="indexSelector")),
-            ("named", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
+            ("named", [("element_type", "asSymbolKey"), ("selector_data", "asAnything")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="nameSelector")),
-            ("with_id", [("element_type", "asAttributeName"), ("selector_data", "asAnything")], "asIs",
+            ("with_id", [("element_type", "asSymbolKey"), ("selector_data", "asAnything")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="idSelector")),
-            ("where", [("element_type", "asAttributeName"), ("selector_data", "asReference")], "asIs",
+            ("where", [("element_type", "asSymbolKey"), ("selector_data", "asReference")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="testSelector")),
             
             ("thru", [("from", "asValue"), ("to", "asValue")], "asIs",

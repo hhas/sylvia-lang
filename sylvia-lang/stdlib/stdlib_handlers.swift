@@ -825,7 +825,7 @@ func function_defineHandler_name_parameters_returnType_action_isEventHandler_com
 
 // store (name, value, readOnly)
 let signature_store_name_value_readOnly_commandEnv = (
-    paramType_0: asString,
+    paramType_0: asSymbolKey,
     paramType_1: asAnything,
     paramType_2: asBool,
     returnType: asIs
@@ -991,7 +991,7 @@ func function_ofClause_attribute_value_commandEnv(command: Command, commandEnv: 
 
 // at (element_type, selector_data)
 let signature_indexSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asAttributeName,
+    paramType_0: asSymbolKey,
     paramType_1: asAnything,
     returnType: asIs
 )
@@ -1018,7 +1018,7 @@ func function_indexSelector_elementType_selectorData_commandEnv(command: Command
 
 // named (element_type, selector_data)
 let signature_nameSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asAttributeName,
+    paramType_0: asSymbolKey,
     paramType_1: asAnything,
     returnType: asIs
 )
@@ -1043,14 +1043,14 @@ func function_nameSelector_elementType_selectorData_commandEnv(command: Command,
 }
 
 
-// for_id (element_type, selector_data)
+// with_id (element_type, selector_data)
 let signature_idSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asAttributeName,
+    paramType_0: asSymbolKey,
     paramType_1: asAnything,
     returnType: asIs
 )
 let interface_idSelector_elementType_selectorData_commandEnv = CallableInterface(
-    name: "for_id",
+    name: "with_id",
     parameters: [
         ("element_type", signature_idSelector_elementType_selectorData_commandEnv.paramType_0),
         ("selector_data", signature_idSelector_elementType_selectorData_commandEnv.paramType_1),
@@ -1072,7 +1072,7 @@ func function_idSelector_elementType_selectorData_commandEnv(command: Command, c
 
 // where (element_type, selector_data)
 let signature_testSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asAttributeName,
+    paramType_0: asSymbolKey,
     paramType_1: asReference,
     returnType: asIs
 )

@@ -9,7 +9,7 @@
 // COERCIONS
 /******************************************************************************/
 
-// used in `at`, `named`, etc commands/operator, where left operand is an Identifier
+// TO DO: check if/where this is still needed? (may be best to use asSymbolKey in commands such as `store` and `at`)
 
 class AsAttributeName: BridgingCoercion { // TO DO: unboxing here may be problematic
     

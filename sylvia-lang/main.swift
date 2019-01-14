@@ -254,7 +254,7 @@ code = "Store (“N”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item at -n of [5,6
 code = "show ({ 1 + 1 })"
 
 
-code = "color of text of documents of app “TextEdit”" // TO DO: element selectors aren't working yet
+code = "color of documents at 1 of app “TextEdit”, color of documents 1 of app “TextEdit”"
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
