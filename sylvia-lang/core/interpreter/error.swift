@@ -157,7 +157,7 @@ class EnvironmentError: GeneralError { // abstract base class
 }
 
 
-class ValueNotFoundError: EnvironmentError {
+class ValueNotFoundError: EnvironmentError { // TO DO: how should Env/Scope lookup errors relate to AttributedValue lookup errors?
 
     override var message: String {
         return "Can’t find a value named “\(self.name)”."
@@ -171,10 +171,19 @@ class ReadOnlyValueError: EnvironmentError {
     }
 }
 
-class HandlerNotFoundError: EnvironmentError {
+class NotAHandlerError: EnvironmentError {
+    
+    let value: Value?
+    
+    init(name: String, env: Scope, value: Value? = nil) {
+        self.value = value
+        super.init(name: name, env: env)
+    }
     
     override var message: String {
-        return "Can’t find a handler named “\(self.name)”."
+        var msg = "Can’t find a handler named “\(self.name)”."
+        if let value = self.value { msg += " (Found \(value.nominalType) instead.)" }
+        return msg
     }
 }
 

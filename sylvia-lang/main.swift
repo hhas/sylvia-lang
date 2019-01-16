@@ -254,8 +254,11 @@ code = "Store (“N”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item at -n of [5,6
 code = "show ({ 1 + 1 })"
 
 
-code = "color of documents at 1 of app “TextEdit”, color of documents 1 of app “TextEdit”"
+// TO DO: should application commands infer app root on arguments? or do we just require use of `tell` block to define app as common context? (in which case, it presumably needs to delegate; Q. delegate on first lookup error, or set a delegate object on root Reference?)
 
+//code = "color of documents at 1 of app “TextEdit”, text of document “Untitled” of app “TextEdit”"
+
+code = "set of app “TextEdit”"
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
 

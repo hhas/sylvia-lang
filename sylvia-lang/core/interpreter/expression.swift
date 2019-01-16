@@ -80,7 +80,7 @@ class Command: Expression {
 
     override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
         let (value, handlerEnv) = try env.get(self.key)
-        guard let handler = value as? Callable else { throw HandlerNotFoundError(name: self.name, env: env) }
+        guard let handler = value as? Callable else { throw NotAHandlerError(name: self.name, env: env, value: value) }
         return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, coercion: coercion)
     }
     

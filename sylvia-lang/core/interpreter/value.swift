@@ -42,7 +42,19 @@
 
 // abstract base class
 
-class Value: CustomStringConvertible { // base class for all native values // Q. would it be better for Value to be a protocol + extension? (need to check how multiple extensions that implement same methods are resolved, e.g. if Value extension implements default toTYPE methods)
+
+protocol PrimitiveWrapper {
+    
+    associatedtype SwiftType
+    
+    var swiftValue: SwiftType { get }
+    
+}
+
+
+class Value: CustomStringConvertible {
+    
+    // base class for all native values // Q. would it be better for Value to be a protocol + extension? (need to check how multiple extensions that implement same methods are resolved, e.g. if Value extension implements default toTYPE methods)
     
     lazy var annotations = [Int:Any]() // TO DO: what data structure?
     
@@ -50,7 +62,7 @@ class Value: CustomStringConvertible { // base class for all native values // Q.
     
     // TO DO: class var typeName (canonical name, e.g. `list`), var typeName (generated from self.nominalType, e.g. `list(text,max:10)`)
     
-    class var nominalType: Coercion { fatalError("Not yet implemented: \(type(of:self)).nominalType") }
+    class var nominalType: Coercion { fatalError("Not yet implemented: \(type(of:self)).nominalType") } // TO DO: need to return Precis
     
     var nominalType: Coercion { return type(of: self).nominalType }
     

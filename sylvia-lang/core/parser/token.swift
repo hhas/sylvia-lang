@@ -54,7 +54,7 @@ let punctuationTokens: [Character:Token] = [
     "[": .listLiteral,
     "]": .listLiteralEnd,
     ",": .itemSeparator,
-    ":": .pairSeparator, // TO DO: implement ":" symbol for defining KEY:VALUE pairs (used in key-value list literals and argument/parameter lists to declare field labels; might also be used in blocks to declare name-value bindings)
+    ":": .pairSeparator, // TO DO: implement ":" builtin for defining KEY:VALUE pairs (used in key-value list literals and argument/parameter lists to declare field labels; might also be used in blocks to declare name-value bindings)
     ";": .pipeSeparator, // TO DO: implement 'pipeline' symbol, allowing commands to be chained so that result of first command is passed as first arg to second command
 
     // TO DO: if using JS-ish syntax, use "." for .attributeSelector (note: this shouldn't stop us defining `of` operator as well, though need to think how they both bake down to Values; probably want a specific Expression subclass for this)

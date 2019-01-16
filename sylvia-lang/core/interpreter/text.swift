@@ -3,7 +3,7 @@
 //
 
 
-class Text: Value { // TO DO: Scalar?
+class Text: Value, PrimitiveWrapper { // TO DO: Scalar?
     
     override var description: String { return "“\(self.swiftValue)”" } // TO DO: pretty printing
     

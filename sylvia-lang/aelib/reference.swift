@@ -11,36 +11,36 @@
  
  */
 
+// by-range/by-test handlers supply full terminology and the appropriate relative root when evaluating selectorData, so no need for appscript-style 'generic references' or `app`/`con`/`its` globals // TO DO: as with `tell` blocks, still need to decide how to chain lookups (in this case it should be easy: just create custom sub-scope of command env and 'populate' that)
+
+// TO DO: need to decide class naming convention, as core/stdlib will presumably implement its own Reference class for chunk expressions (also, should aelib references present as same type as core references?)
+
+// TO DO: watch out for mutable lists being used in a specifier, e.g. `…where REFERENCE is_in MUTABLE_LIST`; ideally all Values used in specifiers should be evaluated immediately with `AsImmutable(…)` coercion
+
+
 import SwiftAutomation
 
-// TO DO: implement extensions for Text, List, Nothing (what else)
 
-// public protocol SelfPacking {
-//    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor
-// }
+/******************************************************************************/
 
 
+protocol SelfPackingReferenceWrapper: SelfPacking, PrimitiveWrapper {
+    
+    associatedtype SpecifierType where SpecifierType: SelfPacking
+    
+    var swiftValue: SpecifierType { get }
+    
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor
+}
 
-class RemoteCall: CallableValue {
+extension SelfPackingReferenceWrapper {
     
-    let parent: Reference
-    let definition: CommandTerm
-    let appData: NativeAppData
-    
-    var interface: CallableInterface {
-        fatalError() // CallableInterface(name: String, parameters: [(name, asAnything),…], returnType: asIs)
-    }
-    
-    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // TO DO: how to support returnType coercions?
-        fatalError()
-    }
-    
-    init(_ parent: Reference, definition: CommandTerm, appData: NativeAppData) {
-        self.parent = parent
-        self.definition = definition
-        self.appData = appData
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
+        return try swiftValue.SwiftAutomation_packSelf(appData)
     }
 }
+
+typealias SelfPackingReference = Reference & SelfPackingReferenceWrapper
 
 
 //
@@ -48,7 +48,9 @@ class RemoteCall: CallableValue {
 
 class Reference: AttributedValue { // abstract base class
     
-    // TO DO: callable? (c.f. nodeautomation, where calling a property/elements specifier is shorthand for `get()`); shouldn't be needed, as `get REFERENCE` does the same and is more idiomatic
+    override class var nominalType: Coercion { return asReference }
+    
+    // TO DO: callable? (c.f. nodeautomation, where calling a property/elements specifier is shorthand for `get()`); shouldn't be needed, as `get REFERENCE` does the same and is more idiomatic -- A. NO, as calling a reference is shorthand for by-index/by-name element selector
     
     // similar arrangement to py-appscript/py-aem, where Reference is high-level terminology-based wrapper around low-level four-char-code-based API (one reason for this arrangement, rather than reimplementing entire AE bridge here, is it'll gives native->Swift cross-compiler plenty flexibility when baking scripts as mixed/pure Swift code: pure-Swift bakes can use SwiftAutomation directly, while mixed bakes can wrap and unwrap Reference values when passing them between native and Swift sections); it also [in principle] allows primitive libraries to use SwiftAutomation themselves (even with static glues), although how to re-box these will require some thought (since SA specifiers do not normally contain NativeAppData instance)
     
@@ -76,36 +78,43 @@ class Reference: AttributedValue { // abstract base class
         case "send_apple_event":
             fatalError() // TO DO: needs to return callable that takes AE codes + raw params
         default:
-            if let command = self.appData.glueTable.commandsByName[key] {
-                return RemoteCall(self, definition: command, appData: self.appData)
-            } else {
-                print(self.appData.glueTable.propertiesByName)
-                print(self.appData.glueTable.elementsByName)
-                throw UnrecognizedAttributeError(name: key, value: self)
-            }
+            throw UnrecognizedAttributeError(name: key, value: self) // TO DO: would it be safe to delegate to commandEnv here? (bearing in mind that it'll need set first? Or can we trust)
         }
     }
 }
 
 
+/******************************************************************************/
+// concrete reference classes
+//
+// - single-object specifier (attribute or one-to-one relationship)
+// - multiple-object specifier (one-to-many reationship)
+// - insertion location
 
-class SingleReference: SelfPackingReference, SelfPacking { // property or single element; by-index, by-name, by-id, relative, first/middle/last
+
+class SingleReference: SelfPackingReference, SelfPacking, Selectable, Callable {
+
+    // property or single element; by-index, by-name, by-id, relative, first/middle/last
+    
+    // TO DO: in order to deal with ambiguous property/element names (e.g. `document` in TextEdit, which is both property and singular element name), this class needs to be selectable and callable, in which case it should check if property name is also a singular element name, and if so convert to all-elements specifier and perform selection on that, else throw 'not an element' error
     
     // AERoots are defined on AEItem.appData
     
     override var description: String { return "«\(self.swiftValue)»" } // TO DO: native formatting
     
     let swiftValue: AEItem // a SwiftAutomation ObjectSpecifier containing basic AppData and NSAppleEventDescriptor
+    internal let attributeName: String
     
-    init(_ specifier: AEItem, appData: NativeAppData) {
+    init(_ specifier: AEItem, attributeName: String, appData: NativeAppData) { // TO DO: take [property] name as argument
         self.swiftValue = specifier
+        self.attributeName = attributeName
         super.init(appData: appData)
     }
     
     override func get(_ key: String) throws -> Value {
         switch key {
         case "every":
-            fatalError() // TO DO: return MultipleReference(self.swiftValue.all, appData: self.appData); need to implement ObjectSpecifierExtension.all first (this converts existing property specifier to all-elements specifier, allowing user to disambiguate conflicting terminology where a property name and elements name are identical, in which case the property definition would normally take priority [in AS, one exception is `text`, which defaults to all-elements definition by default])
+            return try self.toMultipleReference() // TO DO: return MultipleReference(self.swiftValue.all, appData: self.appData); need to implement ObjectSpecifierExtension.all first (this converts existing property specifier to all-elements specifier, allowing user to disambiguate conflicting terminology where a property name and elements name are identical, in which case the property definition would normally take priority [in AS, one exception is `text`, which defaults to all-elements definition by default])
         case "previous": // `ELEMENT_TYPE before ELEMENT_REFERENCE`
             fatalError()
         case "next": // `ELEMENT_TYPE after ELEMENT_REFERENCE`
@@ -120,37 +129,74 @@ class SingleReference: SelfPackingReference, SelfPacking { // property or single
             fatalError() // return MultipleReference(self.swiftValue.elements(0), appData: appData) // TO DO: needs to return `elements` callable
         default:
             if let code = self.appData.glueTable.propertiesByName[key]?.code {
-                return SingleReference(self.swiftValue.property(code), appData: appData)
+                return SingleReference(self.swiftValue.property(code), attributeName: key, appData: appData)
             } else if let code = self.appData.glueTable.elementsByName[key]?.code {
-                return MultipleReference(self.swiftValue.elements(code), appData: appData)
+                return MultipleReference(self.swiftValue.elements(code), attributeName: key, appData: appData)
             } else {
                 return try super.get(key)
             }
         }
     }
+    
+    // property names may be identical to [singular] element names, in which case we need to treat a property specifier as an all-elements specifier instead
+    
+    private func toMultipleReference() throws -> MultipleReference {
+        if let code = self.appData.glueTable.elementsByName[self.attributeName]?.code {
+            if let parent = self.swiftValue.parentQuery as? AEItem {
+                return MultipleReference(parent.elements(code), attributeName: self.attributeName, appData: appData)
+            } else if let parent = self.swiftValue.parentQuery as? AERoot {
+                return MultipleReference(parent.elements(code), attributeName: self.attributeName, appData: appData)
+            }
+        }
+        throw UnrecognizedAttributeError(name: self.attributeName, value: self) // TO DO: what error? (should maybe have argument that takes description: "property/element/command" or "element")
+    }
+    
+    func byIndex(_ selectorData: Value) throws -> Value {
+        return try toMultipleReference().byIndex(selectorData)
+    }
+    
+    func byName(_ selectorData: Value) throws -> Value {
+        return try toMultipleReference().byIndex(selectorData)
+    }
+    
+    func byID(_ selectorData: Value) throws -> Value {
+        return try toMultipleReference().byIndex(selectorData)
+    }
+    
+    func byTest(_ selectorData: Value) throws -> Value {
+        return try toMultipleReference().byIndex(selectorData)
+    }
+    
+    let interface = CallableInterface(name: "", parameters: [("selector_data", asValue)], returnType: asReference) // TO DO: what should name be?
+    
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+        return try toMultipleReference().call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: coercion)
+    }
 }
 
-class MultipleReference: SingleReference, Selectable, Callable {
+
+
+class MultipleReference: SingleReference {
     
     // zero or more elements; by-range, by-test, all
     
     let _swiftValue: AEItems
     
-    init(_ specifier: AEItems, appData: NativeAppData) {
+    init(_ specifier: AEItems, attributeName: String, appData: NativeAppData) {
         self._swiftValue = specifier
-        super.init(specifier, appData: appData)
+        super.init(specifier, attributeName: attributeName, appData: appData)
     }
     
     override func get(_ key: String) throws -> Value {
         switch key {
         case "first":
-            return SingleReference(self._swiftValue.first, appData: self.appData)
+            return SingleReference(self._swiftValue.first, attributeName: key, appData: self.appData)
         case "middle":
-            return SingleReference(self._swiftValue.middle, appData: self.appData)
+            return SingleReference(self._swiftValue.middle, attributeName: key, appData: self.appData)
         case "last":
-            return SingleReference(self._swiftValue.last, appData: self.appData)
+            return SingleReference(self._swiftValue.last, attributeName: key, appData: self.appData)
         case "any":
-            return SingleReference(self._swiftValue.any, appData: self.appData)
+            return SingleReference(self._swiftValue.any, attributeName: key, appData: self.appData)
         case "every":
             return self
         case "beginning":
@@ -162,32 +208,30 @@ class MultipleReference: SingleReference, Selectable, Callable {
         }
     }
     
-    func byIndex(_ selectorData: Value) throws -> Value {
+    override func byIndex(_ selectorData: Value) throws -> Value {
         // TO DO: could do with explicit methods on SpecifierExtensions
         if let range = selectorData as? Range {
-            return MultipleReference(self._swiftValue[range.start, range.stop], appData: self.appData)
+            return MultipleReference(self._swiftValue[range.start, range.stop], attributeName: self.attributeName, appData: self.appData)
         } else {
-            return SingleReference(self._swiftValue[selectorData], appData: self.appData)
+            return SingleReference(self._swiftValue[selectorData], attributeName: self.attributeName, appData: self.appData)
         }
     }
     
-    func byName(_ selectorData: Value) throws -> Value {
-        return SingleReference(self._swiftValue.named(selectorData), appData: self.appData)
+    override func byName(_ selectorData: Value) throws -> Value {
+        return SingleReference(self._swiftValue.named(selectorData), attributeName: self.attributeName, appData: self.appData)
     }
     
-    func byID(_ selectorData: Value) throws -> Value {
-        return SingleReference(self._swiftValue.ID(selectorData), appData: self.appData)
+    override func byID(_ selectorData: Value) throws -> Value {
+        return SingleReference(self._swiftValue.ID(selectorData), attributeName: self.attributeName, appData: self.appData)
     }
     
-    func byTest(_ selectorData: Value) throws -> Value {
+    override func byTest(_ selectorData: Value) throws -> Value {
         fatalError()
-        //return MultipleReference(self.swiftValue[test], appData: self.appData)
+        // let test = selectorData as? Reference // TO DO: should be TestReference; any way to verify that here? how do we get TestClause?
+        // return MultipleReference(self.swiftValue[test], appData: self.appData)
     }
     
-    
-    let interface = CallableInterface(name: "XXXX", parameters: [("selector_data", asValue)], returnType: asReference)
-    
-    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    override func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         let arg_0 = try asValue.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)
         if (try? asInt.unbox(value: arg_0, env: commandEnv)) != nil {
             return try self.byIndex(arg_0)
@@ -212,7 +256,8 @@ class InsertionReference: SelfPackingReference, SelfPacking { // beginning/end/b
     
 }
 
-// note: by-range/by-test handler will supply full terminology and the appropriate relative root, so no need for appscript-style 'generic references' or `app`/`con`/`its` globals
+
+/******************************************************************************/
 
 
 class Application: SelfPackingReference, Callable {
@@ -251,17 +296,16 @@ class Application: SelfPackingReference, Callable {
      init(processIdentifier: pid_t, launchOptions: LaunchOptions = DefaultLaunchOptions, relaunchMode: RelaunchMode = DefaultRelaunchMode)
      */
     
-    override func get(_ name: String) throws -> Value {
-        //print("\(self) looking up \(name)")
-        switch name {
-        default:
-            if let code = self.appData.glueTable.propertiesByName[name]?.code {
-                return SingleReference(self.swiftValue.property(code), appData: appData)
-            } else if let code = self.appData.glueTable.elementsByName[name]?.code {
-                return MultipleReference(self.swiftValue.elements(code), appData: appData)
-            } else {
-                return try super.get(name)
-            }
+    override func get(_ key: String) throws -> Value {
+        if let code = self.appData.glueTable.propertiesByName[key]?.code {
+            return SingleReference(self.swiftValue.property(code), attributeName: key, appData: appData)
+        } else if let code = self.appData.glueTable.elementsByName[key]?.code {
+            return MultipleReference(self.swiftValue.elements(code), attributeName: key, appData: appData)
+        } else if let command = self.appData.glueTable.commandsByName[key] { // TO DO: decide if only app objects should handle commands (this should work fine within `tell` blocks); allowing it on any Reference gives rise to code like this: `move(to:REFERENCE) of REFERENCE`
+            return RemoteCall(self, definition: command, appData: self.appData)
+        } else {
+            //print(self.appData.glueTable.elementsByName)
+            return try super.get(key)
         }
     }
     
@@ -275,7 +319,7 @@ class Application: SelfPackingReference, Callable {
 }
 
 
-
+/******************************************************************************/
 
 
 func aelib_loadConstants(env: Env) throws {

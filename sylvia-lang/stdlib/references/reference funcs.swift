@@ -13,7 +13,7 @@ func ofClause(attribute: Value, value: AttributedValue, commandEnv: Scope) throw
     case let command as Command:
         // TO DO: copypasted from Command.eval; might be better to put implementation on Command/Scope
         let (value, handlerEnv) = try scope.get(command.key)
-        guard let handler = value as? Callable else { throw HandlerNotFoundError(name: command.name, env: scope) }
+        guard let handler = value as? Callable else { throw NotAHandlerError(name: command.name, env: scope, value: value) }
         return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: asAnything)
     case let identifier as Identifier:
         return try identifier.nativeEval(env: scope, coercion: asAnything)

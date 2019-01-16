@@ -15,19 +15,17 @@ protocol Selectable { // unselected (all) elements // TO DO: rename `Elements`? 
     
     // TO DO: should these take env + coercion arguments, allowing return type to be specified?
     
-    func byIndex(_ index: Value) throws -> Value
+    func byIndex(_ selectorData: Value) throws -> Value // by-index/by-range
     
-    func byName(_ name: Value) throws -> Value // TO DO: KV lists will use `item named NAME of KV_LIST`
+    func byName(_ selectorData: Value) throws -> Value // TO DO: KV lists will use `item named NAME of KV_LIST`
     
-    func byID(_ uid: Value) throws -> Value // argument is an opaque identifier previously supplied by target, not a value users would generate themselves; Q. any use outside of aelib? (e.g. a web library might pass URIs here)
+    func byID(_ selectorData: Value) throws -> Value // argument is an opaque identifier previously supplied by target, not a value users would generate themselves; Q. any use outside of aelib? (e.g. a web library might pass URIs here)
     
     // func first()/middle()/last()/any()/every() throws -> Value // TO DO: these need to throw if returning resolved values
     
     // func previous/next(elementType) throws -> Value
     
-    //func byRange(from startReference: Value, to endReference: Value) throws -> Value // TO DO: how best to implement generalized by-range? (start and end are con-based specifiers, with integer and string values as shortcuts for by-index and by-name selectors respectively)
-    
-    func byTest(_ test: Value) throws -> Value
+    func byTest(_ selectorData: Value) throws -> Value
 
     
     // func before()/after()/()beginning()/end() throws -> InsertionLocation

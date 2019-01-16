@@ -14,6 +14,8 @@
 
 typealias AttributedValue = Value & Attributed
 
+// TO DO: should get/set take optional 'delegate'? (e.g. in `tell app NAME {…}` block, all names are looked up on app object first, then in parent scope; similarly, when storing values, `set(_:to:)` should delegate directly to tell block's parent scope)
+
 protocol Attributed {
     
     // TO DO: use separate naming to distinguish between attributed value lookups (`set`/`get`) and environment lookups (`store`/`fetch`)?

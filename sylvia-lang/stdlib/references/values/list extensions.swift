@@ -51,14 +51,14 @@ extension List: Attributed { // TO DO: List should be Attributed, not Scope (whi
         fatalError() // TO DO: any settable attributes? if not, throw ReadOnly error
     }
     
-    func get(_ name: String) throws -> Value { // e.g. `items of LIST`; TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv); in this case, scope is List value (i.e. self)
-        switch name {
+    func get(_ key: String) throws -> Value { // e.g. `items of LIST`; TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv); in this case, scope is List value (i.e. self)
+        switch key {
         case "items", "item": // singular/plural naming conventions aren't consistent, so have to treat them as synonyms; TO DO: where both spellings are available, pretty printer should choose according to to-one/to-many selector, e.g. `item at 1`, `items at 1 thru 3`
-            return AllListItemsSpecifier(self, name)
+            return AllListItemsSpecifier(self, key)
         case "at": // `item at 1 of LIST` -> `'of' ('at' (item, 1), LIST)`, which looks up `at` on LIST
             return IndexSelector(for: self)
         default:
-            throw UnrecognizedAttributeError(name: name, value: self)
+            throw UnrecognizedAttributeError(name: key, value: self)
         }
         
         // Q. when a library implements operator syntax for a command handler, that handler must(?) be non-maskable; Q. what about operators over value slots (e.g. `at`)?
@@ -88,7 +88,7 @@ extension List: Attributed { // TO DO: List should be Attributed, not Scope (whi
 
 // TO DO: move
 
-class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension
+class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension // TO DO: rename and decide how best to generalize implementation
     
     // `item` and `items` are effectively synonyms
     
@@ -133,18 +133,19 @@ class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` spec
         throw GeneralError("Invalid index type: \(index)") // TO DO: what error type?
     }
     
-    func byName(_ name: Value) throws -> Value {
+    func byName(_ selectorData: Value) throws -> Value {
         throw UnsupportedSelectorError(name: "named", value: self)
     }
     
-    func byID(_ name: Value) throws -> Value {
+    func byID(_ selectorData: Value) throws -> Value {
         throw UnsupportedSelectorError(name: "by_ID", value: self) // TO DO: what to call this operator?
     }
     
-    func byTest(_ test: Value) throws -> Value {
-        throw UnsupportedSelectorError(name: "where", value: self)
+    func byTest(_ selectorData: Value) throws -> Value {
+        fatalError("TO DO: `\(self) where \(selectorData)`")
     }
     
+    // syntactic shortcut
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // `item INDEX` -> `item(at:INDEX)`
         let index = try asInt.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)

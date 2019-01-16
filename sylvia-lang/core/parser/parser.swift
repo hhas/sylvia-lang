@@ -167,7 +167,16 @@ class Parser {
         switch token {
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
             // TO DO: accept `[:]` as literal notation for empty KV list
-            value = try List(self.readCommaDelimitedValues(isEndOfList))
+            if case .pairSeparator = self.peek(ignoringLineBreaks: false) {
+                self.advance(ignoringLineBreaks: false)
+                self.advance(ignoringLineBreaks: false)
+                guard case .listLiteralEnd = self.this else {
+                    throw SyntaxError("Expected end of empty key-value list, “]”, but found: \(self.this)") // TO DO: "key-value list"/"dict"/"table"?
+                }
+                value = List([]) // TO DO: what class for KV list? 
+            } else {
+                value = try List(self.readCommaDelimitedValues(isEndOfList))
+            }
         case .blockLiteral:     // `{…}`
             value = try self.readBlock()
         case .groupLiteral:     // `(…)` // precedence group (unlike a command's argument tuple, this must contain exactly 1 expression)

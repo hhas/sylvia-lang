@@ -124,3 +124,8 @@ class NativeKeywordConverter: KeywordConverterProtocol {
     public func prefixForAppName(_ appName: String) -> String { return "" }
     
 }
+
+
+
+let nativeKeywordConverter = NativeKeywordConverter()
+

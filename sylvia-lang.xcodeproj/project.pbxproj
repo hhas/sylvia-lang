@@ -35,6 +35,8 @@
 		4F8B24B321E8F35F00D84E24 /* symbol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B24B221E8F35F00D84E24 /* symbol.swift */; };
 		4F8B24C521E94A6400D84E24 /* SwiftAutomation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F8B24BE21E8F92400D84E24 /* SwiftAutomation.framework */; };
 		4F8B24C721EB637A00D84E24 /* reference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B24C621EB637A00D84E24 /* reference.swift */; };
+		4F8B24C921ECF40A00D84E24 /* value extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B24C821ECF40A00D84E24 /* value extensions.swift */; };
+		4F8B24CB21EE996A00D84E24 /* pair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B24CA21EE996A00D84E24 /* pair.swift */; };
 		4FEC2713219A33EF00B28A5A /* expression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270B219A33EE00B28A5A /* expression.swift */; };
 		4FEC2714219A33EF00B28A5A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270C219A33EE00B28A5A /* main.swift */; };
 		4FEC2715219A33EF00B28A5A /* value.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270D219A33EE00B28A5A /* value.swift */; };
@@ -125,6 +127,8 @@
 		4F8B24B221E8F35F00D84E24 /* symbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = symbol.swift; sourceTree = "<group>"; };
 		4F8B24B621E8F92400D84E24 /* SwiftAE.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SwiftAE.xcodeproj; path = ../swiftae/SwiftAE.xcodeproj; sourceTree = "<group>"; };
 		4F8B24C621EB637A00D84E24 /* reference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = reference.swift; sourceTree = "<group>"; };
+		4F8B24C821ECF40A00D84E24 /* value extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "value extensions.swift"; sourceTree = "<group>"; };
+		4F8B24CA21EE996A00D84E24 /* pair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pair.swift; sourceTree = "<group>"; };
 		4FEC2701219A33C600B28A5A /* sylvia-lang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "sylvia-lang"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FEC270B219A33EE00B28A5A /* expression.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = expression.swift; sourceTree = "<group>"; };
 		4FEC270C219A33EE00B28A5A /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -179,6 +183,7 @@
 				4F66276C21B714C500A84EF3 /* appdata.swift */,
 				4F8B24C621EB637A00D84E24 /* reference.swift */,
 				4F66277021B7185A00A84EF3 /* terminology.swift */,
+				4F8B24C821ECF40A00D84E24 /* value extensions.swift */,
 				4F66277721B733F300A84EF3 /* glue */,
 			);
 			path = aelib;
@@ -255,6 +260,7 @@
 				4F8B24B021E8F28A00D84E24 /* nothing.swift */,
 				4F8B24B221E8F35F00D84E24 /* symbol.swift */,
 				4FEC270B219A33EE00B28A5A /* expression.swift */,
+				4F8B24CA21EE996A00D84E24 /* pair.swift */,
 			);
 			name = values;
 			sourceTree = "<group>";
@@ -434,6 +440,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F8B24B121E8F28A00D84E24 /* nothing.swift in Sources */,
+				4F8B24CB21EE996A00D84E24 /* pair.swift in Sources */,
 				4F8B249F21E7AC3300D84E24 /* appdata.swift in Sources */,
 				4F8B24A021E7AC3300D84E24 /* terminology.swift in Sources */,
 				4F8B24A121E7AC3300D84E24 /* aelib_load.swift in Sources */,
@@ -454,6 +461,7 @@
 				4F60E8CA21A35226009B65F1 /* stdlib_coercions.swift in Sources */,
 				4F8B249521DC525500D84E24 /* token.swift in Sources */,
 				4F66277921B7345A00A84EF3 /* list extensions.swift in Sources */,
+				4F8B24C921ECF40A00D84E24 /* value extensions.swift in Sources */,
 				4F60E8D021ABE1F6009B65F1 /* scalar.swift in Sources */,
 				4F8B249321DA3DC200D84E24 /* reference funcs.swift in Sources */,
 				4FEC271A219A33EF00B28A5A /* coercion.swift in Sources */,
