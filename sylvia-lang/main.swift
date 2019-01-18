@@ -259,9 +259,14 @@ if y > 8 {
 //code = "color of documents at 1 of app “TextEdit”, text of document “Untitled” of app “TextEdit”"
 
 
-// TO DO: should arguments to application commands be evaluated in app context first and commandEnv second, c.f. `tell app "NAME" {…}` block?
+code = "tell app “TextEdit” { get text of document 1 as string }"
 
-code = "(get (text of document 1 of app “TextEdit”) of app “TextEdit”) as text"
+
+code = """
+tell app “TextEdit” {
+    get text of document 1
+}
+"""
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
 

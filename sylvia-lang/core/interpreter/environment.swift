@@ -70,3 +70,32 @@ extension Scope {
         try self.set(coercion.key, to: coercion, readOnly: true, thisFrameOnly: true)
     }
 }
+
+
+
+class TargetScope: Scope { // creates sub-scope of an existing scope (typically an Env instance representing current activation record) with Value's attributes; used by `tell` block
+    
+    private let target: AttributedValue
+    private let parent: Scope
+    
+    init(_ target: AttributedValue, parent: Scope) {
+        self.target = target
+        self.parent = parent
+    }
+    
+    func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws {
+        try self.parent.set(name, to: value, readOnly: readOnly, thisFrameOnly: thisFrameOnly)
+    }
+    
+    func child() -> Scope { // TO DO: what should this return?
+        return self
+    }
+    
+    func get(_ key: String) throws -> (value: Value, scope: Scope) {
+        do {
+            return (try self.target.get(key), self)
+        } catch is UnrecognizedAttributeError {
+            return try self.parent.get(key)
+        }
+    }
+}

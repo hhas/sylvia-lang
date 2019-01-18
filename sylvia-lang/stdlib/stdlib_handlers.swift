@@ -1027,6 +1027,34 @@ func function_elseClause_action_alternativeAction_commandEnv(command: Command, c
 }
 
 
+// tell (target, action)
+let signature_tell_target_action_commandEnv = (
+    paramType_0: asAttributedValue,
+    paramType_1: asBlock,
+    returnType: asIs
+)
+let interface_tell_target_action_commandEnv = CallableInterface(
+    name: "tell",
+    parameters: [
+        ("target", "", signature_tell_target_action_commandEnv.paramType_0),
+        ("action", "", signature_tell_target_action_commandEnv.paramType_1),
+    ],
+    returnType: signature_tell_target_action_commandEnv.returnType
+)
+func function_tell_target_action_commandEnv(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    var arguments = command.arguments 
+    let arg_0 = try signature_tell_target_action_commandEnv.paramType_0.unboxArgument("target", in: &arguments, commandEnv: commandEnv, command: command, handler: handler)
+    let arg_1 = try signature_tell_target_action_commandEnv.paramType_1.unboxArgument("action", in: &arguments, commandEnv: commandEnv, command: command, handler: handler)
+    if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: handler) }
+    let result = try tell(
+        target: arg_0,
+        action: arg_1,
+		commandEnv: commandEnv
+    )
+    return try signature_tell_target_action_commandEnv.returnType.box(value: result, env: handlerEnv)
+}
+
+
 // of (attribute, value)
 let signature_ofClause_attribute_value_commandEnv = (
     paramType_0: asAttribute,
@@ -1233,6 +1261,7 @@ func stdlib_loadHandlers(env: Env) throws {
     try env.add(interface_repeatTimes_count_action_commandEnv, function_repeatTimes_count_action_commandEnv)
     try env.add(interface_repeatWhile_condition_action_commandEnv, function_repeatWhile_condition_action_commandEnv)
     try env.add(interface_elseClause_action_alternativeAction_commandEnv, function_elseClause_action_alternativeAction_commandEnv)
+    try env.add(interface_tell_target_action_commandEnv, function_tell_target_action_commandEnv)
     try env.add(interface_ofClause_attribute_value_commandEnv, function_ofClause_attribute_value_commandEnv)
     try env.add(interface_indexSelector_elementType_selectorData_commandEnv, function_indexSelector_elementType_selectorData_commandEnv)
     try env.add(interface_nameSelector_elementType_selectorData_commandEnv, function_nameSelector_elementType_selectorData_commandEnv)

@@ -187,7 +187,8 @@ let stdlib_operators: [OperatorDefinition] = [
     ("thru",       1210, .infix(parseInfixOperator),   [], nil),
     
     // reference
-    ("of",         1000, .infix(parseRightInfixOperator),    [], nil),
+    ("tell",       2000, .prefix(parsePostfixOperatorWithBlock), [], nil),
+    ("of",         1000, .infix(parseRightInfixOperator),        [], nil),
     //(".",         1000, .infix(parseReverseInfixOperator), [], "of"), // TO DO: dot notation is useful for reverse domain name-style references, e.g. `com.example.foo`, which are more natural than `of` for accessing a Frontier-style namespace, but need to confirm it's syntactically solid
     
     // selectors

@@ -20,9 +20,11 @@ protocol Attributed {
     
     // TO DO: use separate naming to distinguish between attributed value lookups (`set`/`get`) and environment lookups (`store`/`fetch`)?
     
-    func set(_ name: String, to value: Value) throws // used to set (via `store` command/`IDENTIFIER:VALUE` assignment) [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that); TO DO: this needs more thought, as `set(REFERENCE,to:VALUE)` is also used particularly in aelib; it might be that we standardize on `set(_:to:)` for *all* assignment
+    func set(_ key: String, to value: Value) throws // used to set (via `store` command/`IDENTIFIER:VALUE` assignment) [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that); TO DO: this needs more thought, as `set(REFERENCE,to:VALUE)` is also used particularly in aelib; it might be that we standardize on `set(_:to:)` for *all* assignment
     
-    func get(_ name: String) throws -> Value
+    func get(_ key: String) throws -> Value
+    
+    // TO DO: introspection
         
 }
 
@@ -37,7 +39,7 @@ class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue
         self.value = value
     }
     
-    func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws {
+    func set(_ key: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws {
         throw GeneralError()
     }
     
@@ -45,8 +47,8 @@ class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue
         return self
     }
     
-    func get(_ name: String) throws -> (value: Value, scope: Scope) {
-        return (try self.value.get(name), self)
+    func get(_ key: String) throws -> (value: Value, scope: Scope) {
+        return (try self.value.get(key), self)
     }
 }
 

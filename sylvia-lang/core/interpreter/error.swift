@@ -160,7 +160,7 @@ class EnvironmentError: GeneralError { // abstract base class
 class ValueNotFoundError: EnvironmentError { // TO DO: how should Env/Scope lookup errors relate to AttributedValue lookup errors?
 
     override var message: String {
-        return "Can’t find a value named “\(self.name)”."
+        return "Can’t find a value named “\(self.name)” in \(self.env)."
     }
 }
 
@@ -210,11 +210,13 @@ class HandlerFailedError: GeneralError {
 class BadArgumentError: GeneralError {
     
     let paramKey: String
+    let argument: Value
     let command: Command
     let handler: CallableValue
     
-    init(paramKey: String, command: Command, handler: CallableValue) {
+    init(paramKey: String, argument: Value, command: Command, handler: CallableValue) {
         self.paramKey = paramKey
+        self.argument = argument
         self.command = command
         self.handler = handler
         super.init()
@@ -224,9 +226,7 @@ class BadArgumentError: GeneralError {
         guard let parameter = self.handler.interface.parameters.first(where: { $0.0 == self.paramKey }) else {
             fatalError("BadArgumentError received bad paramKey `\(self.paramKey)` for \(self.handler.interface)")
         }
-        var arguments = command.arguments
-        let argument = removeArgument(self.paramKey, from: &arguments) ?? noValue
-        return "The ‘\(self.handler.interface.name)’ handler’s ‘\(parameter.label)’ parameter expected \(parameter.coercion.key) but received the following \(argument.nominalType): \(argument)" // TO DO: better coercion descriptions needed // TO DO: error message phrasing is misleading, as it implies a type error but can be triggered by other evaluation failures (e.g. value not found)
+        return "The ‘\(self.handler.interface.name)’ handler’s ‘\(parameter.label)’ parameter expected \(parameter.coercion.key) but received the following \(self.argument.nominalType): \(self.argument)" // TO DO: better coercion descriptions needed // TO DO: error message phrasing is misleading, as it implies a type error but can be triggered by other evaluation failures (e.g. value not found)
     }
 }
 

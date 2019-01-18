@@ -80,7 +80,12 @@ class Reference: AttributedValue { // abstract base class
         case "send_apple_event":
             fatalError() // TO DO: needs to return callable that takes AE codes + raw params
         default:
-            throw UnrecognizedAttributeError(name: key, value: self) // TO DO: would it be safe to delegate to commandEnv here? (bearing in mind that it'll need set first? Or can we trust)
+            if let command = self.appData.glueTable.commandsByName[key] {
+                return RemoteCall(self, definition: command, appData: self.appData)
+            } else {
+                //print("`\(key)` not found in \(self)") // DEBUG
+                throw UnrecognizedAttributeError(name: key, value: self) // TO DO: would it be safe to delegate to commandEnv here? (bearing in mind that it'll need set first? Or can we trust)
+            }
         }
     }
 }
@@ -311,10 +316,7 @@ class Application: SelfPackingReference, Callable {
             return SingleReference(self.swiftValue.property(code), attributeName: key, appData: appData)
         } else if let code = self.appData.glueTable.elementsByName[key]?.code {
             return MultipleReference(self.swiftValue.elements(code), attributeName: key, appData: appData)
-        } else if let command = self.appData.glueTable.commandsByName[key] { // TO DO: decide if only app objects should handle commands (this should work fine within `tell` blocks); allowing it on any Reference gives rise to code like this: `move(to:REFERENCE) of REFERENCE`
-            return RemoteCall(self, definition: command, appData: self.appData)
         } else {
-            //print(self.appData.glueTable.elementsByName)
             return try super.get(key)
         }
     }

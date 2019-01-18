@@ -1,6 +1,31 @@
 #!/usr/bin/env python3
 
 # temporary script for generating `LIBNAME_handlers.swift` bridge file; once core language is complete, this will be replaced by swiftlib that generates glue code from native handler definitions (hence the Swift-style camelCase)
+#
+# final glue format TBC, but it should use same syntax as native handler definitions, except that the body contains zero or more OPTION:SETTING pairs instead of executable code (which is provided by primitive Swift function). Signature types should be same as for native handlers (where practical); to unbox as Swift primitives instead of native Values, apply `primitive` modifier (in principle this could be inferred from Swift function signature, but making it explicit here has benefit that Swift stub functions can be automatically generated from glue definition)
+#
+#   to ‘+’ (left as primitive number, right as primitive number) returning primitive number {
+#       can_error: true
+#       primitive_handler: #add
+#   }
+#
+# Annotations provide concise, non-duplicative summary of handler action, parameters, and result:
+#
+#   to repeat ( «performs a sequence of commands the specified number of times»
+#              count as primitive whole number, «the number of times to repeat»
+#              action as block «the commands to perform each time»
+#             ) returning as_is { «the result of the last command performed»
+#       can_error: true
+#       requires_scopes: #commandEnv
+#       swift_handler: #repeatTimes
+#   } «long documentation goes here» «#flow_control»
+#
+#
+#   TO DO: need to decide how errors are described: would be better done as part of right `returning` operand, e.g. `number OR error`, so that it's part of signature (and can be used in native handler declarations too), though will need to decide on exact syntax and behavior; in addition, this could/should describe exact error type[s], with glue code automatically wrapping any other [e.g. internal Swift] errors automatically
+#
+#
+#
+#
 
 # TO DO: swiftlib should also generate Swift func stubs (encourages library developers to design user interface first), or check signatures against existing Swift funcs if already written
 
@@ -280,6 +305,9 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
             ("else", [("action", "asAnything"), ("alternative_action", "asAnything")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="elseClause")),
             
+            # TO DO: may be helpful if `tell` definition can indicate in machine-readable terms how action block is evaluated (most block operators evaluate directly in commandEnv, i.e. current activation record, but `tell` creates sub-scope containing target value's attributes); at minimum, it should indicate that this block may mask existing slots in parent env (normally slots are non-maskable, meaning a handler cannot redefine 'foo' as a local name if 'foo' is already defined in global namespace [at least, not without an explicit `local foo:VALUE` declaration])
+            ("tell", [("target", "asAttributedValue"), ("action", "asBlock")], "asIs",
+                    dict(can_error=True, requires_scopes={commandEnv})),
             ("of", [("attribute", "asAttribute"), ("value", "asAttributedValue")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="ofClause")),
             

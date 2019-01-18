@@ -32,3 +32,11 @@ func store(key: String, value: Value, readOnly: Bool, commandEnv: Scope) throws 
 func coerce(value: Value, coercion: Coercion, commandEnv: Scope) throws -> Value {
     return try value.nativeEval(env: commandEnv, coercion: coercion) // TO DO: check this
 }
+
+
+func tell(target: AttributedValue, action: Value, commandEnv: Scope) throws -> Value {
+    let env = TargetScope(target, parent: commandEnv)
+    return try action.nativeEval(env: env, coercion: asAnything) // TO DO: how to get coercion info?
+}
+
+

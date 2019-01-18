@@ -78,14 +78,14 @@ protocol BridgingProtocol {
 extension BridgingProtocol {
     
     func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: CallableValue) throws -> SwiftType {
-        //print("Unboxing argument \(index)")
+        //print("Unboxing argument \(paramKey)")
+        let value = removeArgument(paramKey, from: &arguments) ?? noValue
         do {
-            let value = removeArgument(paramKey, from: &arguments) ?? noValue
             return try self.unbox(value: value, env: commandEnv)// TO DO: should use bridgingEval…
             //return try command.argument(index).bridgingEval(env: Scope, coercion: self) // TO DO: …except this doesn't work as bridgingEval<T>() can't be inferred
         } catch {
-            //print("Unboxing argument \(index) failed:",error)
-            throw BadArgumentError(paramKey: paramKey, command: command, handler: handler).from(error)
+            //print("Unboxing argument \(paramKey) failed:",error)
+            throw BadArgumentError(paramKey: paramKey, argument: value, command: command, handler: handler).from(error)
         }
     }
 }
@@ -127,7 +127,7 @@ class AsValue: BridgingCoercion { // any value *except* `nothing`
 
 class AsString: BridgingCoercion { // Q. what about constraints?
     
-    var coercionName: String { return "text" }
+    var coercionName: String { return "string" }
     
     override var description: String { return self.coercionName } // TO DO: all coercion descriptions should be coercionName + any constraints (probably simplest to implement Callable and asCommandLiteral() first, then generate description string from Command)
     
@@ -302,7 +302,7 @@ class AsArray<ElementCoercion: BridgingCoercion>: BridgingCoercion {
 
 class AsText: BridgingCoercion { // Q. what about constraints? // TO DO: would be nice to share common constraint-checking code, though not sure how best to do that
     
-    var coercionName: String { return "text" }
+    var coercionName: String { return "string" }
     
     override var description: String { return self.coercionName }
     

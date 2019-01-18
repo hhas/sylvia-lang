@@ -1,6 +1,8 @@
 //
 //  descriptor value.swift
 //
+//  wraps NSAppleEventDescriptor returned by AppData.sendAppleEvent(…) as Value, allowing unpacking to be driven by Coercion
+//
 
 import Foundation
 import SwiftAutomation
