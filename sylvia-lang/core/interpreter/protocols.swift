@@ -51,23 +51,24 @@ class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue
 }
 
 
+// TO DO: put all user-only metadata (e.g. documentation annotations) in a separate structure/module which is lazily loaded/instantiated only when needed
 
 
 protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Env.find() to retrieve the slot's value AND its lexical scope so that it can eval the value in its original context when coercing it to the requested return type (one option is for `get` to return both, although the scope needs to be protocol based and restricted to read-only [note: a read-only protocol will discourage, but won't prevent, upcasting of a returned Env; a safer option is to wrap the env in a shim, or maybe ask the env for a read-only version of itself which prevents any fiddling]) //
     
     // TO DO: make sure that value's attributes are fully introspectable (i.e. don't just implement everything as an opaque `switch` block in `get()`, but instead define the value's interface and let the glue generator build the get()/set() implementation automatically; in the case of aelib, interface definitions will be defined dynamically by terminology parser)
     
-    func set(_ name: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws
+    func set(_ key: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws
     
-    func get(_ name: String) throws -> (value: Value, scope: Scope) // TO DO: returning Scope (for use as handlerEnv) rather than Attributed is problematic, tightly coupling non-scope objects (e.g. List and other AttributedValues) to unrelated subclasses (Env)
+    func get(_ key: String) throws -> (value: Value, scope: Scope) // TO DO: returning Scope (for use as handlerEnv) rather than Attributed is problematic, tightly coupling non-scope objects (e.g. List and other AttributedValues) to unrelated subclasses (Env)
     
     func child() -> Scope // TO DO: what about scope name, global/local, writable flag?
     
 }
 
 extension Scope {
-    func get(_ name: String) throws -> Value {
-        let result: (Value, Scope) = try self.get(name)
+    func get(_ key: String) throws -> Value {
+        let result: (Value, Scope) = try self.get(key)
         return result.0
     }
 }
@@ -76,7 +77,11 @@ extension Scope {
 
 // Callable Values (handlers, constrainable coercions)
 
-typealias Parameter = (name: String, coercion: Coercion) // TO DO: include description here? (to reduce startup overheads, probably best to put all user-only metadata in a separate structure/module which is lazily loaded/instantiated only when needed; e.g. consider SDEFs, which require the AE bridge's parser to wade through large amounts of user documentation and Cocoa Scripting mappings at runtime to extract the keywordtype+name+code data it needs to instantiate the AE glue)
+typealias Argument = (label: Identifier?, value: Value)
+
+typealias Parameter = (label: String, binding: String, coercion: Coercion)
+
+// TO DO: parameters also need env keys
 
 
 struct CallableInterface: CustomDebugStringConvertible {

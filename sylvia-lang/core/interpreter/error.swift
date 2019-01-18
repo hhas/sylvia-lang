@@ -209,21 +209,24 @@ class HandlerFailedError: GeneralError {
 
 class BadArgumentError: GeneralError {
     
+    let paramKey: String
     let command: Command
     let handler: CallableValue
-    let index: Int // bad command argument's index
     
-    init(command: Command, handler: CallableValue, index: Int) {
+    init(paramKey: String, command: Command, handler: CallableValue) {
+        self.paramKey = paramKey
         self.command = command
         self.handler = handler
-        self.index = index
         super.init()
     }
     
     override var message: String {
-        let parameter = self.handler.interface.parameters[self.index]
-        let argument = self.index < self.command.arguments.count ? self.command.arguments[self.index] : noValue
-        return "The ‘\(self.handler.interface.name)’ handler’s ‘\(parameter.name)’ parameter expected \(parameter.coercion.key) but received the following \(argument.nominalType): \(argument)" // TO DO: better coercion descriptions needed // TO DO: error message phrasing is misleading, as it implies a type error but can be triggered by other evaluation failures (e.g. value not found)
+        guard let parameter = self.handler.interface.parameters.first(where: { $0.0 == self.paramKey }) else {
+            fatalError("BadArgumentError received bad paramKey `\(self.paramKey)` for \(self.handler.interface)")
+        }
+        var arguments = command.arguments
+        let argument = removeArgument(self.paramKey, from: &arguments) ?? noValue
+        return "The ‘\(self.handler.interface.name)’ handler’s ‘\(parameter.label)’ parameter expected \(parameter.coercion.key) but received the following \(argument.nominalType): \(argument)" // TO DO: better coercion descriptions needed // TO DO: error message phrasing is misleading, as it implies a type error but can be triggered by other evaluation failures (e.g. value not found)
     }
 }
 

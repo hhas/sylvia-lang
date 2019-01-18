@@ -67,7 +67,7 @@ func parseHandlerOperator(_ isEventHandler: Bool) -> ParseFunc.Prefix { // retur
         
         let expr = try parser.parseExpression() // read handler signature // TO DO: handler constructors should use dedicated parsefuncs to read handler signature (we need individual parsefuncs for argument, parameter, and interface signatures; once they're implemented we can call `parseCallableSignature` parsefunc here; for now just take a Command containing handler and parameter names and pull it apart here, with hardcoded parameter and return types) // Q. better to use toHandlerSignature coercion here, as it may be a command [if returnType not specified] or it may be a `returning` operator? (Q. how should `returning`, which ought to map to command `returning(name(params),returnType)`, produce a signature? on parsing or eval?)
         guard let signature = expr as? Command else { throw SyntaxError("Expected a handler signature after `\(operatorName)`, but found: \(expr)") }
-        let parameters = signature.arguments.map{Text(($0 as! Identifier).name)}
+        let parameters = signature.arguments.map{Text(($0.value as! Identifier).name)}
         let returnType = asAnything
         
         guard case .blockLiteral = parser.peek() else { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(parser.this)") }

@@ -14,6 +14,14 @@ enum EnvType { // used in primitive libraries; indicates what, if any, environme
 }
 
 
+// helper function; given mutable array of VALUE and/or LABEL:VALUE arguments, attempt to match and return the first argument, or nil if no match
+
+func removeArgument(_ paramKey: String, from arguments: inout [Argument]) -> Value? {
+    if arguments.count > 0 && (arguments[0].label == nil || arguments[0].label!.key == paramKey) {
+        return arguments.removeFirst().value // remove and return matched argument
+    }
+    return nil // else no arguments/mismatched label, so assume this argument was omitted
+}
 
 // concrete classes
 
@@ -46,7 +54,7 @@ class NativeHandler: CallableValue {
     
     let interface: CallableInterface // TO DO: support declaring capability requirements as part of interface (Q. in native code, should capabilities be declared via annotations, or something else?)
     
-    let body: Value
+    let body: Value // TO DO: require Block?
     let isEventHandler: Bool
     
     init(_ interface: CallableInterface, _ body: Value, _ isEventHandler: Bool) { // TO DO: Bool option to modify how unmatched arguments are handled: command handlers (`to ACTION(…){…}`) should throw, event handlers (`when EVENT(…){…}`) should silently discard (Q. should command/event parameter matching behavior be specified as a capability flag? seems like it'd be a good idea to have a single standardized API and syntax, allowing new capability types to be added over time. Per-handler capabilities could prove extremely powerful combined with dynamic sandboxing. e.g. Consider a command shell where user cannot be expected to declare up-front exactly which safety protections/security rights/etc they will require when interacting with machine. As user enters new commands, the shell could list each handler's capability requirements, then confirm all new rights upon user clicking Run; this will be vastly more pleasant to use than, say, 10.14's current UX for approving per-app Apple event IPC, where user may be prompted at multiple points throughout the program's lifetime ['fire and forget' is not an option here].)
@@ -68,11 +76,10 @@ class NativeHandler: CallableValue {
         do {
             //print("calling \(self):", command)
             let bodyEnv = handlerEnv.child()
-            var arguments = command.arguments
-            for (parameterName, parameterType) in self.interface.parameters {
-                let value = arguments.count > 0 ? arguments.removeFirst() : noValue
-                //print("unpacking argument \(parameterName): \(value)")
-                try bodyEnv.set(parameterName, to: parameterType.coerce(value: value, env: commandEnv)) // expand/thunk parameter using command's lexical scope
+            var arguments = command.arguments // the arguments to match
+            for (paramKey, binding, coercion) in self.interface.parameters {
+                let value = removeArgument(paramKey, from: &arguments) ?? noValue
+                try bodyEnv.set(binding, to: coercion.coerce(value: value, env: commandEnv)) // expand/thunk parameter using command's lexical scope
             }
             if arguments.count > 0 && !self.isEventHandler { throw UnrecognizedArgumentError(command: command, handler: self) }
             //print("\(self) evaluating body as \(self.interface.returnType).")

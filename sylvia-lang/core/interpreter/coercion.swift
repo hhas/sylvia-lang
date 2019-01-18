@@ -70,21 +70,22 @@ protocol BridgingProtocol {
     
     func box(value: SwiftType, env: Scope) throws -> Value
     
-    func unboxArgument(at index: Int, command: Command, commandEnv: Scope, handler: CallableValue) throws -> SwiftType
+    func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: CallableValue) throws -> SwiftType
     
     // TO DO: bridging coercions that perform constraint checks need ability to emit raw Swift code for performing those checks in order to compile away unnecessary coercions, e.g. given native code `bar(foo())`, if foo() returns a boxed Swift String and bar() unboxes it again, partial compilation can discard those Coercions and generate `LIB.bar(LIB.foo())` Swift code
 }
 
 extension BridgingProtocol {
     
-    func unboxArgument(at index: Int, command: Command, commandEnv: Scope, handler: CallableValue) throws -> SwiftType {
+    func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: CallableValue) throws -> SwiftType {
         //print("Unboxing argument \(index)")
         do {
-            return try self.unbox(value: command.argument(index), env: commandEnv)// TO DO: should use bridgingEval
+            let value = removeArgument(paramKey, from: &arguments) ?? noValue
+            return try self.unbox(value: value, env: commandEnv)// TO DO: should use bridgingEval…
             //return try command.argument(index).bridgingEval(env: Scope, coercion: self) // TO DO: …except this doesn't work as bridgingEval<T>() can't be inferred
         } catch {
             //print("Unboxing argument \(index) failed:",error)
-            throw BadArgumentError(command: command, handler: handler, index: index).from(error)
+            throw BadArgumentError(paramKey: paramKey, command: command, handler: handler).from(error)
         }
     }
 }
@@ -386,15 +387,16 @@ class AsDefault: Coercion, Callable {
     lazy private(set) var interface = CallableInterface(
         name: self.coercionName,
         parameters: [
-            ("value", signature.paramType_0),
-            ("of_type", signature.paramType_1)
+            ("value", "defaultValue", signature.paramType_0),
+            ("of_type", "parameterType", signature.paramType_1)
         ],
         returnType: asCoercion)
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-        let defaultValue = try self.signature.paramType_0.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)
-        let ofType = try self.signature.paramType_1.unboxArgument(at: 1, command: command, commandEnv: commandEnv, handler: self)
-        if command.arguments.count > 2 { throw UnrecognizedArgumentError(command: command, handler: self) }
+        var arguments = command.arguments
+        let defaultValue = try self.signature.paramType_0.unboxArgument("value", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        let ofType = try self.signature.paramType_1.unboxArgument("of_type", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
         return AsDefault(ofType, defaultValue)
     }
     
@@ -641,15 +643,17 @@ class AsParameter: BridgingCoercion {
             coercion = asValue // any value except `nothing` (as that is used for optional params)
         case 2: // name + coercion
             coercion = try asCoercion.unbox(value: fields[1], env: env)
+        // TO DO: support optional label
         default:
             throw CoercionError(value: value, coercion: self)
         }
-        guard let name = (fields[0] as? Text)?.swiftValue else { throw CoercionError(value: value, coercion: self) }
-        return (name: name, coercion: coercion)
+        guard let label = (fields[0] as? Text)?.swiftValue else { throw CoercionError(value: value, coercion: self) }
+        let binding = label // TO DO: FIX; use binding name if given, else use label
+        return (label: label, binding: binding, coercion: coercion)
     }
     
     func box(value: SwiftType, env: Scope) throws -> Value {
-        return List([Text(value.name), value.coercion])
+        return List([Text(value.label), value.coercion])
     }
 }
 
@@ -679,7 +683,7 @@ class AsCoercion: BridgingCoercion {
 
 class AsNoResult: Coercion { // value is evaluated and its result discarded; noValue is returned (used in primitive handler coercion sigs when handler returns no result)
     
-    var coercionName: String { return "no_result" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asValue`] from 'returns nothing')
+    var coercionName: String { return "no_value" } // TO DO: can/should this be merged with Nothing value class, allowing `nothing` to describe both 'no value' and 'no [return] coercion'? (A. this would be problematic, as `defineHandler`'s `returnType` parameter should be able to distinguish omitted argument [indicating it should use `asValue`] from 'returns nothing')
     
     override var description: String { return self.coercionName }
     

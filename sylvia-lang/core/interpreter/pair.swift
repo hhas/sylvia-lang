@@ -9,19 +9,14 @@
 
 class Pair: Value {
     
-    override var description: String { return "\(self.swiftKey):\(self.swiftValue)" }
+    override var description: String { return "\(self.swiftValue.0):\(self.swiftValue.1)" }
     
     override class var nominalType: Coercion { return asSymbol }
     
-    let key: String
+    let swiftValue: (Value, Value)
     
-    let swiftKey: Value
-    let swiftValue: Value
-    
-    init(_ swiftKey: Value, _ swiftValue: Value) {
-        self.swiftKey = swiftKey
-        self.swiftValue = swiftValue
-        self.key = "" // TO DO: if swiftKey is Identifier
+    init(_ swiftName: Value, _ swiftValue: Value) {
+        self.swiftValue = (swiftName, swiftValue)
     }
 }
 

@@ -50,6 +50,8 @@ class Reference: AttributedValue { // abstract base class
     
     override class var nominalType: Coercion { return asReference }
     
+    var specifier: Specifier { fatalError("Subclasses must override.") }
+    
     // TO DO: callable? (c.f. nodeautomation, where calling a property/elements specifier is shorthand for `get()`); shouldn't be needed, as `get REFERENCE` does the same and is more idiomatic -- A. NO, as calling a reference is shorthand for by-index/by-name element selector
     
     // similar arrangement to py-appscript/py-aem, where Reference is high-level terminology-based wrapper around low-level four-char-code-based API (one reason for this arrangement, rather than reimplementing entire AE bridge here, is it'll gives native->Swift cross-compiler plenty flexibility when baking scripts as mixed/pure Swift code: pure-Swift bakes can use SwiftAutomation directly, while mixed bakes can wrap and unwrap Reference values when passing them between native and Swift sections); it also [in principle] allows primitive libraries to use SwiftAutomation themselves (even with static glues), although how to re-box these will require some thought (since SA specifiers do not normally contain NativeAppData instance)
@@ -101,6 +103,8 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, Callable {
     // AERoots are defined on AEItem.appData
     
     override var description: String { return "«\(self.swiftValue)»" } // TO DO: native formatting
+    
+    override var specifier: Specifier { return swiftValue }
     
     let swiftValue: AEItem // a SwiftAutomation ObjectSpecifier containing basic AppData and NSAppleEventDescriptor
     internal let attributeName: String
@@ -167,7 +171,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, Callable {
         return try toMultipleReference().byIndex(selectorData)
     }
     
-    let interface = CallableInterface(name: "", parameters: [("selector_data", asValue)], returnType: asReference) // TO DO: what should name be?
+    let interface = CallableInterface(name: "", parameters: [("selector_data", "", asValue)], returnType: asReference) // TO DO: what should name be?
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         return try toMultipleReference().call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: coercion)
@@ -232,7 +236,9 @@ class MultipleReference: SingleReference {
     }
     
     override func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-        let arg_0 = try asValue.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)
+        var arguments = command.arguments
+        let arg_0 = try asValue.unboxArgument("selector_data", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
         if (try? asInt.unbox(value: arg_0, env: commandEnv)) != nil {
             return try self.byIndex(arg_0)
         } else if (try? asString.unbox(value: arg_0, env: commandEnv)) != nil {
@@ -246,6 +252,8 @@ class MultipleReference: SingleReference {
 
 
 class InsertionReference: SelfPackingReference, SelfPacking { // beginning/end/before/after
+    
+    override var specifier: Specifier { return swiftValue }
     
     let swiftValue: AEInsertion
     
@@ -265,6 +273,8 @@ class Application: SelfPackingReference, Callable {
     // TO DO: want this to be exposed as value which is callable/selectable (need to start thinking in terms of namespaces, c.f. Frontier) // this'll need to be instantiated as current application, with callable interface
     
     override var description: String { return "«\(self.swiftValue)»" } // TO DO: native formatting
+    
+    override var specifier: Specifier { return swiftValue }
     
     override class var nominalType: Coercion { return asReference }
     
@@ -309,11 +319,14 @@ class Application: SelfPackingReference, Callable {
         }
     }
     
-    let interface = CallableInterface(name: "app", parameters: [("name", asString)], returnType: asReference)
+    let interface = CallableInterface(name: "app", parameters: [("name", "", asString)], returnType: asReference)
     
-    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-        let arg_0 = try asString.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {        
+        var arguments = command.arguments
+        let arg_0 = try asString.unboxArgument("name", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
         return try Application(name: arg_0)
+
     }
 
 }

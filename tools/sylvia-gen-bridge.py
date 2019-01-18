@@ -18,16 +18,16 @@ _signatureParameter = """
     paramType_««count»»: ««coercion»»,"""
 
 _interfaceParameter = """
-        ("««nativeName»»", signature_««primitiveSignatureName»».paramType_««count»»),"""
+        ("««nativeName»»", "", signature_««primitiveSignatureName»».paramType_««count»»),"""
 
 _unboxArgument = """
-    let arg_««count»» = try signature_««primitiveSignatureName»».paramType_««count»».unboxArgument(at: ««count»», command: command, commandEnv: commandEnv, handler: handler)"""
+    let arg_««count»» = try signature_««primitiveSignatureName»».paramType_««count»».unboxArgument("««nativeName»»", in: &arguments, commandEnv: commandEnv, command: command, handler: handler)"""
 
 _functionArgument = """
-        ««paramLabel»»: arg_««count»»""" # combine with context arguments and comma-separate
+        ««swiftParamName»»: arg_««count»»""" # combine with context arguments and comma-separate
 
 _checkForUnexpectedArguments = """
-    if command.arguments.count > ««parameterCount»» { throw UnrecognizedArgumentError(command: command, handler: handler) }"""
+    if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: handler) }"""
 
 _contextArguments = [ # TO DO: currently unused
         "commandEnv: commandEnv",
@@ -52,7 +52,8 @@ let interface_««primitiveSignatureName»» = CallableInterface(
     ],
     returnType: signature_««primitiveSignatureName»».returnType
 )
-func function_««primitiveSignatureName»»(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {««unboxArguments»»
+func function_««primitiveSignatureName»»(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+    var arguments = command.arguments ««unboxArguments»»
     ««resultAssignment»»««tryKeyword»»««primitiveFunctionName»»(««functionArguments»»
     )««functionReturn»»
 }
@@ -130,12 +131,13 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
         unboxArguments = []
         functionArguments = []
         i = -1
-        for i, (k,v) in enumerate(parameters):
-            nativeArgumentNames.append(k)
-            signatureParameters.append(_render(_signatureParameter, count=i, coercion=v))
-            interfaceParameters.append(_render(_interfaceParameter, count=i, nativeName=k, primitiveSignatureName=primitiveSignatureName))
-            unboxArguments.append(_render(_unboxArgument, count=i, primitiveSignatureName=primitiveSignatureName))
-            functionArguments.append(_render(_functionArgument, count=i, paramLabel=_camelCase(k)))
+        for i, param in enumerate(parameters):
+            label, binding, coercion = param if len(param) == 3 else (param[0], _camelCase(param[0]), param[1])
+            nativeArgumentNames.append(label)
+            signatureParameters.append(_render(_signatureParameter, count=i, coercion=coercion))
+            interfaceParameters.append(_render(_interfaceParameter, count=i, nativeName=label, primitiveSignatureName=primitiveSignatureName))
+            unboxArguments.append(_render(_unboxArgument, count=i, nativeName=label, primitiveSignatureName=primitiveSignatureName))
+            functionArguments.append(_render(_functionArgument, count=i, swiftParamName=binding))
         # if it's a command handler, add code to check all arguments supplied by command have been consumed
         if not requirements.get(ignoreUnknownArguments):
             unboxArguments.append(_render(_checkForUnexpectedArguments, parameterCount=i+1))
@@ -181,6 +183,8 @@ def renderHandlersBridge(libraryName, handlers, out=sys.stdout):
 # handler glue definitions for stdlib are currently hardcoded below; eventually primitive handler definitions should be written in native code using same syntax as for defining native handlers
 
 # TO DO: update this table to use native underscore names (these will be converted to camelCase for idiomatic Swift code); still need to decide policy for native handler names (particularly when masked by operators)
+
+# parameter tuples must be (LABEL, BINDING, COERCION) or (LABEL, COERCION); if the latter, binding = camelCase(LABEL)
 
 handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScalar",
                     dict(can_error=True)), # TO DO: replace flags list with dict (native definitions will represent flags as `IDENTIFIER:VALUE`)
@@ -262,9 +266,11 @@ handlers = [("exponent", [("left", "asScalar"), ("right", "asScalar")], "asScala
                                ("is_event_handler", "asBool")
                                ], "asNoResult", 
                     dict(can_error=True, requires_scopes={commandEnv})),
-            ("store", [("name", "asSymbolKey"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs",
+            ("store", [("key", "asSymbolKey"), ("value", "asAnything"), ("readOnly", "asBool")], "asIs",
                     dict(can_error=True, requires_scopes={commandEnv})),
-            
+            ("as", [("value", "asAnything"), ("coercion", "asCoercion")], "asIs", # TO DO: Precis on return type to describe its relationship to 'coercion' arg
+             dict(can_error=True, requires_scopes={commandEnv}, swift_handler="coerce")),
+
             ("if", [("condition", "asBool"), ("action", "asBlock")], "asIs", 
                     dict(can_error=True, requires_scopes={commandEnv}, swift_handler="testIf")),
             ("repeat", [("count", "asInt"), ("action", "asBlock")], "asIs", 

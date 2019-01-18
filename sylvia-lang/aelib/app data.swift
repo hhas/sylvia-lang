@@ -13,44 +13,22 @@ import SwiftAutomation
 
 
 /******************************************************************************/
-// application command
-
-
-class RemoteCall: CallableValue {
-    
-    override var description: String { return "«\(self.definition) of \(self.parent)»" } // TO DO: native formatting
-
-    
-    let parent: Reference
-    let definition: CommandTerm
-    let appData: NativeAppData
-    
-    var interface: CallableInterface {
-        fatalError() // CallableInterface(name: String, parameters: [(name, asAnything),…], returnType: asIs)
-    }
-    
-    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // TO DO: how to support returnType coercions? (they should drive unpacking, which means reply AE needs to present as Value wrapper with toTYPE methods that drive the actual AE unpacking, e.g. by coercing the wrapped descriptor to the appropriate AE type; presumably AEList [and AERecord?] descs will need to be custom-unpacked)
-        
-        // TO DO: time to implement labeled parameters in handlers: AsParameter needs to accept Pair(Identifier,EXPR), where EXPR may be 'as' command
-        
-        fatalError()
-    }
-    
-    init(_ parent: Reference, definition: CommandTerm, appData: NativeAppData) {
-        self.parent = parent
-        self.definition = definition
-        self.appData = appData
-    }
-}
-
-
-/******************************************************************************/
 // target address, terminology tables, codecs
 
 
 class NativeAppData: AppData {
     
     let glueTable: GlueTable
+    private var commandInterfaces = [String: CallableInterface]()
+    
+    func interfaceForCommand(term: CommandTerm) -> CallableInterface {
+        if let interface = self.commandInterfaces[term.name] { return interface }
+        let interface = CallableInterface(name: term.name,
+                                          parameters: term.orderedParameters.map{ ($0.name, "", asAnything) },
+                                          returnType: asIs)
+        commandInterfaces[term.name] = interface
+        return interface
+    }
     
     public required init(applicationURL: URL, useTerminology: TerminologyType = .sdef) throws {
         let glueTable = GlueTable(keywordConverter: nativeKeywordConverter, allowSingularElements: true)
@@ -58,7 +36,7 @@ class NativeAppData: AppData {
         switch useTerminology {
         case .sdef: try glueTable.add(SDEF: applicationURL)
         case .aete: try glueTable.add(AETE: AEApplication(url: applicationURL).getAETE())
-        default: ()
+        default: () // use built-in terminology only
         }
         self.glueTable = glueTable
         let specifierFormatter = SpecifierFormatter(applicationClassName: "Application",
@@ -90,7 +68,6 @@ class NativeAppData: AppData {
             return try super.pack(value)
         }
     }
-    
 }
 
 

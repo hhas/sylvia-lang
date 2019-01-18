@@ -234,6 +234,9 @@ class Parser {
             default: // this should never happen
                 throw InternalError("OperatorRegistry bug: \(String(describing: definition)) found in infix/postfix table.")
             }
+        case .pairSeparator:
+            self.advance(ignoringLineBreaks: false) // skip over ":"
+            value = try Pair(leftExpr, self.parseExpression(token.precedence - 1)) // pairs are right-associative
         case .endOfCode:
             throw SyntaxError("Expected an operand after the following code but found end of code instead: \(leftExpr)")
         default:

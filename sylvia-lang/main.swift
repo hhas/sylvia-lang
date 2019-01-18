@@ -248,17 +248,20 @@ if y > 8 {
 
 
 
-code = "Store (“N”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item at -n of [5,6,7,8,9], \n\t ITEM at 2 thru -2 of [5,6,7,8,9]\n]" // [7, 6]
+//code = "Store (“N”, 2), [\n\t Item 2 of [5,6,7,8,9], \n\t Item at -n of [5,6,7,8,9], \n\t ITEM at 2 thru -2 of [5,6,7,8,9]\n]" // [7, 6]
 
 
-code = "show ({ 1 + 1 })"
+//code = "show (value: 1 + 1)"
 
 
 // TO DO: should application commands infer app root on arguments? or do we just require use of `tell` block to define app as common context? (in which case, it presumably needs to delegate; Q. delegate on first lookup error, or set a delegate object on root Reference?)
 
 //code = "color of documents at 1 of app “TextEdit”, text of document “Untitled” of app “TextEdit”"
 
-code = "set of app “TextEdit”"
+
+// TO DO: should arguments to application commands be evaluated in app context first and commandEnv second, c.f. `tell app "NAME" {…}` block?
+
+code = "(get (text of document 1 of app “TextEdit”) of app “TextEdit”) as text"
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
 

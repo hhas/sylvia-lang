@@ -133,16 +133,16 @@ enum Token {
     case illegal // TO DO: currently unused; decide how invalid unicode chars are handled (see also CharacterSet.illegalCharacters); for now, everything just gets stuffed into `unknown`
     
     
-    var precedence: Int { // higher precedence = binds more tightly
+    var precedence: Int { // higher precedence binds more tightly // caution: precedence values must be even (odd values indicate right-associativity)
         switch self {
         case .annotationLiteral:                                    return 100000 // '«...»'
         case .operatorName(let definition):                         return definition.infix?.precedence ?? 0 // only infix/postfix ops are of relevance (atom/prefix ops do not take a left operand [i.e. leftExpr], so return 0 for those to finish the previous expression and start a new one)
-        case .pipeSeparator:                                        return -1
-        case .pairSeparator:                                        return -2
-        case .listLiteralEnd, .blockLiteralEnd, .groupLiteralEnd:   return -3   // TO DO: what value? this smells
+        case .pipeSeparator:                                        return 4
+        case .pairSeparator:                                        return 2
+        case .listLiteralEnd, .blockLiteralEnd, .groupLiteralEnd:   return -2   // TO DO: what value? this smells
         case .itemSeparator:                                        return -4   // ','
         case .lineBreak:                                            return -100
-        case .endOfCode:                                            return -99999
+        case .endOfCode:                                            return -10000
         default:                                                    return 0
         }
     }

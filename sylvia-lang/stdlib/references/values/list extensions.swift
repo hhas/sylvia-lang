@@ -102,7 +102,7 @@ class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` spec
     // e.g. `item 3 of LIST` (which is syntactic sugar for `item(at:3) of LIST`) is shorthand for `item at 3 of LIST`
     lazy var interface = CallableInterface(
         name: self.elementsName,
-        parameters: [(name: "at", coercion: asInt)], // TO DO: use `Variant([asRange, asInt])` (need to implement `Variant` Coercion subclass first; Q. how to unpack as typesafe enum which switch block can use directly rather than having to do a further round of `as?` casts?)
+        parameters: [("at", "", asInt)], // TO DO: use `Variant([asRange, asInt])` (need to implement `Variant` Coercion subclass first; Q. how to unpack as typesafe enum which switch block can use directly rather than having to do a further round of `as?` casts?)
         returnType: asAnything
     )
     
@@ -145,11 +145,12 @@ class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` spec
         fatalError("TO DO: `\(self) where \(selectorData)`")
     }
     
-    // syntactic shortcut
+    // syntactic shortcut for 'at' selector
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // `item INDEX` -> `item(at:INDEX)`
-        let index = try asInt.unboxArgument(at: 0, command: command, commandEnv: commandEnv, handler: self)
-        if command.arguments.count > 1 { throw UnrecognizedArgumentError(command: command, handler: self) }
-        return try self.list.getByIndex(index)
+        var arguments = command.arguments
+        let arg_0 = try asInt.unboxArgument("selector_data", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
+        return try self.list.getByIndex(arg_0)
     }
 }
