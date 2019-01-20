@@ -23,7 +23,7 @@
 // TO DO: bridging coercions should implement intersect() method, allowing two coercions to be merged into one; this will ensure output values are only coerced/unboxed once (or an error thrown if `C1 ∩ C2 = ∅`) [caveat any debates about which environment[s] to use when performing that grand unified expansion, although the coercions should be able to figure that out for themselves, performing non-merged coercions in multiple steps with captured envs]
 
 
-// TO DO: Coercions should implement Callable so runtime can create constrained coercions from stdlib's standard Coercion instances, e.g. `list(text(nonEmpty:true),min:1,max:10)`; note that all constraint parameters are [almost] always optional (where there are exceptions, e.g. `multichoice` [asEnum], some fudging may be required)
+// TO DO: Coercions should implement HandlerProtocol so runtime can create constrained coercions from stdlib's standard Coercion instances, e.g. `list(text(nonEmpty:true),min:1,max:10)`; note that all constraint parameters are [almost] always optional (where there are exceptions, e.g. `multichoice` [asEnum], some fudging may be required)
 
 // TO DO: implement Swift initializers for instantiating constrained coercions in bridging code, e.g. `AsList(AsText(nonEmpty:true),min:1,max:10)`
 
@@ -53,6 +53,11 @@ extension CoercionProtocol {
     
 }
 
+typealias CallableCoercion = Coercion & HandlerProtocol
+
+
+
+
 
 // bridging coercions convert native values to/from Swift equivalents when calling primitive library functions
 
@@ -70,14 +75,14 @@ protocol BridgingProtocol {
     
     func box(value: SwiftType, env: Scope) throws -> Value
     
-    func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: CallableValue) throws -> SwiftType
+    func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: Handler) throws -> SwiftType
     
     // TO DO: bridging coercions that perform constraint checks need ability to emit raw Swift code for performing those checks in order to compile away unnecessary coercions, e.g. given native code `bar(foo())`, if foo() returns a boxed Swift String and bar() unboxes it again, partial compilation can discard those Coercions and generate `LIB.bar(LIB.foo())` Swift code
 }
 
 extension BridgingProtocol {
     
-    func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: CallableValue) throws -> SwiftType {
+    func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: Handler) throws -> SwiftType {
         //print("Unboxing argument \(paramKey)")
         let value = removeArgument(paramKey, from: &arguments) ?? noValue
         do {
@@ -129,7 +134,7 @@ class AsString: BridgingCoercion { // Q. what about constraints?
     
     var coercionName: String { return "string" }
     
-    override var description: String { return self.coercionName } // TO DO: all coercion descriptions should be coercionName + any constraints (probably simplest to implement Callable and asCommandLiteral() first, then generate description string from Command)
+    override var description: String { return self.coercionName } // TO DO: all coercion descriptions should be coercionName + any constraints (probably simplest to implement HandlerProtocol and asCommandLiteral() first, then generate description string from Command)
     
     typealias SwiftType = String
     
@@ -352,11 +357,34 @@ class AsSymbolKey: BridgingCoercion { // TO DO: rename AsKey?
 
 // native-only coercions // TO DO: this smells; it should be able to bridge as long as items are coerced, not unboxed
 
-class AsList: Coercion {
+class AsList: CallableCoercion {
     
     var coercionName: String { return "list" }
     
     override var description: String { return "\(self.coercionName)(\(self.elementType))" }
+    
+    var key: String { return self.coercionName } // kludge as both Coercion and HandlerProtocol implement this via extension
+    
+    let signature = (
+        paramType_0: asCoercion,
+        returnType: asIs
+    )
+    
+    lazy private(set) var interface = CallableInterface(
+        name: self.coercionName,
+        parameters: [
+            ("item_type", "parameterType", signature.paramType_0)
+        ],
+        returnType: asCoercion)
+    
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+        var arguments = command.arguments
+        let ofType = try self.signature.paramType_0.unboxArgument("item_type", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
+        return AsList(ofType)
+    }
+    
+    
     
     let elementType: Coercion
     
@@ -376,8 +404,8 @@ class AsList: Coercion {
 // optionals
 
 
-class AsDefault: Coercion, Callable {
-    
+class AsDefault: Coercion, HandlerProtocol {
+        
     let signature = (
         paramType_0: asAnything,
         paramType_1: asCoercion,
@@ -404,7 +432,7 @@ class AsDefault: Coercion, Callable {
     
     var coercionName: String { return "default" }
     
-    var key: String { return self.interface.key } // TO DO: currently need this as both Callable and Coercion implement `key` via extensions
+    var key: String { return self.interface.key } // TO DO: currently need this as both HandlerProtocol and Coercion implement `key` via extensions
     
     override var description: String { return "\(self.coercionName)(\(self.defaultValue), \(self.coercion))" }
     
@@ -799,5 +827,5 @@ let asNoResult = AsNoResult() // expands value to anything, ignoring any result,
 let asAttributedValue = AsAttributedValue()
 let asAttribute = AsAttribute()
 
-let asReference = AsReference() // TO DO: implement AsReference
+let asReference = AsReference()
 let asTestReference = asReference // TO DO: how easy to implement this? (being able to distinguish reference types will improve runtime error checking and tooling support)

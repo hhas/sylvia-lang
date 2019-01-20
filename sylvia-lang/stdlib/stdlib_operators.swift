@@ -115,6 +115,8 @@ let stdlib_operators: [OperatorDefinition] = [
     
     // TO DO: what about word-based names for all symbol operators? (useful for auto-documentation, and also voice support)
     
+    // TO DO: would be easier to define operator groups, each with its own relative operator precedences, and then order those groups with their own [explicit/automatic] precedence; when constructing operator table, calculate absolute precedences for each operator by bitshifting group precedence and adding individual operator precedence
+    
     // unary +/- must bind tighter than `of`, `at`, etc
     ("+",   2000, .prefix(parseNumericSignOperator), [], "positive"),
     ("-",   2000, .prefix(parseNumericSignOperator), [], "negative"),

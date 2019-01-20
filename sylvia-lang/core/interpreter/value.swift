@@ -62,7 +62,7 @@ class Value: CustomStringConvertible {
     
     // TO DO: class var typeName (canonical name, e.g. `list`), var typeName (generated from self.nominalType, e.g. `list(text,max:10)`)
     
-    class var nominalType: Coercion { fatalError("Not yet implemented: \(type(of:self)).nominalType") } // TO DO: need to return Precis
+    class var nominalType: Coercion { return asAnything /*fatalError("Not yet implemented: \(type(of:self)).nominalType")*/ } // TO DO: need to return Precis
     
     var nominalType: Coercion { return type(of: self).nominalType }
     

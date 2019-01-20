@@ -25,14 +25,10 @@ class ResultDescriptor: OpaqueValue {
         self.appData = appData
     }
     
-    override func toAny(env: Scope, coercion: Coercion) throws -> Value {
-        return try self.toText(env: env, coercion: coercion) // temporary; need to figure how best to dispatch on descriptorType
-    }
-    
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         switch self.desc.descriptorType {
         // common AE types
-        case typeSInt32, typeSInt16:
+        case typeSInt32, typeSInt16, typeUInt16:  // typeSInt64, typeUInt64, typeUInt32
             return Text(Int(self.desc.int32Value))
         // TO DO: other integer types
         case typeIEEE64BitFloatingPoint, typeIEEE32BitFloatingPoint:
@@ -55,23 +51,83 @@ class ResultDescriptor: OpaqueValue {
         }
     }
     
-    /*
     override func toList(env: Scope, coercion: AsList) throws -> List {
         do {
-            return try List([self.nativeEval(env: env, coercion: coercion.elementType)])
-        } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-            throw CoercionError(value: self, coercion: coercion.elementType).from(error)
+            guard let listDesc = self.desc.coerce(toDescriptorType: typeAEList) else { throw CoercionError(value: self, coercion: coercion) }
+            var result = [Value]()
+            for i in 1...listDesc.numberOfItems {
+                let desc = ResultDescriptor(listDesc.atIndex(i)!, appData: self.appData)
+                do {
+                    result.append(try desc.nativeEval(env: env, coercion: coercion.elementType))
+                } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
+                    throw CoercionError(value: desc, coercion: coercion.elementType).from(error)
+                }
+            }
+            return List(result)
+        } catch {
+            throw CoercionError(value: self, coercion: coercion).from(error)
         }
     }
     
     override func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         do {
-            return try [self.bridgingEval(env: env, coercion: coercion.elementType)] //[coercion.elementType.unbox(value: self, env: env)]
-        } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-            throw CoercionError(value: self, coercion: coercion.elementType).from(error) // TO DO: ditto
+            guard let listDesc = self.desc.coerce(toDescriptorType: typeAEList) else { throw CoercionError(value: self, coercion: coercion) }
+            var result = [E.SwiftType]()
+            for i in 1...listDesc.numberOfItems {
+                let desc = ResultDescriptor(listDesc.atIndex(i)!, appData: self.appData)
+                do {
+                    result.append(try desc.bridgingEval(env: env, coercion: coercion.elementType))
+                } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
+                    throw CoercionError(value: desc, coercion: coercion.elementType).from(error)
+                }
+            }
+            return result
+        } catch {
+            throw CoercionError(value: self, coercion: coercion).from(error)
         }
     }
-    */
+    
+    override func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
+        let code: OSType
+        switch self.desc.descriptorType {
+        case typeType, typeProperty, typeKeyword:
+            code = desc.typeCodeValue
+        case typeEnumerated:
+            code = desc.enumCodeValue
+        default:
+            throw CoercionError(value: self, coercion: coercion)
+        }
+        // TO DO: worth caching Symbols?
+        if let name = self.appData.glueTable.typesByCode[code] {
+            return Symbol(name) // e.g. `#document`
+        } else {
+            return Symbol("$\(UTCreateStringForOSType(code).takeRetainedValue() as String)") // e.g. `#‘$docu’`
+        }
+    }
+    
+    override func toAny(env: Scope, coercion: Coercion) throws -> Value { // quick-n-dirty implementation
+        switch self.desc.descriptorType {
+        case typeSInt32, typeSInt16, typeIEEE64BitFloatingPoint, typeIEEE32BitFloatingPoint, type128BitFloatingPoint,
+             typeSInt64, typeUInt64, typeUInt32, typeUInt16,
+             typeChar, typeIntlText, typeUTF8Text, typeUTF16ExternalRepresentation, typeStyledText, typeUnicodeText, typeVersion:
+            return try self.toText(env: env, coercion: coercion)
+        case typeAEList:
+            return try self.toList(env: env, coercion: asList)
+        case typeType, typeProperty, typeKeyword, typeEnumerated:
+            return try self.toSymbol(env: env, coercion: coercion)
+        case typeObjectSpecifier:
+            let specifier = try self.appData.unpack(desc) as AEItem
+            if let multipleSpecifier = specifier as? AEItems {
+                return MultipleReference(multipleSpecifier, attributeName: "", appData: self.appData) // TO DO: what should attributeName be? (since specifier is returned by app, we assume that property/element name ambiguity is not an issue; simplest is to use empty string and check for that before throwing an error in SingleReference.toMultipleReference())
+            } else {
+                return SingleReference(specifier, attributeName: "", appData: self.appData) // TO DO: ditto
+            }
+        case typeQDPoint, typeQDRectangle, typeRGBColor:
+            return List((try self.appData.unpack(desc) as [Int]).map{Text($0)})
+        default:
+            return self
+        }
+    }
 }
 
 

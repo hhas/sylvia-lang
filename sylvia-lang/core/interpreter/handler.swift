@@ -3,15 +3,17 @@
 //
 
 
+// TO DO: to implement [glue-managed] methods, should these subclass PrimitiveHandler? (or should method constructors just be convenience funcs that pass interface, function, and scope? note that if method's owner [e.g. aelib 'app' object] caches the method once bound, this will create memory-leaking refcycle unless there is a weakref somewhere; Q. what about caching in a command scope? in the case of methods on objects, how do we know if/when object goes out of scope and is ready to release? w.r.t. refcounting, if both object and method have 1 retain each, we know that's their cycle and can actively break it, but we'd need live hooks into refcounting); TBH, using command scope to release might be sufficient, as most times a reference is created it's used in that scope, and in situations where it is returned for use elsewhere, it'll just create a new method the next time it's used and cache it in that scope (pathological case it's it's created in one sub-scope of a parent scope and used in many sub-scopes of that parent); Q. what about using autorelease pools, or equivalent [e.g. closure cache in Env], to dispose of bound methods?
 
 
-enum EnvType { // used in primitive libraries; indicates what, if any, environment[s] the handler needs to access (module, body, and/or caller) in order to perform its work
-    case noEnv
-    case handlerEnv // TO DO: one of the challenges with handlerEnv (i.e. moduleEnv) is legality of the module's handlers modifying the module's slots; in principle, a module could just use its own internal Swift vars - is there any situation where it would be preferable to push this state into Env? (e.g. module persistency; Swift vars won't persist, but Env state could be written to disk)
-    case bodyEnv // create a sub-env from handler scope (TO DO: when would this be needed? e.g. a handler that creates and returns a BoundHandler [closure] might want to use bodyEnv, giving the returned handler access to constructor's arguments and any additional local values it creates while keeping those values visible in native runtime debugger/introspection)
-    case commandEnv
-    // TO DO: include read-only/write-only/read-write flags? this can be used to determine [some] side-effects, which might in turn be used by runtime to memoize outputs (e.g. for performance, or to enable backtracking in 'debugger' mode), or in user docs to indicate scope of action (unfortunately, Swift/Cocoa doesn't provide a mechanism to indicate other side effects, e.g. file read/write, so that sort of metainfo would have to be supplied by module developer on trust)
-}
+// TO DO: requiresClosure is redundant; for primitive and native library handlers, simplest just to circular-ref it; for methods, get() should always wrap in Closure before returning
+
+// another possibility is for Env/Scope to implement `handleCommand` and only use `get` for identifiers; ends up with the same Swift stack consumption while saving construction of unnecessary Closure just to throw it away; Q. how will this redistribute logic for unpacking arguments list?
+
+
+// IMPORTANT: Handlers must not directly return HandlerNotFoundError (it'll confuse `tell` blocks and similar, which delegate handle() call to a second scope if first scope throws 'handler not found')
+
+// TO DO: consider eliminating PrimitiveHandler and just have Env.Slot store each handler's interface_ and function_ directly; the only time it'd need to be wrapped then is when get() returns a primitive handler as a closure (which could be implemented as a very simple PrimitiveClosure class, which will also work for methods, although we've yet to figure out practical glue architecture for those)
 
 
 // helper function; given mutable array of VALUE and/or LABEL:VALUE arguments, attempt to match and return the first argument, or nil if no match
@@ -23,32 +25,11 @@ func removeArgument(_ paramKey: String, from arguments: inout [Argument]) -> Val
     return nil // else no arguments/mismatched label, so assume this argument was omitted
 }
 
+
 // concrete classes
 
-// TO DO: what about having PrimitiveHandler always capture scope in which it's defined, as they tend to be globally scoped [via loaded module] so don't normally require releasing? (would get rid of nastiness in `get`, and we'd only need BoundHandler for native handlers) (will need MODULE_unload if modules are free-able in order to break strong refcycle); for methods, should these subclass PrimitiveHandler? (or should method constructors just be convenience funcs that pass interface, function, and scope? note that if owner [in aelib,  typically 'app' object] caches bound method, it will create refcycle unless there is a weakref somewhere; Q. what about caching in a command scope? in the case of methods on objects, how do we know if/when object goes out of scope and is ready to release? w.r.t. refcounting, if both object and method have 1 retain each, we know that's their cycle and can actively break it, but we'd need live hooks into refcounting); TBH, using command scope to release might be sufficient, as most times a reference is created it's used in that scope, and in situations where it is returned for use elsewhere, it'll just create a new method the next time it's used and cache it in that scope (pathological case it's it's created in one sub-scope of a parent scope and used in many sub-scopes of that parent); Q. what about using autorelease pools, or equivalent, to dispose of bound methods?
 
-class BoundHandler: CallableValue { // getting a Handler from an Env creates a closure, allowing it to be passed to and called in other contexts // TO DO: eventually env should be smart enough to add this wrapper only if handler needs it (i.e. if handler's glue definition doesn't require handlerEnv, the PrimitiveHandler can be passed as-is; no BoundHandler wrapper required)
-    
-    var interface: CallableInterface { return self.handler.interface }
-    
-    override var description: String { return self.interface.signature } // TO DO: how best to implement `var description` on handlers? (cleanest solution is to add it automatically via a protocol extension to Callable, though that will require reworking Value.description first); for now, just kludge it onto each handler class
-    
-    private let handler: Callable
-    private let handlerEnv: Scope
-    
-    init(handler: Callable, handlerEnv: Scope) {
-        self.handler = handler
-        self.handlerEnv = handlerEnv
-    }
-    
-    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
-        // note: command name may be different to handler name if handler has been assigned to different slot
-        return try self.handler.call(command: command, commandEnv: commandEnv, handlerEnv: self.handlerEnv, coercion: coercion)
-    }
-}
-
-
-class NativeHandler: CallableValue {
+class NativeHandler: Handler {
     
     override var description: String { return self.interface.signature }
     
@@ -63,10 +44,10 @@ class NativeHandler: CallableValue {
         self.isEventHandler = isEventHandler
     }
     
-    // unbox()/coerce() support; returns BoundHandler capturing both handler and its original handlerEnv (i.e. a closure); this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
+    // unbox()/coerce() support; returns Closure capturing both handler and its original handlerEnv (i.e. a closure); this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
     
-    override func toAny(env: Scope, coercion: Coercion) throws -> Value {
-        return BoundHandler(handler: self, handlerEnv: env)
+    override func toAny(env: Scope, coercion: Coercion) throws -> Value { // TO DO: not sure about this logic; it'd be safer done in Env.get()
+        return Closure(handler: self, handlerEnv: env)
     }
     
     // called by Command
@@ -96,11 +77,11 @@ class NativeHandler: CallableValue {
 
 
 
-typealias PrimitiveCall = (_ command: Command, _ commandEnv: Scope, _ handler: CallableValue, _ handlerEnv: Scope, _ coercion: Coercion) throws -> Value
+typealias PrimitiveCall = (_ command: Command, _ commandEnv: Scope, _ handler: Handler, _ handlerEnv: Scope, _ coercion: Coercion) throws -> Value
 
 
 
-class PrimitiveHandler: CallableValue {
+class PrimitiveHandler: Handler {
     
     override var description: String { return self.interface.signature }
     
@@ -125,3 +106,26 @@ class PrimitiveHandler: CallableValue {
     }
 }
 
+
+//
+
+
+class Closure: Handler { // `get()`-ing an unbound Handler from an Env automatically returns a closure by wrapping both the handler and the env in a new Closure instance, allowing that handler to be passed to, stored, and called in other contexts without (unlike AppleScript) losing its lexical bindings
+    
+    var interface: CallableInterface { return self.handler.interface }
+    
+    override var description: String { return self.interface.signature } // TO DO: how best to implement `var description` on handlers? (cleanest solution is to add it automatically via a protocol extension to HandlerProtocol, though that will require reworking Value.description first); for now, just kludge it onto each handler class
+    
+    private let handler: HandlerProtocol
+    private let handlerEnv: Scope
+    
+    init(handler: HandlerProtocol, handlerEnv: Scope) {
+        self.handler = handler
+        self.handlerEnv = handlerEnv
+    }
+    
+    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+        // note: command name may be different to handler name if handler has been assigned to different slot
+        return try self.handler.call(command: command, commandEnv: commandEnv, handlerEnv: self.handlerEnv, coercion: coercion)
+    }
+}

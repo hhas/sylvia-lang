@@ -10,7 +10,7 @@ import SwiftAutomation
 // application command
 
 
-class RemoteCall: CallableValue {
+class RemoteCall: Handler {
     
     override var description: String { return "«\(self.definition) of \(self.parent)»" } // TO DO: native formatting
     
@@ -43,10 +43,17 @@ class RemoteCall: CallableValue {
                                                    waitReply: true,
                                                    sendOptions: nil,
                                                    withTimeout: nil,
-                                                   considering: nil) as NSAppleEventDescriptor
-        print("RESULT DESC: \(desc)")
-        let result = try ResultDescriptor(desc, appData: self.appData).nativeEval(env: commandEnv, coercion: coercion)
-        return result
+                                                   considering: nil) as NSAppleEventDescriptor?
+        if let result = desc {
+            do {
+                return try ResultDescriptor(result, appData: self.appData).nativeEval(env: commandEnv, coercion: coercion)
+            } catch { // presumably a CoercionError; anything else?
+                print("Failed to unpack RESULT DESC as \(coercion): \(result)") // DEBUG
+                throw error // TO DO: throw a CommandError? or just let CoercionError propagate? (technically the remote command succeeded; however, we're still within handler and it may help user to see the complete command; would probably also help to see the ResultDescriptor unpacked asAnything, in which case maybe chain/duplicate the CoercionError)
+            }
+        } else {
+            return noValue
+        }
     }
     
     init(_ parent: Reference, definition: CommandTerm, appData: NativeAppData) {

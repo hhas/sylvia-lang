@@ -84,7 +84,7 @@ class Reference: AttributedValue { // abstract base class
                 return RemoteCall(self, definition: command, appData: self.appData)
             } else {
                 //print("`\(key)` not found in \(self)") // DEBUG
-                throw UnrecognizedAttributeError(name: key, value: self) // TO DO: would it be safe to delegate to commandEnv here? (bearing in mind that it'll need set first? Or can we trust)
+                throw ValueNotFoundError(name: key, env: self) // TO DO: would it be safe to delegate to commandEnv here? (bearing in mind that it'll need set first? Or can we trust)
             }
         }
     }
@@ -99,8 +99,10 @@ class Reference: AttributedValue { // abstract base class
 // - insertion location
 
 
-class SingleReference: SelfPackingReference, SelfPacking, Selectable, Callable {
+class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerProtocol {
 
+    // TO DO: implement toTYPE methods which perform standard `get` (i.e. coercing a native/remote Reference to anything except `reference`/`lazy` should de-reference it and coerce the result) [Q. what about `value`/`anything`, as `reference` is a subtype of those? inclined to treat references like thunks, in which case coercing to anything/value forces it]
+    
     // property or single element; by-index, by-name, by-id, relative, first/middle/last
     
     // TO DO: in order to deal with ambiguous property/element names (e.g. `document` in TextEdit, which is both property and singular element name), this class needs to be selectable and callable, in which case it should check if property name is also a singular element name, and if so convert to all-elements specifier and perform selection on that, else throw 'not an element' error
@@ -116,7 +118,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, Callable {
     
     init(_ specifier: AEItem, attributeName: String, appData: NativeAppData) { // TO DO: take [property] name as argument
         self.swiftValue = specifier
-        self.attributeName = attributeName
+        self.attributeName = attributeName // this is only used when converting property reference to elements reference of same name; do not use for anything else
         super.init(appData: appData)
     }
     
@@ -127,7 +129,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, Callable {
         case "previous": // `ELEMENT_TYPE before ELEMENT_REFERENCE`
             fatalError()
         case "next": // `ELEMENT_TYPE after ELEMENT_REFERENCE`
-            fatalError() // TO DO: return RelativeSelector(for: self, position: name) // Callable that takes Symbol (typeClass) as sole argument
+            fatalError() // TO DO: return RelativeSelector(for: self, position: name) // HandlerProtocol that takes Symbol (typeClass) as sole argument
         case "before": // `before ELEMENT_REFERENCE`
             return InsertionReference(self.swiftValue.before, appData: self.appData)
         case "after": // `after ELEMENT_REFERENCE`
@@ -157,7 +159,8 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, Callable {
                 return MultipleReference(parent.elements(code), attributeName: self.attributeName, appData: appData)
             }
         }
-        throw UnrecognizedAttributeError(name: self.attributeName, value: self) // TO DO: what error? (should maybe have argument that takes description: "property/element/command" or "element")
+        // TO DO: if self.attributeName is empty string?
+        throw ValueNotFoundError(name: self.attributeName, env: self) // TO DO: what error? (should maybe have argument that takes description: "property/element/command" or "element")
     }
     
     func byIndex(_ selectorData: Value) throws -> Value {
@@ -198,7 +201,8 @@ class MultipleReference: SingleReference {
     
     override func get(_ key: String) throws -> Value {
         switch key {
-        case "first":
+        // TO DO: these are wrong: ordinal names are defined as prefix operators, so need to return a closure that takes element name as argument
+        case "first": // `first ELEMENT_TYPE of ELEMENTS_REFERENCE`
             return SingleReference(self._swiftValue.first, attributeName: key, appData: self.appData)
         case "middle":
             return SingleReference(self._swiftValue.middle, attributeName: key, appData: self.appData)
@@ -208,10 +212,12 @@ class MultipleReference: SingleReference {
             return SingleReference(self._swiftValue.any, attributeName: key, appData: self.appData)
         case "every":
             return self
-        case "beginning":
+        // these are okay though as 'beginning' and 'end' are defined as atom operators to be used in `of` clause
+        // TO DO: also put these on SingleReference.get(), with toMultipleReference call
+        case "beginning": // `beginning of ELEMENTS_REFERENCE`
             return InsertionReference(self._swiftValue.beginning, appData: self.appData)
-        case "end":
-            return InsertionReference(self._swiftValue.beginning, appData: self.appData)
+        case "end": // `end of ELEMENTS`
+            return InsertionReference(self._swiftValue.end, appData: self.appData)
         default:
             return try super.get(key)
         }
@@ -273,7 +279,7 @@ class InsertionReference: SelfPackingReference, SelfPacking { // beginning/end/b
 /******************************************************************************/
 
 
-class Application: SelfPackingReference, Callable {
+class Application: SelfPackingReference, HandlerProtocol {
 
     // TO DO: want this to be exposed as value which is callable/selectable (need to start thinking in terms of namespaces, c.f. Frontier) // this'll need to be instantiated as current application, with callable interface
     

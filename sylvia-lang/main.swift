@@ -86,7 +86,7 @@ do { // define and call native handler
          « “4.0” »
          => nothing
      */
-    let h = Handler(CallableInterface(name: "addOne", parameters: [(name: "n", coercion: asDouble)], returnType: asDouble),
+    let h = PrimitiveHandler(CallableInterface(name: "addOne", parameters: [(name: "n", coercion: asDouble)], returnType: asDouble),
                     Command("+", [Text("1"), Identifier("n")]))
     try e.add(h)
     let v = Command("show", [Command("addOne", [Text("3")])])
@@ -262,9 +262,14 @@ if y > 8 {
 code = "tell app “TextEdit” { get text of document 1 as string }"
 
 
+// TO DO: parseTuple needs to treat `OPERATOR PAIR_SEPARATOR EXPRESSION` sequence as `IDENTIFIER PAIR_SEPARATOR EXPRESSION`, avoiding need to single-quote the 'to' label below
+
 code = """
 tell app “TextEdit” {
-    get text of document 1
+    get text of documents as list (item_type: string)
+    get text of documents
+    «set (text of document 3, ‘to’: “HELLO!”)»
+    get documents «note: unlike AS, explicit `get` command is required»
 }
 """
 

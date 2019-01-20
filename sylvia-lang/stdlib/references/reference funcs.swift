@@ -11,10 +11,7 @@ func ofClause(attribute: Value, value: AttributedValue, commandEnv: Scope) throw
     let scope = value as? Scope ?? ScopeShim(value) // kludge
     switch attribute {
     case let command as Command:
-        // TO DO: copypasted from Command.eval; might be better to put implementation on Command/Scope
-        let (value, handlerEnv) = try scope.get(command.key)
-        guard let handler = value as? Callable else { throw NotAHandlerError(name: command.name, env: scope, value: value) }
-        return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: asAnything)
+        return try scope.handle(command: command, commandEnv: commandEnv, coercion: asAnything)
     case let identifier as Identifier:
         return try identifier.nativeEval(env: scope, coercion: asAnything)
     default:
@@ -29,7 +26,7 @@ func ofClause(attribute: Value, value: AttributedValue, commandEnv: Scope) throw
 // TO DO: these are really Reference methods, but are implemented here to catch any calls from operators, e.g. `item at 1` may be written in any Scope, though how it should be handled is another question (FWIW, `get name of every handler [of SCOPE]` would be legit introspection code)
 
 private func elements(ofType elementType: String, from parentObject: Scope) throws -> Selectable {
-    guard let elements = try parentObject.get(elementType).value as? Selectable else { // e.g. `items [of LIST]`
+    guard let elements = try parentObject.get(elementType) as? Selectable else { // e.g. `items [of LIST]`
         throw ValueNotFoundError(name: elementType, env: parentObject) // TO DO: distinguish between 'not found' and 'not elements'
     }
     return elements

@@ -33,7 +33,7 @@
 
 # TO DO: method wrappers (probably implement as standard subclass/sibling of PrimitiveHandler containing a `target` Value; similar to how Python implements instance methods by enclosing function objects in <bound method> wrappers)
 
-# TO DO: along with library-defined 'effects' declarations, PrimitiveHandler.init() should be passed a 'boundHandler' flag indicating that the handler body has "free variables" (i.e. the primitive handler function takes a handlerEnv: parameter) so must capture its lexical environment (by wrapping both in a BoundHandler instance) in order to be passed around as a value (closure)
+# TO DO: along with library-defined 'effects' declarations, PrimitiveHandler.init() should be passed a 'boundHandler' flag indicating that the handler body has "free variables" (i.e. the primitive handler function takes a handlerEnv: parameter) so must capture its lexical environment (by wrapping both in a Closure instance) in order to be passed around as a value (closure)
 
 
 import sys
@@ -77,7 +77,7 @@ let interface_««primitiveSignatureName»» = CallableInterface(
     ],
     returnType: signature_««primitiveSignatureName»».returnType
 )
-func function_««primitiveSignatureName»»(command: Command, commandEnv: Scope, handler: CallableValue, handlerEnv: Scope, coercion: Coercion) throws -> Value {
+func function_««primitiveSignatureName»»(command: Command, commandEnv: Scope, handler: Handler, handlerEnv: Scope, coercion: Coercion) throws -> Value {
     var arguments = command.arguments ««unboxArguments»»
     ««resultAssignment»»««tryKeyword»»««primitiveFunctionName»»(««functionArguments»»
     )««functionReturn»»
@@ -85,7 +85,7 @@ func function_««primitiveSignatureName»»(command: Command, commandEnv: Scope
 """
 
 _loadHandler = """
-    try env.add(interface_««primitiveSignatureName»», function_««primitiveSignatureName»»)"""
+    try env.add(PrimitiveHandler(interface_««primitiveSignatureName»», function_««primitiveSignatureName»»))"""
 
 _loaderTemplate = """
 func stdlib_loadHandlers(env: Env) throws {

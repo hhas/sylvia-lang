@@ -8,6 +8,8 @@
 // Attributed Values, Env
 
 
+//
+
 
 // TO DO: pass entire identifier/command to attributed value, env, etc for combined lookup + evaluation operation; this should simplify calling, avoid need for `get` to return scope, and allow alternate env implementations to process commands differently, e.g. an ObjC bridge would look up methods using combined command name + argument labels (current arrangement would require a custom callable that captures target + name, then appends arg labels to name in order to construct full ObjC name); where `get` returns a handler, it would always wrap it as a closure
 
@@ -18,24 +20,37 @@ typealias AttributedValue = Value & Attributed
 
 protocol Attributed {
     
-    // TO DO: use separate naming to distinguish between attributed value lookups (`set`/`get`) and environment lookups (`store`/`fetch`)?
-    
     func set(_ key: String, to value: Value) throws // used to set (via `store` command/`IDENTIFIER:VALUE` assignment) [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that); TO DO: this needs more thought, as `set(REFERENCE,to:VALUE)` is also used particularly in aelib; it might be that we standardize on `set(_:to:)` for *all* assignment
     
     func get(_ key: String) throws -> Value
+    
+    func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value // used to look-up *and* invoke a handler for the specified command (the given arguments are passed along to `Handler.call()`, along with the handlerEnv argument)
     
     // TO DO: introspection
         
 }
 
 
+extension Attributed { // TO DO: currently used by Reference and List, which rely on their own `get()` implementation to return closures each time; implementing `handle` on those will eliminate need for Closures, allowing their selector and other methods to be constructed as unbound primitive handlers
+    
+    func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value {
+        //print("Attributed EXTENSION \(self) handling \(command)")
+        guard let handler = (try? self.get(command.key)) as? HandlerProtocol else { throw HandlerNotFoundError(name: command.key, env: self) }
+        return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: ScopeShim(self), coercion: coercion)
+    }
+    
+}
+
+
+
+
 
 
 class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue where a full Scope is currently expected
     
-    private let value: AttributedValue
+    private let value: Attributed
     
-    init(_ value: AttributedValue) {
+    init(_ value: Attributed) {
         self.value = value
     }
     
@@ -47,10 +62,15 @@ class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue
         return self
     }
     
-    func get(_ key: String) throws -> (value: Value, scope: Scope) {
-        return (try self.value.get(key), self)
+    func get(_ key: String) throws -> Value {
+        return try self.value.get(key)
+    }
+    
+    func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value {
+        return try self.value.handle(command: command, commandEnv: commandEnv, coercion: coercion)
     }
 }
+
 
 
 // TO DO: put all user-only metadata (e.g. documentation annotations) in a separate structure/module which is lazily loaded/instantiated only when needed
@@ -61,23 +81,15 @@ protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Env.find() to
     // TO DO: make sure that value's attributes are fully introspectable (i.e. don't just implement everything as an opaque `switch` block in `get()`, but instead define the value's interface and let the glue generator build the get()/set() implementation automatically; in the case of aelib, interface definitions will be defined dynamically by terminology parser)
     
     func set(_ key: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws
-    
-    func get(_ key: String) throws -> (value: Value, scope: Scope) // TO DO: returning Scope (for use as handlerEnv) rather than Attributed is problematic, tightly coupling non-scope objects (e.g. List and other AttributedValues) to unrelated subclasses (Env)
+
     
     func child() -> Scope // TO DO: what about scope name, global/local, writable flag?
     
 }
 
-extension Scope {
-    func get(_ key: String) throws -> Value {
-        let result: (Value, Scope) = try self.get(key)
-        return result.0
-    }
-}
 
 
-
-// Callable Values (handlers, constrainable coercions)
+// HandlerProtocol Values (handlers, constrainable coercions)
 
 typealias Argument = (label: Identifier?, value: Value)
 
@@ -115,9 +127,9 @@ struct CallableInterface: CustomDebugStringConvertible {
 
 
 
-typealias CallableValue = Value & Callable
+typealias Handler = Value & HandlerProtocol
 
-protocol Callable {
+protocol HandlerProtocol {
     
     var interface: CallableInterface { get }
     
@@ -128,7 +140,7 @@ protocol Callable {
     
 }
 
-extension Callable {
+extension HandlerProtocol {
     
     var name: String { return self.interface.name }
     var key: String { return self.interface.key }

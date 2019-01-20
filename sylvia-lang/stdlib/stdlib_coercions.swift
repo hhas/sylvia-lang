@@ -42,7 +42,7 @@ func stdlib_loadCoercions(env: Env) throws {
     try env.add(asText)
     try env.add(asBool)
     try env.add(asDouble)
-    try env.add(asList)
+    try env.add(asList as Coercion)
     
     try env.add(asCoercion)
     

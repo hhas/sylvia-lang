@@ -194,7 +194,7 @@ class Parser {
             case .groupLiteral: // read zero or more parenthesized arguments
                 // TO DO: call parseRecord/parseTuple to read arg list; this should know how to read Pairs (this is context-sensitive: pair labels that lexer marks as .operator must be converted to .identifier)
                 self.advance(ignoringLineBreaks: false) // advance cursor onto "("
-                value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple
+                value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple // TO DO: tuples need their own parsefunc that knows how to handle labels that are represented as .operator tokens (i.e. for each item, if it starts with an .operator, check if next token is .pairSeparator and convert the operator to identifier if it is)
             case .listLiteral, .textLiteral, .symbolLiteral, .identifier, .number: // read single unparenthesized argument (note: a .blockLiteral argument must be parenthesized to avoid ambiguity in `PREFIX_OPERATOR IDENTIFIER BLOCK` pattern commonly used by flow control)
                 self.advance(ignoringLineBreaks: false)
                 value = try Command(name, [self.parseAtom()])

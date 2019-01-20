@@ -125,31 +125,15 @@ struct EvaluationError: Error, CustomStringConvertible {
 
 
 
-class UnrecognizedAttributeError: GeneralError {
-    let name: String
-    let value: Value
-    
-    init(name: String, value: Value) {
-        self.name = name
-        self.value = value
-    }
-    
-    override var message: String {
-        return "Can’t find an attribute named “\(self.name)” on the following \(self.value.nominalType): \(self.value)"
-    }
-}
-
-
-
 /******************************************************************************/
 // environment lookup errors
 
 class EnvironmentError: GeneralError { // abstract base class
     
     let name: String
-    let env: Scope
+    let env: Attributed // TO DO: rename 'scope' (since it may be Env, AttributedValue, or some other exotica)
     
-    init(name: String, env: Scope) {
+    init(name: String, env: Attributed) {
         self.name = name
         self.env = env
         super.init()
@@ -157,33 +141,28 @@ class EnvironmentError: GeneralError { // abstract base class
 }
 
 
+// TO DO: these need better description of scope
+
 class ValueNotFoundError: EnvironmentError { // TO DO: how should Env/Scope lookup errors relate to AttributedValue lookup errors?
 
     override var message: String {
+        //         return "Can’t find an attribute named “\(self.name)” on the following \(self.value.nominalType): \(self.value)"
         return "Can’t find a value named “\(self.name)” in \(self.env)."
     }
 }
+
+class HandlerNotFoundError: ValueNotFoundError {
+    
+    override var message: String {
+        return "Can’t find a handler named “\(self.name)” in \(self.env)." // TO DO: message should adapt if slot exists but contains non-HandlerProtocol [caution: this'd need to capture slot immediately, or else take found value as argument, as deferring the slot lookup to here would create potential race]
+    }
+}
+
 
 class ReadOnlyValueError: EnvironmentError {
     
     override var message: String {
         return "Can’t replace the non-editable value named “\(self.name)”."
-    }
-}
-
-class NotAHandlerError: EnvironmentError {
-    
-    let value: Value?
-    
-    init(name: String, env: Scope, value: Value? = nil) {
-        self.value = value
-        super.init(name: name, env: env)
-    }
-    
-    override var message: String {
-        var msg = "Can’t find a handler named “\(self.name)”."
-        if let value = self.value { msg += " (Found \(value.nominalType) instead.)" }
-        return msg
     }
 }
 
@@ -193,10 +172,10 @@ class NotAHandlerError: EnvironmentError {
 
 class HandlerFailedError: GeneralError {
     
-    let handler: Callable
+    let handler: HandlerProtocol
     let command: Command
     
-    init(handler: Callable, command: Command) { // TO DO: inspect Command and Handlers annotations for stack trace generation
+    init(handler: HandlerProtocol, command: Command) { // TO DO: inspect Command and Handlers annotations for stack trace generation
         self.handler = handler
         self.command = command
         super.init()
@@ -212,9 +191,9 @@ class BadArgumentError: GeneralError {
     let paramKey: String
     let argument: Value
     let command: Command
-    let handler: CallableValue
+    let handler: Handler
     
-    init(paramKey: String, argument: Value, command: Command, handler: CallableValue) {
+    init(paramKey: String, argument: Value, command: Command, handler: Handler) {
         self.paramKey = paramKey
         self.argument = argument
         self.command = command
@@ -224,7 +203,8 @@ class BadArgumentError: GeneralError {
     
     override var message: String {
         guard let parameter = self.handler.interface.parameters.first(where: { $0.0 == self.paramKey }) else {
-            fatalError("BadArgumentError received bad paramKey `\(self.paramKey)` for \(self.handler.interface)")
+            // this will only happen if there's a bug in primitive handler where its interface's parameter definition and corresponding removeArgument call have mismatched labels
+            fatalError("Implementation bug in \(self.handler.name) handler: mismatched parameter label `\(self.paramKey)` not in \(self.handler.interface)")
         }
         return "The ‘\(self.handler.interface.name)’ handler’s ‘\(parameter.label)’ parameter expected \(parameter.coercion.key) but received the following \(self.argument.nominalType): \(self.argument)" // TO DO: better coercion descriptions needed // TO DO: error message phrasing is misleading, as it implies a type error but can be triggered by other evaluation failures (e.g. value not found)
     }
@@ -233,9 +213,9 @@ class BadArgumentError: GeneralError {
 class UnrecognizedArgumentError: GeneralError {
     
     let command: Command
-    let handler: CallableValue
+    let handler: Handler
     
-    init(command: Command, handler: CallableValue) {
+    init(command: Command, handler: Handler) {
         self.command = command
         self.handler = handler
         super.init()

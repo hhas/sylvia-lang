@@ -51,14 +51,14 @@ extension List: Attributed { // TO DO: List should be Attributed, not Scope (whi
         fatalError() // TO DO: any settable attributes? if not, throw ReadOnly error
     }
     
-    func get(_ key: String) throws -> Value { // e.g. `items of LIST`; TO DO: scope is returned here for benefit of handlers that need to mutate handlerEnv (or create bodyEnv from handlerEnv); in this case, scope is List value (i.e. self)
+    func get(_ key: String) throws -> Value { // e.g. `items of LIST`
         switch key {
         case "items", "item": // singular/plural naming conventions aren't consistent, so have to treat them as synonyms; TO DO: where both spellings are available, pretty printer should choose according to to-one/to-many selector, e.g. `item at 1`, `items at 1 thru 3`
             return AllListItemsSpecifier(self, key)
         case "at": // `item at 1 of LIST` -> `'of' ('at' (item, 1), LIST)`, which looks up `at` on LIST
             return IndexSelector(for: self)
         default:
-            throw UnrecognizedAttributeError(name: key, value: self)
+            throw ValueNotFoundError(name: key, env: self)
         }
         
         // Q. when a library implements operator syntax for a command handler, that handler must(?) be non-maskable; Q. what about operators over value slots (e.g. `at`)?
@@ -86,17 +86,15 @@ extension List: Attributed { // TO DO: List should be Attributed, not Scope (whi
 
 
 
-// TO DO: move
+// TO DO: this currently relies on stdlib-defined selector handlers; this needs to change
 
-class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` specifier; constructed by `List` extension // TO DO: rename and decide how best to generalize implementation
+class AllListItemsSpecifier: Handler, Selectable { // `items of LIST` specifier; constructed by `List` extension // TO DO: rename and decide how best to generalize implementation
     
     // `item` and `items` are effectively synonyms
     
     override var description: String { return "items of \(self.list)" } // TO DO: expressions need to be generated via pretty printer as representation changes depending on what operator tables are loaded (may be best to use `description` for canonical representations only, e.g. for troubleshooting/portable serialization)
     
-    override class var nominalType: Coercion { return asList } // TO DO: AsReference(…)
-    
-    let elementsName: String
+    override class var nominalType: Coercion { return asReference }
     
     // command-based shortcut for constructing the most commonly-used reference form, which for ordered collections is by-index
     // e.g. `item 3 of LIST` (which is syntactic sugar for `item(at:3) of LIST`) is shorthand for `item at 3 of LIST`
@@ -107,6 +105,7 @@ class AllListItemsSpecifier: CallableValue, Selectable { // `items of LIST` spec
     )
     
     private let list: List // TO DO: type as OrderedCollection protocol?
+    let elementsName: String
     
     init(_ list: List, _ elementsName: String) {
         self.list = list

@@ -62,7 +62,7 @@ class Thunk: Expression {
 
 // expression sequences
 
-// TO DO: under what circumstances can/should blocks implement Callable? (in normal use, a literal block is evaluated same as any other literal value: any command can take a block as argument, coercing its result to the required type)
+// TO DO: under what circumstances can/should blocks implement HandlerProtocol? (in normal use, a literal block is evaluated same as any other literal value: any command can take a block as argument, coercing its result to the required type)
 
 class Block: Expression { // a sequence of zero or more Values to evaluate in turn; result is last value evaluated; TO DO: use Icon-style evaluation, where 'failure' result causes subsequent evals to be skipped? (this might be done via exceptions, c.f. null coercion, rather than actual return values)
     
@@ -79,7 +79,7 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
     override func nativeEval(env: Scope, coercion: Coercion) throws -> Value { // TO DO: visualization hooks? (learning, debugging, profiling, etc)
         var result: Value = noValue
         for value in self.body {
-            result = try value.nativeEval(env: env, coercion: asAnything) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in Callable? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
+            result = try value.nativeEval(env: env, coercion: asAnything) // TO DO: `return VALUE` would throw a recoverable exception [and be caught here? or further up in HandlerProtocol? Q. what about `let foo = {some block}` idiom? should block be callable for this?]
         }
         return try coercion.coerce(value: result, env: env) // TO DO: how to pass output coercion to last expr to be evaluated? (for last expr in body, should be enough to take it out of self.body and eval it here with `coercion`; if `return VALUE` op is implemented, it could break out of eval loop and again have VALUE coerced to return type here; another trick would be to change last item of body to `return(ITEM)` during initialization, making the value return explicit, though need to consider how this'd work for handler bodies vs control flow bodies)
     }

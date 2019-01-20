@@ -26,10 +26,12 @@ class Identifier: Expression {
     }
     
     override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
-        let (value, lexicalEnv) = try env.get(self.key)
+        //let (value, lexicalEnv) = try env._get(self.key)
+        let value = try env.get(self.key)
         // TO DO: catch null coercions, c.f. below?
         do {
-            return try value.nativeEval(env: lexicalEnv, coercion: coercion)
+            //return try value.nativeEval(env: lexicalEnv, coercion: coercion)
+            return try value.nativeEval(env: env, coercion: coercion)
         } catch {
             print("Identifier `\(self.name)` couldn't coerce following value to `\(coercion)`: \(value)")
             throw error
@@ -37,10 +39,12 @@ class Identifier: Expression {
     }
     
     override func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
-        let (value, lexicalEnv) = try env.get(self.key)
+        //let (value, lexicalEnv) = try env._get(self.key)
+        let value = try env.get(self.key)
         // TO DO: where should null coercion errors become permanent?
         //do {
-        return try value.bridgingEval(env: lexicalEnv, coercion: coercion)
+        //return try value.bridgingEval(env: lexicalEnv, coercion: coercion)
+        return try value.bridgingEval(env: env, coercion: coercion)
         //} catch let error as NullCoercionError {
         //    throw CoercionError(value: self, coercion: coercion).from(error)
         //}
@@ -79,16 +83,10 @@ class Command: Expression {
         }
     }
     
-    func argument(_ index: Int) -> Value { // TO DO: need to match arg names to param names
-        return index >= arguments.count ? noValue : self.arguments[index].value
-    }
-    
     // TO DO: caching? (the challenge here is that `A.B()`/`B() of A` requires that A supply the Env [or Env-like object], but there's no guarantee that A will be the same every time; one possible solution is to implement `nativeEval(inScope:Accessor,env:Env,…)`), which would allow commands and identifiers to lookup in scope instead of env; given `of(B(),A)`, the` of` `handler` implements nativeEval() to look up the B handler in A then call()s it with current scope as commandEnv and A as handlerEnv
     
     override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
-        let (value, handlerEnv) = try env.get(self.key)
-        guard let handler = value as? Callable else { throw NotAHandlerError(name: self.name, env: env, value: value) }
-        return try handler.call(command: self, commandEnv: env, handlerEnv: handlerEnv, coercion: coercion)
+        return try env.handle(command: self, commandEnv: env, coercion: coercion)
     }
     
     override func bridgingEval<T: BridgingCoercion>(env: Scope, coercion: T) throws -> T.SwiftType {
