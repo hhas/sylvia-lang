@@ -9,7 +9,7 @@
 
 // TO DO: eventually stack traces should be filterable only to show highlights (typically the initial error, the handler where it occurred, and the topmost command that failed as a result (intermediate trace is of less immediate use and tends to obfuscate the key points, so should be initially hidden by default); in the case of coercion errors, the origins of the Coercion instances may also be described (e.g. as Values typically declared as literals, they should be annotated with their source location); consider using annotations to indicate which error message is which, and provide APIs for working with chained errors
 
-// TO DO: eventually move error raising APIs onto Env, allowing behavior to be customized (e.g. when running in debugger mode, instead of unwinding the stack, a coercion error might suspend execution and activate UI interaction mode where user can inspect, and potentially modify, the problem values, then resume execution from that same point)
+// TO DO: eventually move error raising APIs onto Environment, allowing behavior to be customized (e.g. when running in debugger mode, instead of unwinding the stack, a coercion error might suspend execution and activate UI interaction mode where user can inspect, and potentially modify, the problem values, then resume execution from that same point)
 
 // TO DO: error message generation should be moved to external class[es] that can analyze the entire stack trace and construct a clear description of the problem (currently each error class adds its own message, which results in lengthy, duplicative, and sometimes confusingly/misleadingly phrased message; e.g. if the root cause is "value not found", rest of the message chain should not talk about "coercion")
 
@@ -131,7 +131,7 @@ struct EvaluationError: Error, CustomStringConvertible {
 class EnvironmentError: GeneralError { // abstract base class
     
     let name: String
-    let env: Attributed // TO DO: rename 'scope' (since it may be Env, AttributedValue, or some other exotica)
+    let env: Attributed // TO DO: rename 'scope' (since it may be Environment, AttributedValue, or some other exotica)
     
     init(name: String, env: Attributed) {
         self.name = name
@@ -143,7 +143,7 @@ class EnvironmentError: GeneralError { // abstract base class
 
 // TO DO: these need better description of scope
 
-class ValueNotFoundError: EnvironmentError { // TO DO: how should Env/Scope lookup errors relate to AttributedValue lookup errors?
+class ValueNotFoundError: EnvironmentError { // TO DO: how should Environment/Scope lookup errors relate to AttributedValue lookup errors?
 
     override var message: String {
         //         return "Can’t find an attribute named “\(self.name)” on the following \(self.value.nominalType): \(self.value)"

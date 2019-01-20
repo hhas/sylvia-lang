@@ -92,7 +92,7 @@ class Block: Expression { // a sequence of zero or more Values to evaluate in tu
 }
 
 
-class ScriptAST: Block { // TO DO: what should be main entry point[s] for evaluation, node-walking, etc? (note: might want to put public convenience eval entry point on Env, which can provide options for per-line/whole script execution, sharing/creating/copying/persisting environment state as appropriate, c.f. AppleScript OSA component)
+class ScriptAST: Block { // TO DO: what should be main entry point[s] for evaluation, node-walking, etc? (note: might want to put public convenience eval entry point on Environment, which can provide options for per-line/whole script execution, sharing/creating/copying/persisting environment state as appropriate, c.f. AppleScript OSA component)
 
     override var description: String { return self.body.map{$0.description}.joined(separator:"\n") }
 

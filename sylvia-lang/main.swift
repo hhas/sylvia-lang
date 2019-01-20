@@ -9,7 +9,7 @@ import Foundation
 
 
 
-let e = Env()
+let e = Environment()
 
 
 do {
@@ -86,7 +86,7 @@ do { // define and call native handler
          « “4.0” »
          => nothing
      */
-    let h = PrimitiveHandler(CallableInterface(name: "addOne", parameters: [(name: "n", coercion: asDouble)], returnType: asDouble),
+    let h = PrimitiveHandler(HandlerInterface(name: "addOne", parameters: [(name: "n", coercion: asDouble)], returnType: asDouble),
                     Command("+", [Text("1"), Identifier("n")]))
     try e.add(h)
     let v = Command("show", [Command("addOne", [Text("3")])])

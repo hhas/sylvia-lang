@@ -179,7 +179,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
         return try toMultipleReference().byIndex(selectorData)
     }
     
-    let interface = CallableInterface(name: "", parameters: [("selector_data", "", asValue)], returnType: asReference) // TO DO: what should name be?
+    let interface = HandlerInterface(name: "", parameters: [("selector_data", "", asValue)], returnType: asReference) // TO DO: what should name be?
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         return try toMultipleReference().call(command: command, commandEnv: commandEnv, handlerEnv: handlerEnv, coercion: coercion)
@@ -327,7 +327,7 @@ class Application: SelfPackingReference, HandlerProtocol {
         }
     }
     
-    let interface = CallableInterface(name: "app", parameters: [("name", "", asString)], returnType: asReference)
+    let interface = HandlerInterface(name: "app", parameters: [("name", "", asString)], returnType: asReference)
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {        
         var arguments = command.arguments
@@ -343,6 +343,6 @@ class Application: SelfPackingReference, HandlerProtocol {
 /******************************************************************************/
 
 
-func aelib_loadConstants(env: Env) throws {
+func aelib_loadConstants(env: Environment) throws {
     try env.set("app", to: Application()) // instantiate a single Application value for adding to module; this value identifies current application as default, but can be targeted to anything else
 }

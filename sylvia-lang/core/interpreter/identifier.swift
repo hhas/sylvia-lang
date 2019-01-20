@@ -7,7 +7,7 @@
 
 class Identifier: Expression {
     
-    // TO DO: while the goal is to build a slow AST interpreter with good runtime introspection that facilitates easy exploration and debugging plus option to cross-compile to fast[er] Swift code, there may still be a few parse-/run-time optimizations worth implementing once all the essentials are done. e.g. How can/when should Identifiers and Commands memoize non-maskable, read-only slot values (`nothing`, `π`, `+`, `as`, `show()`, etc) so they never need looked more than once? In theory, primitive library-defined constants could be defined in LIB_operators.swift as .constant(Value) parsefuncs, telling parser to substitute immediately as it builds the AST. Even when slots are writable, as long as they're guaranteed never to be masked the cost of identifier/command lookups could be reduced by capturing the environment frame in which they're defined, avoiding a full recursive lookup of Env every time.
+    // TO DO: while the goal is to build a slow AST interpreter with good runtime introspection that facilitates easy exploration and debugging plus option to cross-compile to fast[er] Swift code, there may still be a few parse-/run-time optimizations worth implementing once all the essentials are done. e.g. How can/when should Identifiers and Commands memoize non-maskable, read-only slot values (`nothing`, `π`, `+`, `as`, `show()`, etc) so they never need looked more than once? In theory, primitive library-defined constants could be defined in LIB_operators.swift as .constant(Value) parsefuncs, telling parser to substitute immediately as it builds the AST. Even when slots are writable, as long as they're guaranteed never to be masked the cost of identifier/command lookups could be reduced by capturing the environment frame in which they're defined, avoiding a full recursive lookup of Environment every time.
     
     override var description: String { return "‘\(self.name)’" }
     
@@ -83,7 +83,7 @@ class Command: Expression {
         }
     }
     
-    // TO DO: caching? (the challenge here is that `A.B()`/`B() of A` requires that A supply the Env [or Env-like object], but there's no guarantee that A will be the same every time; one possible solution is to implement `nativeEval(inScope:Accessor,env:Env,…)`), which would allow commands and identifiers to lookup in scope instead of env; given `of(B(),A)`, the` of` `handler` implements nativeEval() to look up the B handler in A then call()s it with current scope as commandEnv and A as handlerEnv
+    // TO DO: caching? (the challenge here is that `A.B()`/`B() of A` requires that A supply the Environment [or Environment-like object], but there's no guarantee that A will be the same every time; one possible solution is to implement `nativeEval(inScope:Accessor,env:Environment,…)`), which would allow commands and identifiers to lookup in scope instead of env; given `of(B(),A)`, the` of` `handler` implements nativeEval() to look up the B handler in A then call()s it with current scope as commandEnv and A as handlerEnv
     
     override func nativeEval(env: Scope, coercion: Coercion) throws -> Value {
         return try env.handle(command: self, commandEnv: env, coercion: coercion)

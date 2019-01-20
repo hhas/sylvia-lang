@@ -37,7 +37,7 @@ let asAttributeName = AsAttributeName()
 /******************************************************************************/
 
     
-func stdlib_loadCoercions(env: Env) throws {
+func stdlib_loadCoercions(env: Environment) throws {
     try env.add(asValue)
     try env.add(asText)
     try env.add(asBool)

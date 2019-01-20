@@ -19,11 +19,11 @@ import SwiftAutomation
 class NativeAppData: AppData {
     
     let glueTable: GlueTable
-    private var commandInterfaces = [String: CallableInterface]()
+    private var commandInterfaces = [String: HandlerInterface]()
     
-    func interfaceForCommand(term: CommandTerm) -> CallableInterface {
+    func interfaceForCommand(term: CommandTerm) -> HandlerInterface {
         if let interface = self.commandInterfaces[term.name] { return interface }
-        let interface = CallableInterface(name: term.name,
+        let interface = HandlerInterface(name: term.name,
                                           parameters: term.orderedParameters.map{ ($0.name, "", asAnything) },
                                           returnType: asIs)
         commandInterfaces[term.name] = interface

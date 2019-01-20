@@ -12,7 +12,7 @@ let signature_exponent_left_right = (
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_exponent_left_right = CallableInterface(
+let interface_exponent_left_right = HandlerInterface(
     name: "exponent",
     parameters: [
         ("left", "", signature_exponent_left_right.paramType_0),
@@ -38,7 +38,7 @@ let signature_positive_left = (
     paramType_0: asScalar,
     returnType: asScalar
 )
-let interface_positive_left = CallableInterface(
+let interface_positive_left = HandlerInterface(
     name: "positive",
     parameters: [
         ("left", "", signature_positive_left.paramType_0),
@@ -61,7 +61,7 @@ let signature_negative_left = (
     paramType_0: asScalar,
     returnType: asScalar
 )
-let interface_negative_left = CallableInterface(
+let interface_negative_left = HandlerInterface(
     name: "negative",
     parameters: [
         ("left", "", signature_negative_left.paramType_0),
@@ -85,7 +85,7 @@ let signature_add_left_right = (
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_add_left_right = CallableInterface(
+let interface_add_left_right = HandlerInterface(
     name: "+",
     parameters: [
         ("left", "", signature_add_left_right.paramType_0),
@@ -112,7 +112,7 @@ let signature_subtract_left_right = (
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_subtract_left_right = CallableInterface(
+let interface_subtract_left_right = HandlerInterface(
     name: "-",
     parameters: [
         ("left", "", signature_subtract_left_right.paramType_0),
@@ -139,7 +139,7 @@ let signature_multiply_left_right = (
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_multiply_left_right = CallableInterface(
+let interface_multiply_left_right = HandlerInterface(
     name: "*",
     parameters: [
         ("left", "", signature_multiply_left_right.paramType_0),
@@ -166,7 +166,7 @@ let signature_divide_left_right = (
     paramType_1: asScalar,
     returnType: asScalar
 )
-let interface_divide_left_right = CallableInterface(
+let interface_divide_left_right = HandlerInterface(
     name: "/",
     parameters: [
         ("left", "", signature_divide_left_right.paramType_0),
@@ -193,7 +193,7 @@ let signature_div_left_right = (
     paramType_1: asDouble,
     returnType: asDouble
 )
-let interface_div_left_right = CallableInterface(
+let interface_div_left_right = HandlerInterface(
     name: "div",
     parameters: [
         ("left", "", signature_div_left_right.paramType_0),
@@ -220,7 +220,7 @@ let signature_mod_left_right = (
     paramType_1: asDouble,
     returnType: asDouble
 )
-let interface_mod_left_right = CallableInterface(
+let interface_mod_left_right = HandlerInterface(
     name: "mod",
     parameters: [
         ("left", "", signature_mod_left_right.paramType_0),
@@ -247,7 +247,7 @@ let signature_isLessThan_left_right = (
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isLessThan_left_right = CallableInterface(
+let interface_isLessThan_left_right = HandlerInterface(
     name: "<",
     parameters: [
         ("left", "", signature_isLessThan_left_right.paramType_0),
@@ -274,7 +274,7 @@ let signature_isLessThanOrEqualTo_left_right = (
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isLessThanOrEqualTo_left_right = CallableInterface(
+let interface_isLessThanOrEqualTo_left_right = HandlerInterface(
     name: "<=",
     parameters: [
         ("left", "", signature_isLessThanOrEqualTo_left_right.paramType_0),
@@ -301,7 +301,7 @@ let signature_isEqualTo_left_right = (
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isEqualTo_left_right = CallableInterface(
+let interface_isEqualTo_left_right = HandlerInterface(
     name: "==",
     parameters: [
         ("left", "", signature_isEqualTo_left_right.paramType_0),
@@ -328,7 +328,7 @@ let signature_isNotEqualTo_left_right = (
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isNotEqualTo_left_right = CallableInterface(
+let interface_isNotEqualTo_left_right = HandlerInterface(
     name: "!=",
     parameters: [
         ("left", "", signature_isNotEqualTo_left_right.paramType_0),
@@ -355,7 +355,7 @@ let signature_isGreaterThan_left_right = (
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isGreaterThan_left_right = CallableInterface(
+let interface_isGreaterThan_left_right = HandlerInterface(
     name: ">",
     parameters: [
         ("left", "", signature_isGreaterThan_left_right.paramType_0),
@@ -382,7 +382,7 @@ let signature_isGreaterThanOrEqualTo_left_right = (
     paramType_1: asDouble,
     returnType: asBool
 )
-let interface_isGreaterThanOrEqualTo_left_right = CallableInterface(
+let interface_isGreaterThanOrEqualTo_left_right = HandlerInterface(
     name: ">=",
     parameters: [
         ("left", "", signature_isGreaterThanOrEqualTo_left_right.paramType_0),
@@ -408,7 +408,7 @@ let signature_NOT_right = (
     paramType_0: asBool,
     returnType: asBool
 )
-let interface_NOT_right = CallableInterface(
+let interface_NOT_right = HandlerInterface(
     name: "NOT",
     parameters: [
         ("right", "", signature_NOT_right.paramType_0),
@@ -432,7 +432,7 @@ let signature_AND_left_right = (
     paramType_1: asBool,
     returnType: asBool
 )
-let interface_AND_left_right = CallableInterface(
+let interface_AND_left_right = HandlerInterface(
     name: "AND",
     parameters: [
         ("left", "", signature_AND_left_right.paramType_0),
@@ -459,7 +459,7 @@ let signature_OR_left_right = (
     paramType_1: asBool,
     returnType: asBool
 )
-let interface_OR_left_right = CallableInterface(
+let interface_OR_left_right = HandlerInterface(
     name: "OR",
     parameters: [
         ("left", "", signature_OR_left_right.paramType_0),
@@ -486,7 +486,7 @@ let signature_XOR_left_right = (
     paramType_1: asBool,
     returnType: asBool
 )
-let interface_XOR_left_right = CallableInterface(
+let interface_XOR_left_right = HandlerInterface(
     name: "XOR",
     parameters: [
         ("left", "", signature_XOR_left_right.paramType_0),
@@ -513,7 +513,7 @@ let signature_lt_left_right = (
     paramType_1: asString,
     returnType: asBool
 )
-let interface_lt_left_right = CallableInterface(
+let interface_lt_left_right = HandlerInterface(
     name: "lt",
     parameters: [
         ("left", "", signature_lt_left_right.paramType_0),
@@ -540,7 +540,7 @@ let signature_le_left_right = (
     paramType_1: asString,
     returnType: asBool
 )
-let interface_le_left_right = CallableInterface(
+let interface_le_left_right = HandlerInterface(
     name: "le",
     parameters: [
         ("left", "", signature_le_left_right.paramType_0),
@@ -567,7 +567,7 @@ let signature_eq_left_right = (
     paramType_1: asString,
     returnType: asBool
 )
-let interface_eq_left_right = CallableInterface(
+let interface_eq_left_right = HandlerInterface(
     name: "eq",
     parameters: [
         ("left", "", signature_eq_left_right.paramType_0),
@@ -594,7 +594,7 @@ let signature_ne_left_right = (
     paramType_1: asString,
     returnType: asBool
 )
-let interface_ne_left_right = CallableInterface(
+let interface_ne_left_right = HandlerInterface(
     name: "ne",
     parameters: [
         ("left", "", signature_ne_left_right.paramType_0),
@@ -621,7 +621,7 @@ let signature_gt_left_right = (
     paramType_1: asString,
     returnType: asBool
 )
-let interface_gt_left_right = CallableInterface(
+let interface_gt_left_right = HandlerInterface(
     name: "gt",
     parameters: [
         ("left", "", signature_gt_left_right.paramType_0),
@@ -648,7 +648,7 @@ let signature_ge_left_right = (
     paramType_1: asString,
     returnType: asBool
 )
-let interface_ge_left_right = CallableInterface(
+let interface_ge_left_right = HandlerInterface(
     name: "ge",
     parameters: [
         ("left", "", signature_ge_left_right.paramType_0),
@@ -675,7 +675,7 @@ let signature_isA_value_ofType = (
     paramType_1: asCoercion,
     returnType: asBool
 )
-let interface_isA_value_ofType = CallableInterface(
+let interface_isA_value_ofType = HandlerInterface(
     name: "is_a",
     parameters: [
         ("value", "", signature_isA_value_ofType.paramType_0),
@@ -702,7 +702,7 @@ let signature_joinValues_left_right = (
     paramType_1: asString,
     returnType: asString
 )
-let interface_joinValues_left_right = CallableInterface(
+let interface_joinValues_left_right = HandlerInterface(
     name: "&",
     parameters: [
         ("left", "", signature_joinValues_left_right.paramType_0),
@@ -728,7 +728,7 @@ let signature_uppercase_text = (
     paramType_0: asString,
     returnType: asString
 )
-let interface_uppercase_text = CallableInterface(
+let interface_uppercase_text = HandlerInterface(
     name: "uppercase",
     parameters: [
         ("text", "", signature_uppercase_text.paramType_0),
@@ -751,7 +751,7 @@ let signature_lowercase_text = (
     paramType_0: asString,
     returnType: asString
 )
-let interface_lowercase_text = CallableInterface(
+let interface_lowercase_text = HandlerInterface(
     name: "lowercase",
     parameters: [
         ("text", "", signature_lowercase_text.paramType_0),
@@ -774,7 +774,7 @@ let signature_show_value = (
     paramType_0: asAnything,
     returnType: asNoResult
 )
-let interface_show_value = CallableInterface(
+let interface_show_value = HandlerInterface(
     name: "show",
     parameters: [
         ("value", "", signature_show_value.paramType_0),
@@ -797,7 +797,7 @@ let signature_formatCode_value = (
     paramType_0: asAnything,
     returnType: asString
 )
-let interface_formatCode_value = CallableInterface(
+let interface_formatCode_value = HandlerInterface(
     name: "format_code",
     parameters: [
         ("value", "", signature_formatCode_value.paramType_0),
@@ -824,7 +824,7 @@ let signature_defineHandler_name_parameters_returnType_action_isEventHandler_com
     paramType_4: asBool,
     returnType: asNoResult
 )
-let interface_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv = CallableInterface(
+let interface_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv = HandlerInterface(
     name: "define_handler",
     parameters: [
         ("name", "", signature_defineHandler_name_parameters_returnType_action_isEventHandler_commandEnv.paramType_0),
@@ -862,7 +862,7 @@ let signature_store_key_value_readOnly_commandEnv = (
     paramType_2: asBool,
     returnType: asIs
 )
-let interface_store_key_value_readOnly_commandEnv = CallableInterface(
+let interface_store_key_value_readOnly_commandEnv = HandlerInterface(
     name: "store",
     parameters: [
         ("key", "", signature_store_key_value_readOnly_commandEnv.paramType_0),
@@ -893,7 +893,7 @@ let signature_coerce_value_coercion_commandEnv = (
     paramType_1: asCoercion,
     returnType: asIs
 )
-let interface_coerce_value_coercion_commandEnv = CallableInterface(
+let interface_coerce_value_coercion_commandEnv = HandlerInterface(
     name: "as",
     parameters: [
         ("value", "", signature_coerce_value_coercion_commandEnv.paramType_0),
@@ -921,7 +921,7 @@ let signature_testIf_condition_action_commandEnv = (
     paramType_1: asBlock,
     returnType: asIs
 )
-let interface_testIf_condition_action_commandEnv = CallableInterface(
+let interface_testIf_condition_action_commandEnv = HandlerInterface(
     name: "if",
     parameters: [
         ("condition", "", signature_testIf_condition_action_commandEnv.paramType_0),
@@ -949,7 +949,7 @@ let signature_repeatTimes_count_action_commandEnv = (
     paramType_1: asBlock,
     returnType: asIs
 )
-let interface_repeatTimes_count_action_commandEnv = CallableInterface(
+let interface_repeatTimes_count_action_commandEnv = HandlerInterface(
     name: "repeat",
     parameters: [
         ("count", "", signature_repeatTimes_count_action_commandEnv.paramType_0),
@@ -977,7 +977,7 @@ let signature_repeatWhile_condition_action_commandEnv = (
     paramType_1: asBlock,
     returnType: asIs
 )
-let interface_repeatWhile_condition_action_commandEnv = CallableInterface(
+let interface_repeatWhile_condition_action_commandEnv = HandlerInterface(
     name: "while",
     parameters: [
         ("condition", "", signature_repeatWhile_condition_action_commandEnv.paramType_0),
@@ -1005,7 +1005,7 @@ let signature_elseClause_action_alternativeAction_commandEnv = (
     paramType_1: asAnything,
     returnType: asIs
 )
-let interface_elseClause_action_alternativeAction_commandEnv = CallableInterface(
+let interface_elseClause_action_alternativeAction_commandEnv = HandlerInterface(
     name: "else",
     parameters: [
         ("action", "", signature_elseClause_action_alternativeAction_commandEnv.paramType_0),
@@ -1033,7 +1033,7 @@ let signature_tell_target_action_commandEnv = (
     paramType_1: asBlock,
     returnType: asIs
 )
-let interface_tell_target_action_commandEnv = CallableInterface(
+let interface_tell_target_action_commandEnv = HandlerInterface(
     name: "tell",
     parameters: [
         ("target", "", signature_tell_target_action_commandEnv.paramType_0),
@@ -1061,7 +1061,7 @@ let signature_ofClause_attribute_value_commandEnv = (
     paramType_1: asAttributedValue,
     returnType: asIs
 )
-let interface_ofClause_attribute_value_commandEnv = CallableInterface(
+let interface_ofClause_attribute_value_commandEnv = HandlerInterface(
     name: "of",
     parameters: [
         ("attribute", "", signature_ofClause_attribute_value_commandEnv.paramType_0),
@@ -1089,7 +1089,7 @@ let signature_indexSelector_elementType_selectorData_commandEnv = (
     paramType_1: asAnything,
     returnType: asIs
 )
-let interface_indexSelector_elementType_selectorData_commandEnv = CallableInterface(
+let interface_indexSelector_elementType_selectorData_commandEnv = HandlerInterface(
     name: "at",
     parameters: [
         ("element_type", "", signature_indexSelector_elementType_selectorData_commandEnv.paramType_0),
@@ -1117,7 +1117,7 @@ let signature_nameSelector_elementType_selectorData_commandEnv = (
     paramType_1: asAnything,
     returnType: asIs
 )
-let interface_nameSelector_elementType_selectorData_commandEnv = CallableInterface(
+let interface_nameSelector_elementType_selectorData_commandEnv = HandlerInterface(
     name: "named",
     parameters: [
         ("element_type", "", signature_nameSelector_elementType_selectorData_commandEnv.paramType_0),
@@ -1145,7 +1145,7 @@ let signature_idSelector_elementType_selectorData_commandEnv = (
     paramType_1: asAnything,
     returnType: asIs
 )
-let interface_idSelector_elementType_selectorData_commandEnv = CallableInterface(
+let interface_idSelector_elementType_selectorData_commandEnv = HandlerInterface(
     name: "with_id",
     parameters: [
         ("element_type", "", signature_idSelector_elementType_selectorData_commandEnv.paramType_0),
@@ -1173,7 +1173,7 @@ let signature_testSelector_elementType_selectorData_commandEnv = (
     paramType_1: asReference,
     returnType: asIs
 )
-let interface_testSelector_elementType_selectorData_commandEnv = CallableInterface(
+let interface_testSelector_elementType_selectorData_commandEnv = HandlerInterface(
     name: "where",
     parameters: [
         ("element_type", "", signature_testSelector_elementType_selectorData_commandEnv.paramType_0),
@@ -1201,7 +1201,7 @@ let signature_Range_from_to = (
     paramType_1: asValue,
     returnType: asIs
 )
-let interface_Range_from_to = CallableInterface(
+let interface_Range_from_to = HandlerInterface(
     name: "thru",
     parameters: [
         ("from", "", signature_Range_from_to.paramType_0),
@@ -1221,7 +1221,7 @@ func function_Range_from_to(command: Command, commandEnv: Scope, handler: Handle
 }
 
 
-func stdlib_loadHandlers(env: Env) throws {
+func stdlib_loadHandlers(env: Environment) throws {
     
     try env.add(PrimitiveHandler(interface_exponent_left_right, function_exponent_left_right))
     try env.add(PrimitiveHandler(interface_positive_left, function_positive_left))

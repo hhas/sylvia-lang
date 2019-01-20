@@ -71,7 +71,7 @@ _handlerTemplate = """
 let signature_««primitiveSignatureName»» = (««signatureParameters»»
     returnType: ««returnType»»
 )
-let interface_««primitiveSignatureName»» = CallableInterface(
+let interface_««primitiveSignatureName»» = HandlerInterface(
     name: "««nativeName»»",
     parameters: [««interfaceParameters»»
     ],
@@ -88,7 +88,7 @@ _loadHandler = """
     try env.add(PrimitiveHandler(interface_««primitiveSignatureName»», function_««primitiveSignatureName»»))"""
 
 _loaderTemplate = """
-func stdlib_loadHandlers(env: Env) throws {
+func stdlib_loadHandlers(env: Environment) throws {
     ««loadHandlers»»
 }"""
 

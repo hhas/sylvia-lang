@@ -3,17 +3,17 @@
 //
 
 
-// TO DO: to implement [glue-managed] methods, should these subclass PrimitiveHandler? (or should method constructors just be convenience funcs that pass interface, function, and scope? note that if method's owner [e.g. aelib 'app' object] caches the method once bound, this will create memory-leaking refcycle unless there is a weakref somewhere; Q. what about caching in a command scope? in the case of methods on objects, how do we know if/when object goes out of scope and is ready to release? w.r.t. refcounting, if both object and method have 1 retain each, we know that's their cycle and can actively break it, but we'd need live hooks into refcounting); TBH, using command scope to release might be sufficient, as most times a reference is created it's used in that scope, and in situations where it is returned for use elsewhere, it'll just create a new method the next time it's used and cache it in that scope (pathological case it's it's created in one sub-scope of a parent scope and used in many sub-scopes of that parent); Q. what about using autorelease pools, or equivalent [e.g. closure cache in Env], to dispose of bound methods?
+// TO DO: to implement [glue-managed] methods, should these subclass PrimitiveHandler? (or should method constructors just be convenience funcs that pass interface, function, and scope? note that if method's owner [e.g. aelib 'app' object] caches the method once bound, this will create memory-leaking refcycle unless there is a weakref somewhere; Q. what about caching in a command scope? in the case of methods on objects, how do we know if/when object goes out of scope and is ready to release? w.r.t. refcounting, if both object and method have 1 retain each, we know that's their cycle and can actively break it, but we'd need live hooks into refcounting); TBH, using command scope to release might be sufficient, as most times a reference is created it's used in that scope, and in situations where it is returned for use elsewhere, it'll just create a new method the next time it's used and cache it in that scope (pathological case it's it's created in one sub-scope of a parent scope and used in many sub-scopes of that parent); Q. what about using autorelease pools, or equivalent [e.g. closure cache in Environment], to dispose of bound methods?
 
 
 // TO DO: requiresClosure is redundant; for primitive and native library handlers, simplest just to circular-ref it; for methods, get() should always wrap in Closure before returning
 
-// another possibility is for Env/Scope to implement `handleCommand` and only use `get` for identifiers; ends up with the same Swift stack consumption while saving construction of unnecessary Closure just to throw it away; Q. how will this redistribute logic for unpacking arguments list?
+// another possibility is for Environment/Scope to implement `handleCommand` and only use `get` for identifiers; ends up with the same Swift stack consumption while saving construction of unnecessary Closure just to throw it away; Q. how will this redistribute logic for unpacking arguments list?
 
 
 // IMPORTANT: Handlers must not directly return HandlerNotFoundError (it'll confuse `tell` blocks and similar, which delegate handle() call to a second scope if first scope throws 'handler not found')
 
-// TO DO: consider eliminating PrimitiveHandler and just have Env.Slot store each handler's interface_ and function_ directly; the only time it'd need to be wrapped then is when get() returns a primitive handler as a closure (which could be implemented as a very simple PrimitiveClosure class, which will also work for methods, although we've yet to figure out practical glue architecture for those)
+// TO DO: consider eliminating PrimitiveHandler and just have Environment.Slot store each handler's interface_ and function_ directly; the only time it'd need to be wrapped then is when get() returns a primitive handler as a closure (which could be implemented as a very simple PrimitiveClosure class, which will also work for methods, although we've yet to figure out practical glue architecture for those)
 
 
 // helper function; given mutable array of VALUE and/or LABEL:VALUE arguments, attempt to match and return the first argument, or nil if no match
@@ -33,12 +33,12 @@ class NativeHandler: Handler {
     
     override var description: String { return self.interface.signature }
     
-    let interface: CallableInterface // TO DO: support declaring capability requirements as part of interface (Q. in native code, should capabilities be declared via annotations, or something else?)
+    let interface: HandlerInterface // TO DO: support declaring capability requirements as part of interface (Q. in native code, should capabilities be declared via annotations, or something else?)
     
     let body: Value // TO DO: require Block?
     let isEventHandler: Bool
     
-    init(_ interface: CallableInterface, _ body: Value, _ isEventHandler: Bool) { // TO DO: Bool option to modify how unmatched arguments are handled: command handlers (`to ACTION(…){…}`) should throw, event handlers (`when EVENT(…){…}`) should silently discard (Q. should command/event parameter matching behavior be specified as a capability flag? seems like it'd be a good idea to have a single standardized API and syntax, allowing new capability types to be added over time. Per-handler capabilities could prove extremely powerful combined with dynamic sandboxing. e.g. Consider a command shell where user cannot be expected to declare up-front exactly which safety protections/security rights/etc they will require when interacting with machine. As user enters new commands, the shell could list each handler's capability requirements, then confirm all new rights upon user clicking Run; this will be vastly more pleasant to use than, say, 10.14's current UX for approving per-app Apple event IPC, where user may be prompted at multiple points throughout the program's lifetime ['fire and forget' is not an option here].)
+    init(_ interface: HandlerInterface, _ body: Value, _ isEventHandler: Bool) { // TO DO: Bool option to modify how unmatched arguments are handled: command handlers (`to ACTION(…){…}`) should throw, event handlers (`when EVENT(…){…}`) should silently discard (Q. should command/event parameter matching behavior be specified as a capability flag? seems like it'd be a good idea to have a single standardized API and syntax, allowing new capability types to be added over time. Per-handler capabilities could prove extremely powerful combined with dynamic sandboxing. e.g. Consider a command shell where user cannot be expected to declare up-front exactly which safety protections/security rights/etc they will require when interacting with machine. As user enters new commands, the shell could list each handler's capability requirements, then confirm all new rights upon user clicking Run; this will be vastly more pleasant to use than, say, 10.14's current UX for approving per-app Apple event IPC, where user may be prompted at multiple points throughout the program's lifetime ['fire and forget' is not an option here].)
         self.interface = interface
         self.body = body
         self.isEventHandler = isEventHandler
@@ -46,7 +46,7 @@ class NativeHandler: Handler {
     
     // unbox()/coerce() support; returns Closure capturing both handler and its original handlerEnv (i.e. a closure); this allows identifiers to retrieve handlers and pass as arguments/assign to other vars
     
-    override func toAny(env: Scope, coercion: Coercion) throws -> Value { // TO DO: not sure about this logic; it'd be safer done in Env.get()
+    override func toAny(env: Scope, coercion: Coercion) throws -> Value { // TO DO: not sure about this logic; it'd be safer done in Environment.get()
         return Closure(handler: self, handlerEnv: env)
     }
     
@@ -80,16 +80,15 @@ class NativeHandler: Handler {
 typealias PrimitiveCall = (_ command: Command, _ commandEnv: Scope, _ handler: Handler, _ handlerEnv: Scope, _ coercion: Coercion) throws -> Value
 
 
-
 class PrimitiveHandler: Handler {
     
     override var description: String { return self.interface.signature }
     
-    let interface: CallableInterface
+    let interface: HandlerInterface
     
     private let swiftFunctionWrapper: PrimitiveCall
     
-    init(_ interface: CallableInterface, _ swiftFunc: @escaping PrimitiveCall) {
+    init(_ interface: HandlerInterface, _ swiftFunc: @escaping PrimitiveCall) {
         self.interface = interface
         self.swiftFunctionWrapper = swiftFunc
     }
@@ -107,12 +106,11 @@ class PrimitiveHandler: Handler {
 }
 
 
-//
 
 
-class Closure: Handler { // `get()`-ing an unbound Handler from an Env automatically returns a closure by wrapping both the handler and the env in a new Closure instance, allowing that handler to be passed to, stored, and called in other contexts without (unlike AppleScript) losing its lexical bindings
+class Closure: Handler { // `get()`-ing an unbound Handler from an Environment automatically returns a closure by wrapping both the handler and the env in a new Closure instance, allowing that handler to be passed to, stored, and called in other contexts without (unlike AppleScript) losing its lexical bindings
     
-    var interface: CallableInterface { return self.handler.interface }
+    var interface: HandlerInterface { return self.handler.interface }
     
     override var description: String { return self.interface.signature } // TO DO: how best to implement `var description` on handlers? (cleanest solution is to add it automatically via a protocol extension to HandlerProtocol, though that will require reworking Value.description first); for now, just kludge it onto each handler class
     

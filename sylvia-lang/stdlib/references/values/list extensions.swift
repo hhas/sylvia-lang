@@ -98,7 +98,7 @@ class AllListItemsSpecifier: Handler, Selectable { // `items of LIST` specifier;
     
     // command-based shortcut for constructing the most commonly-used reference form, which for ordered collections is by-index
     // e.g. `item 3 of LIST` (which is syntactic sugar for `item(at:3) of LIST`) is shorthand for `item at 3 of LIST`
-    lazy var interface = CallableInterface(
+    lazy var interface = HandlerInterface(
         name: self.elementsName,
         parameters: [("at", "", asInt)], // TO DO: use `Variant([asRange, asInt])` (need to implement `Variant` Coercion subclass first; Q. how to unpack as typesafe enum which switch block can use directly rather than having to do a further round of `as?` casts?)
         returnType: asAnything

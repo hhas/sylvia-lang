@@ -16,62 +16,87 @@
 // for sake of getting everything running, only practical option [without deep hooks into refcounting] is to strong-ref all library-defined handlers [since libraries are unlikely to be unloaded again during process lifetime]
 
 
-// TO DO: *might* be useful for Env instances (activation records) to provide 'auto-cleanup pool' into which code within that scope can throw resources for deferred cleanup [c.f. Swift's own `defer` keyword] (e.g. for auto-closing file handles [on the assumption that open file object itself hasn't been stored outside this scope]), with caveat that cleanup is called when native handler returns; the Env itself may persist much longer if it's been captured in a closure stored elsewhere)
+// TO DO: *might* be useful for Environment instances (activation records) to provide 'auto-cleanup pool' into which code within that scope can throw resources for deferred cleanup [c.f. Swift's own `defer` keyword] (e.g. for auto-closing file handles [on the assumption that open file object itself hasn't been stored outside this scope]), with caveat that cleanup is called when native handler returns; the Environment itself may persist much longer if it's been captured in a closure stored elsewhere)
 
-// TO DO: for JS-style objects, should leading underscore indicate private attribute? (this could be enforced by AttributedValue wrapper, which might in turn just wrap a captured Env; main challenge is delegation between chained scopes [equiv. to setting prototype slot in JS], but as long as prototypes are members of wrapper, they should be able to bypass the external barrier okay)
+// TO DO: for JS-style objects, should leading underscore indicate private attribute? (this could be enforced by AttributedValue wrapper, which might in turn just wrap a captured Environment; main challenge is delegation between chained scopes [equiv. to setting prototype slot in JS], but as long as prototypes are members of wrapper, they should be able to bypass the external barrier okay)
 
 // note that significant gotcha to user-defined objects is current 'arguments are evaluated in target's scope first and [their own lexical] command scope second' behavior, which exists as workaround for conflicting precedence needs of selectors vs commands when operating on references (e.g. `get(text of document(1))` is unambiguous, but `get text of document 1` parses as `of(get(text),document(1))`, not as `get(of(text,document(1)))` which is what we really want but cannot achieve as there's no way to bind `document` command tighter than `of` but `get` command looser than `of`); one option, if current arrangement proves unworkable, is to define `get` and `set` as operators, which can set their own precedence levels to get the desired effect [and just tell users to parenthesize args for all other commands]
 
 
+// Scope is generalized description of Environment API (e.g. TargetScope is a composite of AttributedValue over Environment)
 
 
-class Env: Scope {
+class Environment: Scope { // stack frames
     
     // Q. can/should .handler slot always be readOnly? i.e. initial definition of primitive/native handler probably shouldn't be overwritable; where switching between handlers is required, use a separate read-write Value/Closure slot and assign a closure to it
     
-    typealias Slot = (readOnly: Bool, value: Value) // TO DO: use enum Slot{.value(Value);.handler(HandlerProtocol);.closure(HandlerProtocol)} [TO DO: is .closure needed? e.g. if handle() looks up a slot containing a Value, it needs to cast `as? Handler`; as long as that cast succeeds it can use it; it could re-store it as .closure to avoid need for future casts, but let's not worry about that for now; whereas .handler() would contain unbound callable, which is fine for handle() but when get() retrieves it it needs to wrap it in Closure before returning it; bear in mind that this could end up leaking depending on where it's stored, but will have to worry about that later]
+    enum Slot {
+        case value(value: Value, readOnly: Bool)
+        case unboundHandler(handler: Handler) // original handler definition is always read-only (other slots are read-only unless specified otherwise)
+        case closure(handler: Handler, readOnly: Bool)
+        
+        var isReadOnly: Bool {
+            switch self {
+            case .value(value: _, readOnly: let readOnly), .closure(handler: _, readOnly: let readOnly): return readOnly
+            default: return true
+            }
+        }
+    }
     
     internal var frame: [String: Slot] // TO DO: what about option to define slot coercion?
-    private let parent: Env?
+    private let parent: Environment?
     
-    init(parent: Env? = nil) { // TO DO: read-only flag; if true, child() returns a ReadOnlyEnv that always throws on set(name:value:) (note: this prevents all writes to a scope, e.g. global; might want to use per-slot locks only)
+    init(parent: Environment? = nil) { // TO DO: read-only flag; if true, child() returns a ReadOnlyEnv that always throws on set(name:value:) (note: this prevents all writes to a scope, e.g. global; might want to use per-slot locks only)
         self.frame = [:]
         self.parent = parent
     }
     
-    private func find(_ name: String) -> (slot: Slot, env: Env)? { // also used to look up handlers, identifiers
+    private func find(_ name: String) -> (slot: Slot, env: Environment)? { // also used to look up handlers, identifiers
         if let slot = self.frame[name] { return (slot, self) }
         return self.parent?.find(name)
     }
     
     func get(_ key: String) throws -> Value {
         guard let result = self.find(key) else { throw ValueNotFoundError(name: key, env: self) }
-        if let handler = result.slot.value as? HandlerProtocol, !(handler is Closure) { // TO DO: rework this once Slot is an enum, as handlers assigned to this scope via set() are already wrapped in a Closure so don't need another layer of wrapping
+        switch result.slot {
+        case .value(value: let value, readOnly: _):
+            return value
+        case .unboundHandler(handler: let handler):
             return Closure(handler: handler, handlerEnv: result.env)
-        } else {
-            return result.slot.value
+        case .closure(handler: let handler, readOnly: _):
+            return handler
         }
     }
     
     func set(_ key: String, to value: Value, readOnly: Bool = true, thisFrameOnly: Bool = false) throws { // TO DO: rename 'thisFrameOnly' to 'maskable'
-        if !thisFrameOnly, let (slot, env) = self.find(key) {
-            if slot.readOnly { throw ReadOnlyValueError(name: key, env: self) }
-            env.frame[key] = (readOnly: readOnly, value: value)
+        let handlerEnv: Environment
+        if !thisFrameOnly, let (slot, env) = self.find(key) { // found existing slot (or masking it)
+            if slot.isReadOnly { throw ReadOnlyValueError(name: key, env: self) }
+            handlerEnv = env
         } else {
-            self.frame[key] = (readOnly: readOnly, value: value)
+            handlerEnv = self
+        }
+        if let handler = value as? Closure {
+            handlerEnv.frame[key] = .closure(handler: handler, readOnly: readOnly)
+        } else {
+            handlerEnv.frame[key] = .value(value: value, readOnly: readOnly)
         }
     }
     
     func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value {
-        //print("Env CLASS \(self) handling \(command)")
-        guard let field = self.find(command.key), let handler = field.slot.value as? HandlerProtocol else { throw HandlerNotFoundError(name: command.key, env: self) }
-        return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: field.env, coercion: coercion)
+        //print("Environment CLASS \(self) handling \(command)")
+        if let result = self.find(command.key) {
+            switch result.slot {
+            case .unboundHandler(handler: let handler), .closure(handler: let handler, readOnly: _):
+                return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: result.env, coercion: coercion)
+            default: ()
+            }
+        }
+        throw HandlerNotFoundError(name: command.key, env: self)
     }
     
-    // TO DO: `addHandler`; this will add a read-only `.handler(Handler)` Slot containing an unbound Handler
-    
     func child() -> Scope { // TO DO: what about scope name, global/local, writable flag?
-        return Env(parent: self)
+        return Environment(parent: self)
     }
 }
 
@@ -84,7 +109,7 @@ extension Scope {
         try self.set(name, to: value, readOnly: true, thisFrameOnly: false)
     }
     
-    func add(_ handler: Handler) throws { // used by library loader
+    func add(_ handler: Handler) throws { // used by library loader; also used in defineHandler
         try self.set(handler.key, to: handler, readOnly: true, thisFrameOnly: true)
     }
     
@@ -95,7 +120,7 @@ extension Scope {
 
 
 
-class TargetScope: Scope { // creates sub-scope of an existing scope (typically an Env instance representing current activation record) with Value's attributes; used by `tell` block
+class TargetScope: Scope { // creates sub-scope of an existing scope (typically an Environment instance representing current activation record) with Value's attributes; used by `tell` block
     
     private let target: AttributedValue
     private let parent: Scope

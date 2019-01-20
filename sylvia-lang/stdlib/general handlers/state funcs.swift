@@ -13,7 +13,7 @@
 // TO DO: update parameters to support
 
 func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, action: Value, isEventHandler: Bool, commandEnv: Scope) throws {
-    let  h = NativeHandler(CallableInterface(name: name, parameters: parameters, returnType: returnType), action, isEventHandler)
+    let  h = NativeHandler(HandlerInterface(name: name, parameters: parameters, returnType: returnType), action, isEventHandler)
     try commandEnv.add(h)
 }
 

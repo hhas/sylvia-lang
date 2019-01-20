@@ -41,7 +41,7 @@ typealias BridgingCoercion = Value & CoercionProtocol & BridgingProtocol
 protocol CoercionProtocol { // all Coercions are Value subclass, allowing them to be used directly in language
     
     // coercion name as it appears in native language; this is used as env slot name (see stdlib_coercions.swift), so should be a native identifier
-    var coercionName: String { get } // caution: used in Env.add() without automatically normalizing (see below), so for now must be all-lowercase
+    var coercionName: String { get } // caution: used in Environment.add() without automatically normalizing (see below), so for now must be all-lowercase
     
     // all concrete Coercion subclasses must implement coerce() method for use in native language (e.g. `someValue as text`)
     func coerce(value: Value, env: Scope) throws -> Value
@@ -370,7 +370,7 @@ class AsList: CallableCoercion {
         returnType: asIs
     )
     
-    lazy private(set) var interface = CallableInterface(
+    lazy private(set) var interface = HandlerInterface(
         name: self.coercionName,
         parameters: [
             ("item_type", "parameterType", signature.paramType_0)
@@ -412,7 +412,7 @@ class AsDefault: Coercion, HandlerProtocol {
         returnType: asIs
     )
     
-    lazy private(set) var interface = CallableInterface(
+    lazy private(set) var interface = HandlerInterface(
         name: self.coercionName,
         parameters: [
             ("value", "defaultValue", signature.paramType_0),

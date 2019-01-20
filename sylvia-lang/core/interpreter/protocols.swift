@@ -5,7 +5,7 @@
 // get/set/call
 
 
-// Attributed Values, Env
+// Attributed Values, Environment
 
 
 //
@@ -76,7 +76,7 @@ class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue
 // TO DO: put all user-only metadata (e.g. documentation annotations) in a separate structure/module which is lazily loaded/instantiated only when needed
 
 
-protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Env.find() to retrieve the slot's value AND its lexical scope so that it can eval the value in its original context when coercing it to the requested return type (one option is for `get` to return both, although the scope needs to be protocol based and restricted to read-only [note: a read-only protocol will discourage, but won't prevent, upcasting of a returned Env; a safer option is to wrap the env in a shim, or maybe ask the env for a read-only version of itself which prevents any fiddling]) //
+protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Environment.find() to retrieve the slot's value AND its lexical scope so that it can eval the value in its original context when coercing it to the requested return type (one option is for `get` to return both, although the scope needs to be protocol based and restricted to read-only [note: a read-only protocol will discourage, but won't prevent, upcasting of a returned Environment; a safer option is to wrap the env in a shim, or maybe ask the env for a read-only version of itself which prevents any fiddling]) //
     
     // TO DO: make sure that value's attributes are fully introspectable (i.e. don't just implement everything as an opaque `switch` block in `get()`, but instead define the value's interface and let the glue generator build the get()/set() implementation automatically; in the case of aelib, interface definitions will be defined dynamically by terminology parser)
     
@@ -98,7 +98,7 @@ typealias Parameter = (label: String, binding: String, coercion: Coercion)
 // TO DO: parameters also need env keys
 
 
-struct CallableInterface: CustomDebugStringConvertible {
+struct HandlerInterface: CustomDebugStringConvertible {
     // describes a handler interface; used for introspection, and also for argument/result coercions in NativeHandler
     
     // note: for simplicity, parameters are positional only; ideally they should also support labelling (but requires more complex unpacking algorithm to match labeled/unlabeled command arguments to labeled parameters, particularly when args are omitted from anywhere other than end of arg list)
@@ -115,7 +115,7 @@ struct CallableInterface: CustomDebugStringConvertible {
         self.returnType = returnType
     }
     
-    var debugDescription: String { return "<CallableInterface: \(self.signature)>" }
+    var debugDescription: String { return "<HandlerInterface: \(self.signature)>" }
     
     var signature: String { return "\(self.name)\(self.parameters) returning \(self.returnType)" } // quick-n-dirty; TO DO: format as native syntax
     
@@ -131,7 +131,7 @@ typealias Handler = Value & HandlerProtocol
 
 protocol HandlerProtocol {
     
-    var interface: CallableInterface { get }
+    var interface: HandlerInterface { get }
     
     var name: String { get }
     var key: String { get }
