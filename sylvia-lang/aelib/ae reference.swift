@@ -344,5 +344,5 @@ class Application: SelfPackingReference, HandlerProtocol {
 
 
 func aelib_loadConstants(env: Environment) throws {
-    try env.set("app", to: Application()) // instantiate a single Application value for adding to module; this value identifies current application as default, but can be targeted to anything else
+    try env.add(unboundHandler: Application(), named: "app") // instantiate a single Application value for adding to module; this value identifies current application as default, but can be targeted to anything else
 }

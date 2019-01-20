@@ -38,18 +38,17 @@ let asAttributeName = AsAttributeName()
 
     
 func stdlib_loadCoercions(env: Environment) throws {
-    try env.add(asValue)
-    try env.add(asText)
-    try env.add(asBool)
-    try env.add(asDouble)
-    try env.add(asList as Coercion)
+    try env.add(coercion: asValue)
+    try env.add(coercion: asText)
+    try env.add(coercion: asBool)
+    try env.add(coercion: asDouble)
+    try env.add(coercion: asList)
     
-    try env.add(asCoercion)
+    try env.add(coercion: asCoercion)
     
-    try env.add(asAnything)
-    try env.add(asNoResult)
+    try env.add(coercion: asAnything)
+    try env.add(coercion: asNoResult)
     
-    try env.add(asAnything)
-    try env.add(AsDefault(asAnything, noValue) as Coercion) // note: AsDefault requires constraint args (coercion and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
+    try env.add(coercion: AsDefault(asAnything, noValue)) // note: AsDefault requires constraint args (coercion and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
 }
 

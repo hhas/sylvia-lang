@@ -82,6 +82,7 @@ protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Environment.f
     
     func set(_ key: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws
 
+    func add(unboundHandler: Handler) throws
     
     func child() -> Scope // TO DO: what about scope name, global/local, writable flag?
     

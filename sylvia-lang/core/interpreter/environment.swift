@@ -79,7 +79,24 @@ class Environment: Scope { // stack frames
         if let handler = value as? Closure {
             handlerEnv.frame[key] = .closure(handler: handler, readOnly: readOnly)
         } else {
+            if value is Handler { print("Warning: Env.set() received unbound handler: \(value)") }
             handlerEnv.frame[key] = .value(value: value, readOnly: readOnly)
+        }
+    }
+    
+    func add(unboundHandler value: Handler, named name: String? = nil) throws { // used by library loader; also used in defineHandler
+        let key = name ?? value.key
+        if self.find(key) != nil { throw GeneralError("Can't add \(key) handler as slot is already filled.") }
+        self.frame[key] = .unboundHandler(handler: value)
+    }
+    
+    func add(coercion value: Coercion, named name: String? = nil) throws { // used by library loader; also used in defineHandler
+        let key = name ?? value.key
+        if self.find(key) != nil { throw GeneralError("Can't add \(key) coercion as slot is already filled.") }
+        if let handler = value as? Handler {
+            self.frame[key] = .unboundHandler(handler: handler)
+        } else {
+            self.frame[key] = .value(value: value, readOnly: true) // TO DO: FIX: if coercion is callable (which most will be then it'll expect to go in .unboundHandler; might even consider an extra case for coercions, making them easier to introspect/distinguish from everything else)
         }
     }
     
@@ -109,12 +126,12 @@ extension Scope {
         try self.set(name, to: value, readOnly: true, thisFrameOnly: false)
     }
     
-    func add(_ handler: Handler) throws { // used by library loader; also used in defineHandler
-        try self.set(handler.key, to: handler, readOnly: true, thisFrameOnly: true)
-    }
-    
     func add(_ coercion: Coercion) throws { // used by library loader
         try self.set(coercion.key, to: coercion, readOnly: true, thisFrameOnly: true)
+    }
+    
+    func add(unboundHandler: Handler) throws { // used by library loader; also used in defineHandler
+        throw ReadOnlyValueError(name: unboundHandler.name, env: self)
     }
 }
 

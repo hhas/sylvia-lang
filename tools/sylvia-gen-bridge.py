@@ -85,7 +85,7 @@ func function_««primitiveSignatureName»»(command: Command, commandEnv: Scope
 """
 
 _loadHandler = """
-    try env.add(PrimitiveHandler(interface_««primitiveSignatureName»», function_««primitiveSignatureName»»))"""
+    try env.add(unboundHandler: PrimitiveHandler(interface_««primitiveSignatureName»», function_««primitiveSignatureName»»))"""
 
 _loaderTemplate = """
 func stdlib_loadHandlers(env: Environment) throws {

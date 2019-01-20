@@ -107,6 +107,7 @@ class PrimitiveHandler: Handler {
 
 
 
+// caution: when comparing, say, coercions for equality, they may be wrapped in closure
 
 class Closure: Handler { // `get()`-ing an unbound Handler from an Environment automatically returns a closure by wrapping both the handler and the env in a new Closure instance, allowing that handler to be passed to, stored, and called in other contexts without (unlike AppleScript) losing its lexical bindings
     
