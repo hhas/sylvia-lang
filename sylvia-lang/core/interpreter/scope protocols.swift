@@ -1,9 +1,6 @@
 //
-//  interface.swift
+//  state protocols.swift
 //
-
-// get/set/call
-
 
 // Attributed Values, Environment
 
@@ -27,7 +24,7 @@ protocol Attributed {
     func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value // used to look-up *and* invoke a handler for the specified command (the given arguments are passed along to `Handler.call()`, along with the handlerEnv argument)
     
     // TO DO: introspection
-        
+    
 }
 
 
@@ -42,37 +39,6 @@ extension Attributed { // TO DO: currently used by Reference and List, which rel
 }
 
 
-
-
-
-
-class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue where a full Scope is currently expected
-    
-    private let value: Attributed
-    
-    init(_ value: Attributed) {
-        self.value = value
-    }
-    
-    func set(_ key: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws {
-        throw GeneralError()
-    }
-    
-    func child() -> Scope {
-        return self
-    }
-    
-    func get(_ key: String) throws -> Value {
-        return try self.value.get(key)
-    }
-    
-    func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value {
-        return try self.value.handle(command: command, commandEnv: commandEnv, coercion: coercion)
-    }
-}
-
-
-
 // TO DO: put all user-only metadata (e.g. documentation annotations) in a separate structure/module which is lazily loaded/instantiated only when needed
 
 
@@ -81,7 +47,7 @@ protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Environment.f
     // TO DO: make sure that value's attributes are fully introspectable (i.e. don't just implement everything as an opaque `switch` block in `get()`, but instead define the value's interface and let the glue generator build the get()/set() implementation automatically; in the case of aelib, interface definitions will be defined dynamically by terminology parser)
     
     func set(_ key: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws
-
+    
     func add(unboundHandler: Handler) throws
     
     func child() -> Scope // TO DO: what about scope name, global/local, writable flag?
@@ -90,62 +56,20 @@ protocol Scope: Attributed { // TO DO: `Identifier`, `Command` use Environment.f
 
 
 
-// HandlerProtocol Values (handlers, constrainable coercions)
-
-typealias Argument = (label: Identifier?, value: Value)
-
-typealias Parameter = (label: String, binding: String, coercion: Coercion)
-
-// TO DO: parameters also need env keys
-
-
-struct HandlerInterface: CustomDebugStringConvertible {
-    // describes a handler interface; used for introspection, and also for argument/result coercions in NativeHandler
+extension Scope { // TO DO: sort this out
     
-    // note: for simplicity, parameters are positional only; ideally they should also support labelling (but requires more complex unpacking algorithm to match labeled/unlabeled command arguments to labeled parameters, particularly when args are omitted from anywhere other than end of arg list)
-    
-    let name: String
-    let key: String
-    let parameters: [Parameter]
-    let returnType: Coercion
-    
-    init(name: String, parameters: [Parameter], returnType: Coercion) {
-        self.name = name
-        self.key = name.lowercased()
-        self.parameters = parameters
-        self.returnType = returnType
+    func set(_ name: String, to value: Value) throws {
+        try self.set(name, to: value, readOnly: true, thisFrameOnly: false)
     }
     
-    var debugDescription: String { return "<HandlerInterface: \(self.signature)>" }
+    func add(_ coercion: Coercion) throws { // used by library loader
+        try self.set(coercion.key, to: coercion, readOnly: true, thisFrameOnly: true)
+    }
     
-    var signature: String { return "\(self.name)\(self.parameters) returning \(self.returnType)" } // quick-n-dirty; TO DO: format as native syntax
-    
-    // TO DO: how should handlers' Value.description appear? (showing signature alone is ambiguous as it's indistinguishable from a command; what about "SIGNATURE{…}"? or "«handler SIGNATURE»"? [i.e. annotation syntax could be used to represent opaque/external values as well as attached metadata])
-    
-    // TO DO: what about documentation?
-    // TO DO: what about meta-info (categories, hashtags, module location, dependencies, etc)?
+    func add(unboundHandler: Handler) throws { // used by library loader; also used in defineHandler
+        throw ReadOnlyValueError(name: unboundHandler.name, env: self)
+    }
 }
 
 
 
-typealias Handler = Value & HandlerProtocol
-
-protocol HandlerProtocol {
-    
-    var interface: HandlerInterface { get }
-    
-    var name: String { get }
-    var key: String { get }
-    
-    func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value
-    
-}
-
-extension HandlerProtocol {
-    
-    var name: String { return self.interface.name }
-    var key: String { return self.interface.key }
-}
-
-
-//

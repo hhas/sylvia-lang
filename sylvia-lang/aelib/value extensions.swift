@@ -7,7 +7,7 @@ import SwiftAutomation
 
 // native Value subclasses that wrap an already-bridged Swift type as `swiftType` ivar
 
-protocol SelfPackingValueWrapper: SelfPacking, PrimitiveWrapper { }
+protocol SelfPackingValueWrapper: SelfPacking, SwiftWrapper { }
 
 extension SelfPackingValueWrapper {
     

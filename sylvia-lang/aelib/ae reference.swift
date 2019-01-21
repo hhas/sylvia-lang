@@ -24,7 +24,7 @@ import SwiftAutomation
 /******************************************************************************/
 
 
-protocol SelfPackingReferenceWrapper: SelfPacking, PrimitiveWrapper {
+protocol SelfPackingReferenceWrapper: SelfPacking, SwiftWrapper {
     
     associatedtype SpecifierType where SpecifierType: SelfPacking
     
@@ -129,7 +129,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
         case "previous": // `ELEMENT_TYPE before ELEMENT_REFERENCE`
             fatalError()
         case "next": // `ELEMENT_TYPE after ELEMENT_REFERENCE`
-            fatalError() // TO DO: return RelativeSelector(for: self, position: name) // HandlerProtocol that takes Symbol (typeClass) as sole argument
+            fatalError() // TO DO: return RelativeSelector(for: self, position: name) // HandlerProtocol that takes Tag (which packs as AEDesc of typeType) as sole argument
         case "before": // `before ELEMENT_REFERENCE`
             return InsertionReference(self.swiftValue.before, appData: self.appData)
         case "after": // `after ELEMENT_REFERENCE`

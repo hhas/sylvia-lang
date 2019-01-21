@@ -166,15 +166,16 @@ class Parser {
         let value: Value
         switch token {
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
-            // TO DO: accept `[:]` as literal notation for empty KV list
+            // accept `[:]` as literal notation for empty key-value list
             if case .pairSeparator = self.peek(ignoringLineBreaks: false) {
                 self.advance(ignoringLineBreaks: false)
                 self.advance(ignoringLineBreaks: false)
                 guard case .listLiteralEnd = self.this else {
                     throw SyntaxError("Expected end of empty key-value list, “]”, but found: \(self.this)") // TO DO: "key-value list"/"dict"/"table"?
                 }
-                value = List([]) // TO DO: what class for KV list? 
+                value = Record()
             } else {
+                // TO DO: readCommaDelimitedValues needs to count no. of Pair items it encounters; probably best to pass in closure that allows customization (e.g. when parsing blocks, `IDENTIFIER:VALUE` should be converted to annotated `store(SYMBOL,VALUE)` command)
                 value = try List(self.readCommaDelimitedValues(isEndOfList))
             }
         case .blockLiteral:     // `{…}`
@@ -183,19 +184,20 @@ class Parser {
             // caution: don't use `(…,…,…)` as block-style sequence as it's already used as tuple syntax in commands and handlers (OTOH, if commands/handlers take a `{…,…,…}` record value as unary argument c.f. entoli, `(…,…,…)` could be used as block syntax wherever 'block' is *explicitly* allowed as argument coercion; however, anywhere else it must only work as precedence group, e.g. `(1+2)*3` but not `(foo,1+2)*3`, to avoid introducing potential gotchas)
             self.advance(ignoringLineBreaks: true) // step over '('
             value = try self.parseExpression()
+            // TO DO: need to annotate value in order to preserve elective parens when pretty printing; also to determine if a list literal represents a table or a list of arbitrary pairs (e.g. ["foo":1] = Record, [("foo":1)] = List)
             self.advance(ignoringLineBreaks: true) // step over ')'
             guard case .groupLiteralEnd = self.this else { throw SyntaxError("Expected end of precedence group, “)”, but found: \(self.this)") }
         case .textLiteral(value: let string):
             value = Text(string)
-        case .symbolLiteral(value: let string):
-            value = Symbol(string)
+        case .tagLiteral(value: let string):
+            value = Tag(string)
         case .identifier(value: let name, isQuoted: _): // found `NAME`
             switch self.peek(ignoringLineBreaks: false) {  // is there an argument tuple after NAME (i.e. is it a command name or identifier?) // TO DO: how safe to accept a single unparenthesized argument? e.g. `get file 1` = `get (file (1))`
             case .groupLiteral: // read zero or more parenthesized arguments
                 // TO DO: call parseRecord/parseTuple to read arg list; this should know how to read Pairs (this is context-sensitive: pair labels that lexer marks as .operator must be converted to .identifier)
                 self.advance(ignoringLineBreaks: false) // advance cursor onto "("
                 value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple // TO DO: tuples need their own parsefunc that knows how to handle labels that are represented as .operator tokens (i.e. for each item, if it starts with an .operator, check if next token is .pairSeparator and convert the operator to identifier if it is)
-            case .listLiteral, .textLiteral, .symbolLiteral, .identifier, .number: // read single unparenthesized argument (note: a .blockLiteral argument must be parenthesized to avoid ambiguity in `PREFIX_OPERATOR IDENTIFIER BLOCK` pattern commonly used by flow control)
+            case .listLiteral, .textLiteral, .tagLiteral, .identifier, .number: // read single unparenthesized argument (note: a .blockLiteral argument must be parenthesized to avoid ambiguity in `PREFIX_OPERATOR IDENTIFIER BLOCK` pattern commonly used by flow control)
                 self.advance(ignoringLineBreaks: false)
                 value = try Command(name, [self.parseAtom()])
             default:

@@ -273,6 +273,11 @@ tell app “TextEdit” {
 }
 """
 
+
+
+code = " [:] "
+
+
 let lexer = Lexer(code: code, operatorRegistry: ops)
 
 let tokens = lexer.tokenize()

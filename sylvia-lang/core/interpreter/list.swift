@@ -4,7 +4,7 @@
 
 
 
-class List: Value, PrimitiveWrapper { // TO DO: how best to represent ordered (Array) vs key-value (Dictionary) vs unique (Set) lists? subclasses? internal enum?
+class List: Value, SwiftWrapper {
     
     override var description: String { return "\(self.swiftValue)" } // note: this assumes native `[…,…]` list syntax is same as Swift Array syntax; if that changes then use "[\(self.swiftValue.map{$0.description}.joined(separator:","))]" // TO DO: pretty printer needs to support line wrapping and indentation of long lists
     

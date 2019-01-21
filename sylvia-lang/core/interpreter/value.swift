@@ -5,28 +5,11 @@
 //
 
 
-// other native values might include Boolean, Number, Date (if distinct from Text, which can easily represent these data types as text, caching any underlying representations for performance if needed, if Perl-style 'scalar' representation is preferred); Symbol (enum); Table (dict); Block, Identifier, Command, Handler, Thunk (being an Algol-style language, these latter value types aren't exposed as first-class datatypes in language, although a more Lisp-ish flavor could represent all code structures as data); downside is each new native coercion requires another `toType()` method added to Value and to each subclass that supports that coercion (though these can at least be organized into class extensions so don't clog up the main class implementations)
-
 
 
 // Q. how should pretty printer apply rich text styles, e.g. annotations should probably appear italicized; should [some user-defined] command names appear emboldened? (thinking here is that operators tend to be defined for small general operations that are very frequently performed, e.g. math); TBH, only user really knows which of their handlers are "significant" and which are supporting (and this assumes that all library-defined handlers are support); maybe auto-embolden all names defined by current package (eventually, editor might provide command line where users can specify how they want code highlighted/selected at any time, e.g. `highlight every command whose handler is_in LIBRARY`)
 
-// TO DO: how to denote symbol literals?
-//
-//   item \name of [\name: "untitled", \class: \document, \edited: false] « 'backslash escape' of identifier »
-//
-//   item #name of [#name: "untitled", #class: #document, #edited: false] « hash prefix; looks better but precludes hashtags as first-class syntax »
-//
-// note that while it *might* be possible to coerce identifiers to symbols in some use cases, it is important that users should not confuse the two, e.g.:
-//
-//   #name of [#name: "untitled", #class: #document, #edited: false]
-//
-// might be acceptable as shortcut for `item #name of KV_LIST`, but:
-//
-//   name of [#name: "untitled", #class: #document, #edited: false]
-//
-// will cause confusion and should not be treated as interchangeable for the first (in this example, `name` would be resolved as attribute of the key-value list); we want to avoid AS-style ambiguity where a record or script object's standard properties, e.g. `class`, may return different results depending on whether or not they're overridden by a declared property of same name (note: this assumes no native record/struct datatype, which is probably for best if we're not using records as unary arguments c.f. entoli)
-//
+
 
 
 // TO DO: need to start thinking about public/internal/private declarations
@@ -40,10 +23,13 @@
 // TO DO: also consider supporting tuple syntax in multiple assignments, return values. (Note that `return` could be defined solely as a command, in which case the parens are mandatory there anyway, or as a prefix operator with custom parsefunc that accepts either tuple syntax or single EXPR. Likewise, an assignment operator can use a custom parsefunc to accept either `TUPLE of IDENTIFIER` or `IDENTIFIER`.) Using tuple syntax for command arguments only is wasteful and lacks symmetry (technically every command is a unary operator `f x -> y`; it just so happens that the argument type is always a tuple, but this is purely to avoid syntactic ambiguity), although we probably want to avoid arbitrary use
 
 
+// TO DO: may need non-maskable `current_scope`/`[scope of] current_handler` for use in `tell` blocks and other contexts which can mask parent scopes' slots; one advantage of this is that prototype OO might be implemented as constructor handlers that return their own scope (Env) as AttributedValue (if a 'parent' is assigned, e.g. `to Bar () returning custom_object { parent: Foo (), … }` (note: if `custom_object` is specified as return type, `return scope of current_handler` isn't needed), need to wrap both that and handler scope in a TargetScope to preserve both delegation chains); Q. how close is ScopeValue to an AS-style script object? main challenge is full-object serialization [which is also problematic in AS ever since it got Cocoa support, compounded by sandbox restrictions on self-mutating executable files; even with Codable protocol for known native objects, it's unlikely we'd be able to serialize entire Environments alongside ASTs]; Q. how [well] did Frontier's object database handle persistent native vs foreign object storage?
+
+
 // abstract base class
 
 
-protocol PrimitiveWrapper {
+protocol SwiftWrapper {
     
     associatedtype SwiftType
     
@@ -82,10 +68,15 @@ class Value: CustomStringConvertible {
         throw CoercionError(value: self, coercion: coercion)
     }
     
-    func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
+    func toTag(env: Scope, coercion: Coercion) throws -> Tag {
         throw CoercionError(value: self, coercion: coercion)
     }
     
+    func toRecordKey(env: Scope, coercion: Coercion) throws -> AnyHashable {
+        throw CoercionError(value: self, coercion: coercion)
+    }
+
+
     // coerce atomic values to 1-item list/array
     
     func toList(env: Scope, coercion: AsList) throws -> List {
@@ -104,6 +95,10 @@ class Value: CustomStringConvertible {
         }
     }
     
+    func toRecord(env: Scope, coercion: AsRecord) throws -> Record {
+        throw CoercionError(value: self, coercion: coercion)
+    }
+    
     // main entry points for evaluation
     
     // env -- typically global scope or stack frame, though can also be a custom scope (c.f. JavaScript objects, which are effectively heap-allocated frames in a thin API wrapper allowing them to pass through runtime along with JS primitives)
@@ -118,7 +113,7 @@ class Value: CustomStringConvertible {
     }
 }
 
-
+ 
 
 // abstract base classes for values (blocks, identifiers, commands) that evaluate to yield other values
 
@@ -190,7 +185,7 @@ class Nothing: Value {
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         throw NullCoercionError(value: self, coercion: coercion)
     }
-    override func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
+    override func toTag(env: Scope, coercion: Coercion) throws -> Tag {
         throw NullCoercionError(value: self, coercion: coercion)
     }
     override func toList(env: Scope, coercion: AsList) throws -> List {

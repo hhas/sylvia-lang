@@ -120,23 +120,6 @@ class Environment: Scope { // stack frames
 
 
 
-extension Scope {
-    
-    func set(_ name: String, to value: Value) throws {
-        try self.set(name, to: value, readOnly: true, thisFrameOnly: false)
-    }
-    
-    func add(_ coercion: Coercion) throws { // used by library loader
-        try self.set(coercion.key, to: coercion, readOnly: true, thisFrameOnly: true)
-    }
-    
-    func add(unboundHandler: Handler) throws { // used by library loader; also used in defineHandler
-        throw ReadOnlyValueError(name: unboundHandler.name, env: self)
-    }
-}
-
-
-
 class TargetScope: Scope { // creates sub-scope of an existing scope (typically an Environment instance representing current activation record) with Value's attributes; used by `tell` block
     
     private let target: AttributedValue
@@ -180,3 +163,33 @@ class TargetScope: Scope { // creates sub-scope of an existing scope (typically 
         }
     }
 }
+
+
+
+
+class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue where a full Scope is currently expected; TO DO: try to get rid of this
+    
+    private let value: Attributed
+    
+    init(_ value: Attributed) {
+        self.value = value
+    }
+    
+    func set(_ key: String, to value: Value, readOnly: Bool, thisFrameOnly: Bool) throws {
+        throw GeneralError()
+    }
+    
+    func child() -> Scope {
+        return self
+    }
+    
+    func get(_ key: String) throws -> Value {
+        return try self.value.get(key)
+    }
+    
+    func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value {
+        return try self.value.handle(command: command, commandEnv: commandEnv, coercion: coercion)
+    }
+}
+
+

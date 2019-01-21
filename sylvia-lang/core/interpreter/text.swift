@@ -3,13 +3,19 @@
 //
 
 
-class Text: Value, PrimitiveWrapper { // TO DO: Scalar?
+class Text: Value, SwiftWrapper, RecordKey { // note that Identifier and Command may appear as keys in table literals, but are not themselves valid keys so must be coerced via asRecordKey at runtime
     
     override var description: String { return "“\(self.swiftValue)”" } // TO DO: pretty printing
     
     override class var nominalType: Coercion { return asText }
     
     internal(set) var scalar: Scalar? // TO DO: any way to make this lazily self-initialize if not set by init?
+    
+    // hash key // TO DO: what about case-insensitivity?
+    
+    public var hashValue: Int { return self.swiftValue.hashValue }
+    public func hash(into hasher: inout Hasher) { self.swiftValue.hash(into: &hasher) }
+    public static func == (lhs: Text, rhs: Text) -> Bool { return lhs.swiftValue == rhs.swiftValue }
     
     // TO DO: need ability to capture raw Swift value in case of numbers, dates, etc; while this could be done in annotations, it might be quicker to have a dedicated private var containing enum of standard raw types we want to cache (.int, .double, .scalar, .date, whatever); another option is for annotations to be linked list/B-tree where entries are ordered according to predefined importance or frequency of use (would need to see how this compares to a dictionary, which should be pretty fast out of the box with interned keys)
     
@@ -22,6 +28,10 @@ class Text: Value, PrimitiveWrapper { // TO DO: Scalar?
     
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         return self
+    }
+    
+    override func toRecordKey(env: Scope, coercion: Coercion) throws -> AnyHashable {
+        return AnyHashable(self)
     }
 }
 

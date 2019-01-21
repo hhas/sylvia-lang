@@ -15,12 +15,12 @@ class Identifier: Expression {
     
     let name: String
     let key: String // used by assignment
-    let symbol: Symbol // may be used by operator parsers, e.g. `item at 1` -> `'at'(#item,1)`
+    let tag: Tag // may be used by operator parsers, e.g. `item at 1` -> `'at'(#item,1)`
     
     // TO DO: use key (all-lowercase) for env lookups
     
     init(_ name: String) {
-        self.symbol = Symbol(name)
+        self.tag = Tag(name)
         self.name = name // TO DO: how/when to check if name should be quoted? (this will require access to lexer's character tables and to operator tables; lexer itself might want to offer quoting hints based on whether or not the identifier was already quoted in source code; also, if operator table is going to be extended by imported libraries, this *will* require a special form, `use LIBRARY [with_syntax VERSION]`, that lexer can recognize and process at top-level of code)
         self.key = name.lowercased()
     }

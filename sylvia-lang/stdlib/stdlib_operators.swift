@@ -40,12 +40,12 @@ func parseNumericSignOperator(_ parser: Parser, operatorName: String, definition
 
 
 func parseInfixSelectorOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
-    // similar to parseInfixOperator, except requires left operand to be an Identifier which it converts to Symbol for use in Command
+    // similar to parseInfixOperator, except requires left operand to be an Identifier which it converts to Tag for use in Command
     parser.advance()
     guard let left = leftExpr as? Identifier else {
         throw SyntaxError("\(operatorName) expected ‘left’ operand to be identifier but received \(leftExpr.nominalType) instead.")
     }
-    return Command(definition.handlerName ?? operatorName, leftOperand: left.symbol, rightOperand: try parser.parseExpression(definition.precedence))
+    return Command(definition.handlerName ?? operatorName, leftOperand: left.tag, rightOperand: try parser.parseExpression(definition.precedence))
 }
 
 func parseInfixRelativeSelectorOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
@@ -54,7 +54,7 @@ func parseInfixRelativeSelectorOperator(_ parser: Parser, leftExpr: Value, opera
     guard let left = leftExpr as? Identifier else {
         throw SyntaxError("\(operatorName) expected ‘left’ operand to be identifier but received \(leftExpr.nominalType) instead.")
     }
-    return Command("of", leftOperand: Command(definition.handlerName ?? operatorName, leftOperand: left.symbol),
+    return Command("of", leftOperand: Command(definition.handlerName ?? operatorName, leftOperand: left.tag),
                         rightOperand: try parser.parseExpression(definition.precedence))
 }
 

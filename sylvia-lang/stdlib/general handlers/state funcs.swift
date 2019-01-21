@@ -23,7 +23,7 @@ func defineHandler(name: String, parameters: [Parameter], returnType: Coercion, 
 // requires: throws, commandEnv
 
 func store(key: String, value: Value, readOnly: Bool, commandEnv: Scope) throws -> Value {
-    try commandEnv.set(key, to: value, readOnly: readOnly, thisFrameOnly: false) // TO DO: one drawback of passing String key rather than Symbol here is that slot name will appear in error messages as all-lowercase, rather than preserving original case
+    try commandEnv.set(key, to: value, readOnly: readOnly, thisFrameOnly: false) // TO DO: one drawback of passing String key rather than Tag here is that slot name will appear in error messages as all-lowercase, rather than preserving original case
     return value
 }
 

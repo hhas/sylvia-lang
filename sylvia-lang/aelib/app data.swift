@@ -61,8 +61,8 @@ class NativeAppData: AppData {
     
     override func pack(_ value: Any) throws -> NSAppleEventDescriptor {
         switch value {
-        case let symbol as Symbol:
-            guard let desc = self.glueTable.typesByName[symbol.key] else { return try super.pack(value) } // TO DO: throw 'unknown symbol' error here
+        case let tag as Tag:
+            guard let desc = self.glueTable.typesByName[tag.key] else { return try super.pack(value) } // TO DO: throw 'unknown tag' error here
             return desc
         default:
             return try super.pack(value)

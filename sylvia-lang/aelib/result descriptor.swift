@@ -87,7 +87,7 @@ class ResultDescriptor: OpaqueValue {
         }
     }
     
-    override func toSymbol(env: Scope, coercion: Coercion) throws -> Symbol {
+    override func toTag(env: Scope, coercion: Coercion) throws -> Tag {
         let code: OSType
         switch self.desc.descriptorType {
         case typeType, typeProperty, typeKeyword:
@@ -97,11 +97,11 @@ class ResultDescriptor: OpaqueValue {
         default:
             throw CoercionError(value: self, coercion: coercion)
         }
-        // TO DO: worth caching Symbols?
+        // TO DO: worth caching Tags?
         if let name = self.appData.glueTable.typesByCode[code] {
-            return Symbol(name) // e.g. `#document`
+            return Tag(name) // e.g. `#document`
         } else {
-            return Symbol("$\(UTCreateStringForOSType(code).takeRetainedValue() as String)") // e.g. `#‘$docu’`
+            return Tag("$\(UTCreateStringForOSType(code).takeRetainedValue() as String)") // e.g. `#‘$docu’`
         }
     }
     
@@ -114,7 +114,7 @@ class ResultDescriptor: OpaqueValue {
         case typeAEList:
             return try self.toList(env: env, coercion: asList)
         case typeType, typeProperty, typeKeyword, typeEnumerated:
-            return try self.toSymbol(env: env, coercion: coercion)
+            return try self.toTag(env: env, coercion: coercion)
         case typeObjectSpecifier:
             let specifier = try self.appData.unpack(desc) as AEItem
             if let multipleSpecifier = specifier as? AEItems {

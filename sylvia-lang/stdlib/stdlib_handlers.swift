@@ -857,7 +857,7 @@ func function_defineHandler_name_parameters_returnType_action_isEventHandler_com
 
 // store (key, value, readOnly)
 let signature_store_key_value_readOnly_commandEnv = (
-    paramType_0: asSymbolKey,
+    paramType_0: asTagKey,
     paramType_1: asAnything,
     paramType_2: asBool,
     returnType: asIs
@@ -1085,7 +1085,7 @@ func function_ofClause_attribute_value_commandEnv(command: Command, commandEnv: 
 
 // at (element_type, selector_data)
 let signature_indexSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asSymbolKey,
+    paramType_0: asTagKey,
     paramType_1: asAnything,
     returnType: asIs
 )
@@ -1113,7 +1113,7 @@ func function_indexSelector_elementType_selectorData_commandEnv(command: Command
 
 // named (element_type, selector_data)
 let signature_nameSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asSymbolKey,
+    paramType_0: asTagKey,
     paramType_1: asAnything,
     returnType: asIs
 )
@@ -1141,7 +1141,7 @@ func function_nameSelector_elementType_selectorData_commandEnv(command: Command,
 
 // with_id (element_type, selector_data)
 let signature_idSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asSymbolKey,
+    paramType_0: asTagKey,
     paramType_1: asAnything,
     returnType: asIs
 )
@@ -1169,7 +1169,7 @@ func function_idSelector_elementType_selectorData_commandEnv(command: Command, c
 
 // where (element_type, selector_data)
 let signature_testSelector_elementType_selectorData_commandEnv = (
-    paramType_0: asSymbolKey,
+    paramType_0: asTagKey,
     paramType_1: asReference,
     returnType: asIs
 )
