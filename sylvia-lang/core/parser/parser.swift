@@ -51,7 +51,7 @@
 
 // TO DO: considering `;` for PIPE operator (or should it be core punctuation?), where `A(a,b); B(c,d)` -> `B(A(a,b),c,d)`; what are challenges of that transform?
 
-// TO DO: implement PAIR `:` as core punctuation; used for assignment in blocks, key-value pairs in kv-lists; might consider `(NAME1,NAME2):EXPR` for multiple assignment (Q. how should this handle more/less items on RHS? not convinced it merits dedicated `REST…` syntax)
+// TO DO: might consider `(NAME1,NAME2):EXPR` for multiple assignment (Q. how should this handle more/less items on RHS? not convinced it merits dedicated `REST…` syntax)
 
 // TO DO: `@UID`, `#TAG`?
 
@@ -166,40 +166,38 @@ class Parser {
         let value: Value
         switch token {
         case .listLiteral:      // `[…]` - an ordered collection (array) or key-value collection (dictionary)
-            // accept `[:]` as literal notation for empty key-value list
-            if case .pairSeparator = self.peek(ignoringLineBreaks: false) {
+            if case .pairSeparator = self.peek(ignoringLineBreaks: false) { // accept `[:]` as literal notation for empty record (key-value list)
                 self.advance(ignoringLineBreaks: false)
                 self.advance(ignoringLineBreaks: false)
                 guard case .listLiteralEnd = self.this else {
-                    throw SyntaxError("Expected end of empty key-value list, “]”, but found: \(self.this)") // TO DO: "key-value list"/"dict"/"table"?
+                    throw SyntaxError("Expected end of empty record, “]”, but found: \(self.this)")
                 }
                 value = Record()
-            } else if case .listLiteralEnd = self.peek(ignoringLineBreaks: false) {
+            } else if case .listLiteralEnd = self.peek(ignoringLineBreaks: false) { // found `[]` (empty list)
                 self.advance(ignoringLineBreaks: false)
                 value = List()
-            } else { // parser is on first token of list literal's first item
-                var pairs = [Pair]()
-                var dict = [RecordKey:Value]()
+            } else { // found non-empty list/record, so need to start parsing it to determine which it is
+                var dict = [RecordKey:Value]() // optimistically populating a dictionary as side-effect is not beautiful, but it gets the job done
                 let items: [Value] = try self.readCommaDelimitedValues({ () throws -> Value in
                     if case .groupLiteral = self.this {
-                        return try self.parseExpression() // list item is parenthesized, so *cannot* be a  Record field (Pairs are allowed in list literals as long as they're parenthesized, e.g. `["foo":1]` is a Record literal whereas `[("foo":1)]` is a List literal)
+                        return try self.parseExpression() // list item is parenthesized, so *cannot* be a  Record field (i.e. Pairs can appear in *List* literals as long as they're parenthesized, e.g. `[("foo":1)]`)
                     } else {
                         let item = try self.parseExpression()
-                        if let pair = item as? Pair { // if list item is unparenethesized Pair then it's a Record field
-                            pairs.append(pair)
-                            if let key = (pair.key as? Text)?.recordKey ?? (pair.key as? Tag)?.recordKey { dict[key] = pair.value }
+                        if let pair = item as? Pair { // found unparenethesized Pair (i.e. Record field), though still need to check key is valid type
+                            guard let key = (pair.key as? Text)?.recordKey ?? (pair.key as? Tag)?.recordKey else { // e.g. `["foo":1]`, `[#bar:2]`
+                                throw SyntaxError("Not a valid record key (expected string or tag but found \(pair.key.nominalType)): \(pair)")
+                            }
+                            dict[key] = pair.value
                         }
                         return item
                     }
                 }, isEndOfList)
-                if pairs.count == 0 { // no items are unparenthesized Pairs, so it's a List
+                if dict.count == 0 { // no items are unparenthesized Pairs, so it's a List
                     value = List(items)
                 } else if dict.count == items.count { // all items are Pairs with literal keys, so create a Record with internal `[RecordKey:Value]` storage
                     value = Record(dict)
-                } else if pairs.count == items.count { // one or more Pairs have expression-based keys, so create a Record with internal `[Pair]` storage
-                    value = Record(pairs)
-                } else { // found mixture of unparenthesized Pairs and other expressions
-                    throw SyntaxError("Not a valid list/record (some items have labels while others do not): \(self.this)")
+                } else {
+                    throw SyntaxError("Not a valid record (\(items.count - dict.count) missing/duplicate key[s]): \(items)")
                 }
             }
         case .blockLiteral:     // `{…}`

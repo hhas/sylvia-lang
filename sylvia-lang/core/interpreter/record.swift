@@ -15,82 +15,38 @@
 
 class Record: Value {
     
-    enum Storage { // internal storage allows keys to be unevaluated expressions, prior to the record being used
-        
-        typealias Dict = [RecordKey: Value]
-        
-        case pairs([Pair])
-        case dict(Dict) // keys are Text or Tag
-        
-        var description: String { // caution: this assumes Record syntax is identical to Swift dictionary syntax
-            switch self {
-            case .pairs(let data): return data.count == 0 ? "[:]" : String(describing: data)
-            case .dict (let data): return data.count == 0 ? "[:]" : String(describing: data.map{ Pair($0.value, $1) })
-            }
-        }
-    }
+    typealias Storage = [RecordKey: Value]
     
-    override var description: String { return self.storage.description }
+    override var description: String { return self.swiftValue.count == 0 ? "[:]" : String(describing: self.swiftValue.map{ Pair($0.value, $1) }) }
     
     // TO DO: pretty printer needs to support line wrapping and indentation of long lists
     
     override class var nominalType: Coercion { return asRecord }
     
-    private var storage: Storage // any items with non-literal keys; these will be resolved at evaluation and transferred to dict of returned value
+    private var swiftValue: Storage // any items with non-literal keys; these will be resolved at evaluation and transferred to dict of returned value
     
     override init() {
-        self.storage = .dict([RecordKey: Value]())
+        self.swiftValue = [:]
     }
     
-    init(_ pairs: [Pair]) { // used by parser when (literal) record contains one or more unevaluated (Expression) keys
-        self.storage = .pairs(pairs)
-    }
-    
-    init(_ dict: [RecordKey: Value]) { // use when record is empty/all keys are hashable (Text/Tag)
-        self.storage = .dict(dict)
+    init(_ dict: Storage) { // use when record is empty/all keys are hashable (Text/Tag)
+        self.swiftValue = dict
     }
     
     override func toAny(env: Scope, coercion: Coercion) throws -> Value {
-        switch self.storage {
-        case .pairs(let data):
-            return Record(Dictionary(uniqueKeysWithValues: try data.map({ (pair: Pair) -> (RecordKey, Value) in
-                    try (pair.swiftValue.name.bridgingEval(env: env, coercion: asRecordKey),
-                         pair.swiftValue.value.nativeEval(env: env, coercion: asAnything)) }))) as Value // TO DO: what should coercion arg be here?
-        case .dict(let data):
-            return Record(try data.mapValues({ try $0.nativeEval(env: env, coercion: asAnything) })) // TO DO: what should coercion arg be here?
-        }
-        /*
-        return try List(self.swiftValue.map {
-            do {
-                return try $0.nativeEval(env: env, coercion: coercion)
-            } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-                throw CoercionError(value: $0, coercion: coercion).from(error)
-            }
-        })
-         */
+        return Record(try self.swiftValue.mapValues({ try $0.nativeEval(env: env, coercion: asAnything) })) // TO DO: what should coercion arg be here?
     }
     
-    override func toList(env: Scope, coercion: AsList) throws -> List {
+    override func toList(env: Scope, coercion: AsList) throws -> List { // TO DO: not sure about record<->list coercion; simplest would be for record->list to use standard behavior (returns single-item list); allowing coercion to 'list of pair' or 'list of 2-item list' would be legal in principle, but semantically murky in the latter case (the former might be appropriate when iterating across record fields; OTOH, might want to use `toIterator` for that)
         do {
-            switch self.storage {
-            case .pairs(let data):
-                return try List(data.map { (pair: Pair) throws -> Value in
-                    do {
-                        return try pair.nativeEval(env: env, coercion: coercion.elementType)
-                    } catch { // note: NullCoercionErrors thrown by individual items must be rethrown as permanent errors
-                        throw CoercionError(value: pair, coercion: coercion.elementType).from(error)
-                    }
-                })
-            case .dict(let data):
-                return try List(data.map { (key: RecordKey, value: Value) throws -> Value in
-                    let pair = Pair(key.value, value)
-                    do {
-                        return try pair.nativeEval(env: env, coercion: coercion.elementType)
-                    } catch {
-                        throw CoercionError(value: pair, coercion: coercion.elementType).from(error)
-                    }
-                })
-            }
+            return try List(self.swiftValue.map{ (key: RecordKey, value: Value) throws -> Value in
+                let pair = Pair(key.value, value)
+                do {
+                    return try pair.nativeEval(env: env, coercion: coercion.elementType)
+                } catch {
+                    throw CoercionError(value: pair, coercion: coercion.elementType).from(error)
+                }
+            })
         } catch {
             throw CoercionError(value: self, coercion: coercion).from(error)
         }
@@ -98,43 +54,23 @@ class Record: Value {
     
     override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         fatalError()
-        /*
-        return try self.swiftValue.map {
-            do {
-                return try $0.bridgingEval(env: env, coercion: coercion.elementType)
-            } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-                throw CoercionError(value: $0, coercion: coercion.elementType).from(error)
-            }
-        }
-         */
     }
     
     override func toRecord(env: Scope, coercion: AsRecord) throws -> Record {
         do {
-            switch self.storage {
-            case .pairs(let data):
-                return try Record(Dictionary(uniqueKeysWithValues: data.map{ (pair: Pair) throws -> (RecordKey, Value) in
-                    do {
-                        return try (pair.key.bridgingEval(env: env, coercion: asRecordKey),
-                                    pair.value.nativeEval(env: env, coercion: coercion.valueType))
-                    } catch { // note: NullCoercionErrors thrown by individual items must be rethrown as permanent errors
-                        throw CoercionError(value: pair, coercion: coercion.valueType).from(error)
-                    }
-                }))
-            case .dict(let data):
-                return try Record(Dictionary(uniqueKeysWithValues: data.map{ (key: RecordKey, value: Value) throws -> (RecordKey, Value) in
-                    do {
-                        return try (key.value.bridgingEval(env: env, coercion: asRecordKey),
-                                    value.nativeEval(env: env, coercion: coercion.valueType))
-                    } catch {
-                        throw CoercionError(value: Pair(key.value, value), coercion: coercion.valueType).from(error)
-                    }
-                }))
-            }
+            return try Record(Dictionary(uniqueKeysWithValues: self.swiftValue.map{
+                (key: RecordKey, value: Value) throws -> (RecordKey, Value) in
+                do {
+                    return try (key.value.bridgingEval(env: env, coercion: asRecordKey),
+                                value.nativeEval(env: env, coercion: coercion.valueType))
+                } catch {
+                    throw CoercionError(value: Pair(key.value, value), coercion: coercion.valueType).from(error)
+                }
+            }))
         } catch {
             throw CoercionError(value: self, coercion: coercion).from(error)
         }
-
+        
     }
     
     override func toDictionary<K: BridgingCoercion, V: BridgingCoercion, T: AsDictionary<K,V>>(env: Scope, coercion: T) throws -> [K.SwiftType:V.SwiftType] {

@@ -4,6 +4,7 @@
 //  native datatypes; these should have literal representations
 //
 
+// TO DO: aelib requires native Boolean datatype in order to bridge reliably
 
 
 
@@ -167,11 +168,13 @@ class Expression: Value {
 
 
 
+
+
 // TO DO: putting the following in separate nothing.swift file causes swiftc to blow up with abort trap 6; need to file bug report on this
 
 class Nothing: Value {
     
-    override var description: String { return "nothing" }
+    override var description: String { return "nothing" } // TO DO: rename `no_value`?
     
     override class var nominalType: Coercion { return asNoResult }
     

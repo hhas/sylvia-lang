@@ -157,15 +157,15 @@ code = "[π, 23.4e5, (1+2), “Hello\\nGoodbye”, [1,2,3]]"
 
 code = """
 
-to add_one(n) { n + 1 - x } «This throws ‘ValueNotFoundError: Can’t find a value named “x”.’»
+to add_one (n) { n + 1 - x } «This throws ‘ValueNotFoundError: Can’t find a value named “x”.’»
 
-if add_one(3) > 8 {
+if add_one (3) > 8 {
 
-    show("4 > 8")
+    show ("4 > 8")
 
 }
 
-if 4 ≤ 8 { show("4 ≤ 8") }
+if 4 ≤ 8 { show ("4 ≤ 8") }
 
 """
 
@@ -176,7 +176,7 @@ code = """
 
 «= Section =»
 
-store ("name", "Bob")
+store (#name, "Bob")
 
 «== Subsection ==»
 
@@ -187,11 +187,11 @@ store ("name", "Bob")
 
 
 code = """
-define_handler("test", [["x", optional]], no_result, {show ([1,x]), x}, false)
+define_handler ("test", [["x", optional]], no_result, {show ([1,x]), x}, false)
 
-show([2,test(123)])
+show ([2,test(123)])
 
-«show(test()) «`x` is optional parameter»»
+«show (test ()) «`x` is optional parameter»»
 
 """
 
@@ -221,8 +221,8 @@ code = """
 
 to add_one (n) { n + 1 - x }
 
-store ("x", -33)
-store ("y", add_one (3))
+store (#x, -33)
+store (#y, add_one (3))
 
 if y > 8 {
 
@@ -273,9 +273,32 @@ tell app “TextEdit” {
 }
 """
 
+code = """
+tell app “TextEdit” {
+    get properties of documents
+}
+"""
+/*
+
+code = """
+«foo.sy -- about this script»
+
+«= Section =»
+
+store (#name, "Bob")
+
+«== Subsection ==»
+
+"Hello" & ", " & name & "!"
+
+«some comment»
+""" // TO DO: FIX: trailing comment is causing spurious 'expected expression' syntax error
+*/
 
 
-code = " [(#foo:1), (“foo”:2)] "
+//code = " [[(#foo:1), (“foo”:2)], 3, 5, [#foo:1, “foo”:2]] "
+
+//code = " [#foo:1, “foo”:2, foo:3] " // parser should throw
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)

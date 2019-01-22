@@ -8,6 +8,16 @@ import Foundation
 import SwiftAutomation
 
 
+extension Tag {
+    
+    convenience init(_ code: OSType) {
+        self.init("«\(UTCreateStringForOSType(code).takeRetainedValue() as String)»")
+
+    }
+    
+}
+
+
 typealias OpaqueValue = Value // TO DO
 
 
@@ -24,6 +34,8 @@ class ResultDescriptor: OpaqueValue {
         self.desc = desc
         self.appData = appData
     }
+    
+    // unpack atomic types
     
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         switch self.desc.descriptorType {
@@ -50,6 +62,26 @@ class ResultDescriptor: OpaqueValue {
             return Text(result)
         }
     }
+    
+    override func toTag(env: Scope, coercion: Coercion) throws -> Tag {
+        let code: OSType
+        switch self.desc.descriptorType {
+        case typeType, typeProperty, typeKeyword:
+            code = desc.typeCodeValue
+        case typeEnumerated:
+            code = desc.enumCodeValue
+        default:
+            throw CoercionError(value: self, coercion: coercion)
+        }
+        // TO DO: worth caching Tags?
+        if let name = self.appData.glueTable.typesByCode[code] {
+            return Tag(name) // e.g. `#document`
+        } else {
+            return Tag(code) // e.g. `#‘\docu’`
+        }
+    }
+    
+    // unpack collections
     
     override func toList(env: Scope, coercion: AsList) throws -> List {
         do {
@@ -87,23 +119,33 @@ class ResultDescriptor: OpaqueValue {
         }
     }
     
-    override func toTag(env: Scope, coercion: Coercion) throws -> Tag {
-        let code: OSType
-        switch self.desc.descriptorType {
-        case typeType, typeProperty, typeKeyword:
-            code = desc.typeCodeValue
-        case typeEnumerated:
-            code = desc.enumCodeValue
-        default:
-            throw CoercionError(value: self, coercion: coercion)
+    private let classKey = Tag("class").recordKey
+    
+    override func toRecord(env: Scope, coercion: AsRecord) throws -> Record {
+        if !self.desc.isRecordDescriptor { throw CoercionError(value: self, coercion: coercion) }
+        var fields = Record.Storage()
+        if self.desc.descriptorType != typeAERecord {
+            fields[classKey] = try self.appData.unpack(NSAppleEventDescriptor(typeCode: self.desc.descriptorType))
         }
-        // TO DO: worth caching Tags?
-        if let name = self.appData.glueTable.typesByCode[code] {
-            return Tag(name) // e.g. `#document`
-        } else {
-            return Tag("$\(UTCreateStringForOSType(code).takeRetainedValue() as String)") // e.g. `#‘$docu’`
+        for i in 1...self.desc.numberOfItems {
+            let key: Tag
+            let keyCode = self.desc.keywordForDescriptor(at: i)
+            // TO DO: better to hide this table behind API that returns Tag instances, as that allows caching (alternative is to create all Tag instances up-front, but that's probably overkill as most won't be used in any given script)
+            if keyCode == 0x6C697374 { // keyASUserRecordFields
+                fatalError("TODO") // TO DO: unpack user fields (an AEList of form `[string,any,string,any,…]`, where each string is a field name)
+            } else {
+                if let tagName = self.appData.glueTable.typesByCode[keyCode] {
+                    key = Tag(tagName)
+                } else { // TO DO: how to represent four-char-codes as tags? easiest to use `0x_HEXACODE`, though that's not the most readable; probably sufficient to use leading underscore or other character that isn't encountered in terminology keywords [caveat it has to be legal in at least a single-quoted identifier]
+                    key = Tag(keyCode)
+                }
+                fields[key.recordKey] = try ResultDescriptor(self.desc.atIndex(i)!, appData: self.appData).nativeEval(env: env, coercion: coercion.valueType)
+            }
         }
+        return Record(fields)
     }
+    
+    // unpack as anything
     
     override func toAny(env: Scope, coercion: Coercion) throws -> Value { // quick-n-dirty implementation
         switch self.desc.descriptorType {
@@ -113,6 +155,10 @@ class ResultDescriptor: OpaqueValue {
             return try self.toText(env: env, coercion: coercion)
         case typeAEList:
             return try self.toList(env: env, coercion: asList)
+        case typeAERecord:
+            return try self.toRecord(env: env, coercion: asRecord)
+        case typeType where self.desc.typeCodeValue == 0x6D736E67: // cMissingValue
+            return noValue
         case typeType, typeProperty, typeKeyword, typeEnumerated:
             return try self.toTag(env: env, coercion: coercion)
         case typeObjectSpecifier:
@@ -125,6 +171,7 @@ class ResultDescriptor: OpaqueValue {
         case typeQDPoint, typeQDRectangle, typeRGBColor:
             return List((try self.appData.unpack(desc) as [Int]).map{Text($0)})
         default:
+            if self.desc.isRecordDescriptor { return try self.toRecord(env: env, coercion: asRecord) }
             return self
         }
     }

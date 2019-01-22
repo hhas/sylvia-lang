@@ -68,6 +68,18 @@ class NativeAppData: AppData {
             return try super.pack(value)
         }
     }
+    
+    // TO DO: need to check where these get called (right now they're problematic)
+    
+    override func unpack<T>(_ desc: NSAppleEventDescriptor) throws -> T {
+        //print("Unpack as \(T.self):", desc)
+        return try super.unpack(desc)
+    }
+    
+    override func unpackAsAny(_ desc: NSAppleEventDescriptor) throws -> Any {
+        //print("Unpack as Any:", self)
+        return try super.unpackAsAny(desc)
+    }
 }
 
 
