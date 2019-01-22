@@ -29,15 +29,6 @@
 // abstract base class
 
 
-protocol SwiftWrapper {
-    
-    associatedtype SwiftType
-    
-    var swiftValue: SwiftType { get }
-    
-}
-
-
 class Value: CustomStringConvertible {
     
     // base class for all native values // Q. would it be better for Value to be a protocol + extension? (need to check how multiple extensions that implement same methods are resolved, e.g. if Value extension implements default toTYPE methods)
@@ -72,7 +63,7 @@ class Value: CustomStringConvertible {
         throw CoercionError(value: self, coercion: coercion)
     }
     
-    func toRecordKey(env: Scope, coercion: Coercion) throws -> AnyHashable {
+    func toRecordKey(env: Scope, coercion: Coercion) throws -> RecordKey {
         throw CoercionError(value: self, coercion: coercion)
     }
 
@@ -98,6 +89,11 @@ class Value: CustomStringConvertible {
     func toRecord(env: Scope, coercion: AsRecord) throws -> Record {
         throw CoercionError(value: self, coercion: coercion)
     }
+    
+    func toDictionary<K: BridgingCoercion, V: BridgingCoercion, T: AsDictionary<K,V>>(env: Scope, coercion: T) throws -> [K.SwiftType:V.SwiftType] {
+        throw CoercionError(value: self, coercion: coercion)
+    }
+
     
     // main entry points for evaluation
     

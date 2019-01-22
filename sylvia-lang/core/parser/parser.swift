@@ -134,13 +134,13 @@ class Parser {
         return Block(items) // end on '}'
     }
     
-    func readCommaDelimitedValues(_ isEndToken: ((Token) -> Bool)) throws -> [Value] { // e.g. `[EXPR,EXPR,EXPR]` // start on '('/'['
+    func readCommaDelimitedValues(_ parseFunc: (() throws -> Value), _ isEndToken: ((Token) -> Bool)) throws -> [Value] { // e.g. `[EXPR,EXPR,EXPR]` // start on '('/'['
         var items = [Value]()
         // TO DO: could do with a sanity test here, but would need to pass an additional isBeginToken callback as there's no way to compare token directly (short of implementing `isCase()` method on it with big old switch block)
         self.advance(ignoringLineBreaks: true) // step over '('/'[' or ','
         while !isEndToken(self.this) { // check for ')'/']'
             do {
-                items.append(try self.parseExpression()) // this starts on first token of expression and ends on last
+                items.append(try parseFunc()) // this starts on first token of expression and ends on last
             } catch { // TO DO: get rid of this once parser reports error locations
                 print(items)
                 print("Failed to read item \(items.count+1):", error) // DEBUGGING
@@ -174,9 +174,33 @@ class Parser {
                     throw SyntaxError("Expected end of empty key-value list, “]”, but found: \(self.this)") // TO DO: "key-value list"/"dict"/"table"?
                 }
                 value = Record()
-            } else {
-                // TO DO: readCommaDelimitedValues needs to count no. of Pair items it encounters; probably best to pass in closure that allows customization (e.g. when parsing blocks, `IDENTIFIER:VALUE` should be converted to annotated `store(SYMBOL,VALUE)` command)
-                value = try List(self.readCommaDelimitedValues(isEndOfList))
+            } else if case .listLiteralEnd = self.peek(ignoringLineBreaks: false) {
+                self.advance(ignoringLineBreaks: false)
+                value = List()
+            } else { // parser is on first token of list literal's first item
+                var pairs = [Pair]()
+                var dict = [RecordKey:Value]()
+                let items: [Value] = try self.readCommaDelimitedValues({ () throws -> Value in
+                    if case .groupLiteral = self.this {
+                        return try self.parseExpression() // list item is parenthesized, so *cannot* be a  Record field (Pairs are allowed in list literals as long as they're parenthesized, e.g. `["foo":1]` is a Record literal whereas `[("foo":1)]` is a List literal)
+                    } else {
+                        let item = try self.parseExpression()
+                        if let pair = item as? Pair { // if list item is unparenethesized Pair then it's a Record field
+                            pairs.append(pair)
+                            if let key = (pair.key as? Text)?.recordKey ?? (pair.key as? Tag)?.recordKey { dict[key] = pair.value }
+                        }
+                        return item
+                    }
+                }, isEndOfList)
+                if pairs.count == 0 { // no items are unparenthesized Pairs, so it's a List
+                    value = List(items)
+                } else if dict.count == items.count { // all items are Pairs with literal keys, so create a Record with internal `[RecordKey:Value]` storage
+                    value = Record(dict)
+                } else if pairs.count == items.count { // one or more Pairs have expression-based keys, so create a Record with internal `[Pair]` storage
+                    value = Record(pairs)
+                } else { // found mixture of unparenthesized Pairs and other expressions
+                    throw SyntaxError("Not a valid list/record (some items have labels while others do not): \(self.this)")
+                }
             }
         case .blockLiteral:     // `{…}`
             value = try self.readBlock()
@@ -196,7 +220,7 @@ class Parser {
             case .groupLiteral: // read zero or more parenthesized arguments
                 // TO DO: call parseRecord/parseTuple to read arg list; this should know how to read Pairs (this is context-sensitive: pair labels that lexer marks as .operator must be converted to .identifier)
                 self.advance(ignoringLineBreaks: false) // advance cursor onto "("
-                value = try Command(name, self.readCommaDelimitedValues(isEndOfGroup)) // read the argument tuple // TO DO: tuples need their own parsefunc that knows how to handle labels that are represented as .operator tokens (i.e. for each item, if it starts with an .operator, check if next token is .pairSeparator and convert the operator to identifier if it is)
+                value = try Command(name, self.readCommaDelimitedValues({try self.parseExpression()}, isEndOfGroup)) // read the argument tuple // TO DO: tuples need their own parsefunc that knows how to handle labels that are represented as .operator tokens (i.e. for each item, if it starts with an .operator, check if next token is .pairSeparator and convert the operator to identifier if it is)
             case .listLiteral, .textLiteral, .tagLiteral, .identifier, .number: // read single unparenthesized argument (note: a .blockLiteral argument must be parenthesized to avoid ambiguity in `PREFIX_OPERATOR IDENTIFIER BLOCK` pattern commonly used by flow control)
                 self.advance(ignoringLineBreaks: false)
                 value = try Command(name, [self.parseAtom()])

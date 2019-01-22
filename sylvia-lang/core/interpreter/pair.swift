@@ -13,6 +13,9 @@ class Pair: Value {
     
     override class var nominalType: Coercion { return asTag }
     
+    var key: Value { return self.swiftValue.name }
+    var value: Value { return self.swiftValue.value }
+    
     let swiftValue: (name: Value, value: Value)
     
     init(_ swiftName: Value, _ swiftValue: Value) {

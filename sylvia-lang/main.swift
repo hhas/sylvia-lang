@@ -275,7 +275,7 @@ tell app “TextEdit” {
 
 
 
-code = " [:] "
+code = " [(#foo:1), (“foo”:2)] "
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)

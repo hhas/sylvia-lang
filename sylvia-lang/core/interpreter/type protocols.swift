@@ -29,13 +29,18 @@
 
 // TO DO: how would 'AsPipe(TYPE)' work? (this should work across *nix pipes, coroutines/generators, SAX readers, and anything else that resembles streaming data)
 
-// TO DO: how practical to support `COLLECTION_TYPE of TYPE`, e.g. `list of text` as synonym for `list (text)`? (particularly when one or both has arguments, e.g. `list(min,max) of `text(pattern)`); this'd require Coercion to support Attributed, implementing `get(_:)` method that looks up the named coercion value (where? in current context? in global CoercionRegistry?) and call it, passing self as first argument, to construct the more specialized coercion, e.g. AsList(AsText()); Q. if coercions support constructor call chaining, each time returning a more specialized copy of self, e.g. `list(max_length:10)(of_type:text)`, `list(anything) -> list(anything,max_length:10) -> list(of_type:text,max_length:10)`, could this approach be generalized for intersecting coercions as well, e.g. `list(text) ∩ list(number(min:0),max_length:10)`? (this'd go a long way to streamlining how return values are coerced [currently 2 coercions are performed; first to the handler's return type, then to the caller's input type])
+// TO DO: how practical to support `COLLECTION_TYPE of TYPE`, e.g. `list of text` as synonym for `list (text)`? (probably risky, as it conflicts with `TYPE of MODULE` usage)
+
+// Q. if coercions support constructor call chaining, each time returning a more specialized copy of self, e.g. `list(max_length:10)(of_type:text)`, `list(anything) -> list(anything,max_length:10) -> list(of_type:text,max_length:10)`, could this approach be generalized for intersecting coercions as well, e.g. `list(text) ∩ list(number(min:0),max_length:10)`? (this'd go a long way to streamlining how return values are coerced [currently 2 coercions are performed; first to the handler's return type, then to the caller's input type])
 
 
 
-typealias Coercion = Value & CoercionProtocol // TO DO: rename `Constraint`?
+typealias Coercion = Value & CoercionProtocol
 
 typealias BridgingCoercion = Value & CoercionProtocol & BridgingProtocol
+
+typealias CallableCoercion = Coercion & HandlerProtocol
+
 
 
 protocol CoercionProtocol { // all Coercions are Value subclass, allowing them to be used directly in language
@@ -48,14 +53,12 @@ protocol CoercionProtocol { // all Coercions are Value subclass, allowing them t
 }
 
 extension CoercionProtocol {
-    
     var key: String { return self.coercionName }
-    
 }
 
-typealias CallableCoercion = Coercion & HandlerProtocol
-
-
+extension CoercionProtocol where Self: HandlerProtocol { // Coercion and Handler extensions implement conflicting `key` vars, so disambiguate it here
+    var key: String { return self.coercionName }
+}
 
 
 
@@ -80,6 +83,7 @@ protocol BridgingProtocol {
     // TO DO: bridging coercions that perform constraint checks need ability to emit raw Swift code for performing those checks in order to compile away unnecessary coercions, e.g. given native code `bar(foo())`, if foo() returns a boxed Swift String and bar() unboxes it again, partial compilation can discard those Coercions and generate `LIB.bar(LIB.foo())` Swift code
 }
 
+
 extension BridgingProtocol {
     
     func unboxArgument(_ paramKey: String, in arguments: inout [Argument], commandEnv: Scope, command: Command, handler: Handler) throws -> SwiftType {
@@ -87,7 +91,7 @@ extension BridgingProtocol {
         let value = removeArgument(paramKey, from: &arguments) ?? noValue
         do {
             return try self.unbox(value: value, env: commandEnv)// TO DO: should use bridgingEval…
-            //return try command.argument(index).bridgingEval(env: Scope, coercion: self) // TO DO: …except this doesn't work as bridgingEval<T>() can't be inferred
+            //return try value.bridgingEval(env: Scope, coercion: self) // TO DO: …except this doesn't work as bridgingEval<T>() can't be inferred
         } catch {
             //print("Unboxing argument \(paramKey) failed:",error)
             throw BadArgumentError(paramKey: paramKey, argument: value, command: command, handler: handler).from(error)
@@ -95,7 +99,20 @@ extension BridgingProtocol {
     }
 }
 
-extension BridgingProtocol where SwiftType: Value { // Q. why doesn't this work when SwiftType is (e.g.) Coercion (which is typealias of `Value & CoercionProtocol`)? presumably because resulting type represents a subset of all possible values; in which case is there any way to make `where` clause allow for this (i.e. `implements` rather than `isa`)?
+
+extension BridgingProtocol where SwiftType: Value {
+    
+    func coerce(value: Value, env: Scope) throws -> Value {
+        return try self.unbox(value: value, env: env)
+    }
+    
+    func box(value: SwiftType, env: Scope) throws -> Value {
+        return value
+    }
+}
+
+
+extension BridgingProtocol where SwiftType == Coercion {
     
     func coerce(value: Value, env: Scope) throws -> Value {
         return try self.unbox(value: value, env: env)

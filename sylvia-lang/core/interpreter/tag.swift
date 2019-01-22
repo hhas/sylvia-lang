@@ -4,7 +4,7 @@
 
 
 
-class Tag: Value, SwiftWrapper, RecordKey { // TO DO: rename 'Tag'?
+class Tag: Value, SwiftWrapper, RecordKeyConvertible {
     
     override var description: String { return "\(tagLiteralPrefix)‘\(self.swiftValue)’" }
     
@@ -31,8 +31,8 @@ class Tag: Value, SwiftWrapper, RecordKey { // TO DO: rename 'Tag'?
         return self
     }
     
-    override func toRecordKey(env: Scope, coercion: Coercion) throws -> AnyHashable {
-        return AnyHashable(self)
+    override func toRecordKey(env: Scope, coercion: Coercion) throws -> RecordKey {
+        return self.recordKey
     }
 }
 

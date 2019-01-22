@@ -6,7 +6,7 @@
 
 class List: Value, SwiftWrapper {
     
-    override var description: String { return "\(self.swiftValue)" } // note: this assumes native `[…,…]` list syntax is same as Swift Array syntax; if that changes then use "[\(self.swiftValue.map{$0.description}.joined(separator:","))]" // TO DO: pretty printer needs to support line wrapping and indentation of long lists
+    override var description: String { return "[\(self.swiftValue.map{ $0 is Pair ? "(\($0))" : "\($0)" }.joined(separator:", "))]" } // TO DO: pretty printer needs to support line wrapping and indentation of long lists
     
     override class var nominalType: Coercion { return asList }
     
@@ -14,6 +14,10 @@ class List: Value, SwiftWrapper {
     
     init(_ swiftValue: [Value]) {
         self.swiftValue = swiftValue
+    }
+    
+    override convenience init() {
+        self.init([])
     }
     
     override func toAny(env: Scope, coercion: Coercion) throws -> Value {

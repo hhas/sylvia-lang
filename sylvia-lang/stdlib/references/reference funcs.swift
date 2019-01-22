@@ -1,6 +1,10 @@
 //
-//  stdlib/handlers/specifier.swift
+//  stdlib/references/reference funcs.swift
 //
+
+// TO DO: need to decide on jargon: 'query' vs 'reference'
+
+// Q. how hard to implement AEOM-style API over AST? (good exercise)
 
 
 /******************************************************************************/

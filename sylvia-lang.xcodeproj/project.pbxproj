@@ -14,6 +14,7 @@
 		4F129E1421F5A3C8003EC7FE /* interface types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1321F5A3C8003EC7FE /* interface types.swift */; };
 		4F129E1621F5A449003EC7FE /* type constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1521F5A449003EC7FE /* type constants.swift */; };
 		4F129E1821F5AFC8003EC7FE /* scope protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1721F5AFC8003EC7FE /* scope protocols.swift */; };
+		4F129E1A21F67ABD003EC7FE /* value protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1921F67ABD003EC7FE /* value protocols.swift */; };
 		4F3BCE4A21BB0F6E005A6D72 /* stdlib_constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3BCE4921BB0F6E005A6D72 /* stdlib_constants.swift */; };
 		4F3BCE5021BB29C9005A6D72 /* handler protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3BCE4F21BB29C9005A6D72 /* handler protocols.swift */; };
 		4F60E8CA21A35226009B65F1 /* stdlib_coercions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */; };
@@ -30,7 +31,7 @@
 		4F8B249521DC525500D84E24 /* token.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B249421DC525500D84E24 /* token.swift */; };
 		4F8B249821E2503600D84E24 /* selector protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B249721E2503600D84E24 /* selector protocols.swift */; };
 		4F8B249B21E40E1900D84E24 /* range value.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B249A21E40E1900D84E24 /* range value.swift */; };
-		4F8B249D21E695D200D84E24 /* stdlib errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B249C21E695D200D84E24 /* stdlib errors.swift */; };
+		4F8B249D21E695D200D84E24 /* stdlib error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B249C21E695D200D84E24 /* stdlib error.swift */; };
 		4F8B249F21E7AC3300D84E24 /* app data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66276C21B714C500A84EF3 /* app data.swift */; };
 		4F8B24A021E7AC3300D84E24 /* keyword converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66277021B7185A00A84EF3 /* keyword converter.swift */; };
 		4F8B24A121E7AC3300D84E24 /* aelib_load.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66276E21B7156100A84EF3 /* aelib_load.swift */; };
@@ -114,6 +115,7 @@
 		4F129E1321F5A3C8003EC7FE /* interface types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "interface types.swift"; sourceTree = "<group>"; };
 		4F129E1521F5A449003EC7FE /* type constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "type constants.swift"; sourceTree = "<group>"; };
 		4F129E1721F5AFC8003EC7FE /* scope protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "scope protocols.swift"; sourceTree = "<group>"; };
+		4F129E1921F67ABD003EC7FE /* value protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "value protocols.swift"; sourceTree = "<group>"; };
 		4F3BCE4921BB0F6E005A6D72 /* stdlib_constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_constants.swift; sourceTree = "<group>"; };
 		4F3BCE4F21BB29C9005A6D72 /* handler protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "handler protocols.swift"; sourceTree = "<group>"; };
 		4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_coercions.swift; sourceTree = "<group>"; };
@@ -135,7 +137,7 @@
 		4F8B249421DC525500D84E24 /* token.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = token.swift; sourceTree = "<group>"; };
 		4F8B249721E2503600D84E24 /* selector protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "selector protocols.swift"; sourceTree = "<group>"; };
 		4F8B249A21E40E1900D84E24 /* range value.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "range value.swift"; sourceTree = "<group>"; };
-		4F8B249C21E695D200D84E24 /* stdlib errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "stdlib errors.swift"; sourceTree = "<group>"; };
+		4F8B249C21E695D200D84E24 /* stdlib error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "stdlib error.swift"; sourceTree = "<group>"; };
 		4F8B24A421E8079D00D84E24 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		4F8B24A921E80D2E00D84E24 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		4F8B24AC21E8F27E00D84E24 /* text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = text.swift; sourceTree = "<group>"; };
@@ -292,8 +294,10 @@
 		4F8B24B421E8F49B00D84E24 /* values */ = {
 			isa = PBXGroup;
 			children = (
+				4F129E1921F67ABD003EC7FE /* value protocols.swift */,
 				4FEC270D219A33EE00B28A5A /* value.swift */,
 				4F8B24AC21E8F27E00D84E24 /* text.swift */,
+				4F60E8CF21ABE1F6009B65F1 /* scalar.swift */,
 				4F8B24B221E8F35F00D84E24 /* tag.swift */,
 				4F8B24AE21E8F28800D84E24 /* list.swift */,
 				4F129E0A21F494A3003EC7FE /* record.swift */,
@@ -352,10 +356,9 @@
 			isa = PBXGroup;
 			children = (
 				4F3BCE4F21BB29C9005A6D72 /* handler protocols.swift */,
-				4F129E1721F5AFC8003EC7FE /* scope protocols.swift */,
 				4FEC270E219A33EE00B28A5A /* handler.swift */,
+				4F129E1721F5AFC8003EC7FE /* scope protocols.swift */,
 				4FEC270F219A33EE00B28A5A /* scope.swift */,
-				4F60E8CF21ABE1F6009B65F1 /* scalar.swift */,
 				4F66275621B6882600A84EF3 /* annotation.swift */,
 				4FEC2711219A33EE00B28A5A /* error.swift */,
 			);
@@ -377,10 +380,10 @@
 		4FEC271E219B8B6B00B28A5A /* stdlib */ = {
 			isa = PBXGroup;
 			children = (
-				4F8B249C21E695D200D84E24 /* stdlib errors.swift */,
 				4F8B249E21E6E48300D84E24 /* references */,
 				4F8B248721D96D1C00D84E24 /* general handlers */,
 				4F66277621B733D800A84EF3 /* glue */,
+				4F8B249C21E695D200D84E24 /* stdlib error.swift */,
 			);
 			path = stdlib;
 			sourceTree = "<group>";
@@ -522,8 +525,9 @@
 				4FEC2729219DB5DF00B28A5A /* operator.swift in Sources */,
 				4FEC2713219A33EF00B28A5A /* composite exprs.swift in Sources */,
 				4F60E8CE21AA31C0009B65F1 /* stdlib_load.swift in Sources */,
+				4F129E1A21F67ABD003EC7FE /* value protocols.swift in Sources */,
 				4F8B24AF21E8F28800D84E24 /* list.swift in Sources */,
-				4F8B249D21E695D200D84E24 /* stdlib errors.swift in Sources */,
+				4F8B249D21E695D200D84E24 /* stdlib error.swift in Sources */,
 				4FEC2717219A33EF00B28A5A /* scope.swift in Sources */,
 				4F129E0E21F5A246003EC7FE /* atomic types.swift in Sources */,
 				4F8B24B321E8F35F00D84E24 /* tag.swift in Sources */,

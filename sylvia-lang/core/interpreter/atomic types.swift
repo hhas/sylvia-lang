@@ -35,7 +35,7 @@ class AsString: BridgingCoercion { // Q. what about constraints?
     }
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
-        return try value.toText(env: env, coercion: self).swiftValue
+        return try value.toText(env: env, coercion: self).swiftValue // TO DO: worth implementing Value.toString()->String?
     }
     
     func box(value: SwiftType, env: Scope) throws -> Value {
@@ -225,10 +225,10 @@ class AsRecordKey: BridgingCoercion {
     
     override var description: String { return self.coercionName }
     
-    typealias SwiftType = AnyHashable
+    typealias SwiftType = RecordKey
     
     func coerce(value: Value, env: Scope) throws -> Value {
-        return try value.toRecordKey(env: env, coercion: self).base as! Value // ick; might be simpler to coerce to asAnything, then check `is Hashable`
+        return try self.unbox(value: value, env: env).value // kludgy
     }
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
@@ -236,8 +236,7 @@ class AsRecordKey: BridgingCoercion {
     }
     
     func box(value: SwiftType, env: Scope) throws -> Value {
-        guard let result = value.base as? Value else { throw InternalError() }
-        return result
+        return value.value
     }
 }
 

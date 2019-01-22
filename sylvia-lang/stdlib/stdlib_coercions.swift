@@ -40,14 +40,15 @@ let asAttributeName = AsAttributeName()
 func stdlib_loadCoercions(env: Environment) throws {
     try env.add(coercion: asValue)
     try env.add(coercion: asText)
-    try env.add(coercion: asBool)
-    try env.add(coercion: asDouble)
+    try env.add(coercion: asBool)   // TO DO: need to decide if native Boolean representation should be `true`/`false` constants or non-empty/empty values
+    try env.add(coercion: asDouble) // TO DO: really want `asNumber` and `asWholeNumber`
     try env.add(coercion: asList)
+    try env.add(coercion: asRecord)
     
     try env.add(coercion: asCoercion)
     
     try env.add(coercion: asAnything)
-    try env.add(coercion: asNoResult)
+    try env.add(coercion: asNoResult) // by default, a native handler will return the result of the last expression evaluated; use `…returning no_result` to suppress that so that it always returns `nothing` (note that while using `return nothing` would give same the runtime result, declaring it via signature makes it clear and informs introspection and documentation tools as well)
     
     try env.add(coercion: AsDefault(asAnything, noValue)) // note: AsDefault requires constraint args (coercion and defaultValue) to instantiate; native language will call() it to create new instances with appropriate constraints
 }

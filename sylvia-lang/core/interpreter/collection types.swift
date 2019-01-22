@@ -3,6 +3,7 @@
 //
 
 
+// List
 
 class AsArray<ElementCoercion: BridgingCoercion>: BridgingCoercion {
     
@@ -19,7 +20,7 @@ class AsArray<ElementCoercion: BridgingCoercion>: BridgingCoercion {
     }
     
     func coerce(value: Value, env: Scope) throws -> Value {
-        fatalError()//return try value.toList(env: env, coercion: AsList(self.elementType)) // TO DO: reboxing AsArray coercion as AsList is smelly; the problem is that toList() expects coercion:AsList (which allows it to get coercion.elementType); one option might be for AsArray to subclass AsList (although that may require some ugly casting to get AsList.elementType from Coercion back to ElementCoercion for use in box/unbox)
+        return try value.toList(env: env, coercion: AsList(self.elementType)) // TO DO: reboxing AsArray coercion as AsList is smelly; the problem is that toList() requires coercion parameter to be AsList (which allows it to get coercion.elementType); Q. can Value.toList()'s coercion parameter use AsListProtocol instead of AsList?
     }
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
@@ -32,19 +33,29 @@ class AsArray<ElementCoercion: BridgingCoercion>: BridgingCoercion {
 }
 
 
-// native-only coercions // TO DO: this smells; it should be able to bridge as long as items are coerced, not unboxed
+
+// native-only coercion // TO DO: worth making this BridgingCoercion to Array<Value>?
 
 class AsList: CallableCoercion {
     
     var coercionName: String { return "list" }
     
     override var description: String { return "\(self.coercionName)(\(self.elementType))" }
+
+    let elementType: Coercion
     
-    var key: String { return self.coercionName } // kludge as both Coercion and HandlerProtocol implement this via extension
+    init(_ elementType: Coercion) {
+        self.elementType = elementType
+    }
+    
+    func coerce(value: Value, env: Scope) throws -> Value {
+        return try value.toList(env: env, coercion: self)
+    }
+    
+    // TO DO: simplify the following and [partially?] move to extension; should some/all of it be code-generated?
     
     let signature = (
-        paramType_0: asCoercion,
-        returnType: asIs
+        paramType_0: asCoercion
     )
     
     lazy private(set) var interface = HandlerInterface(
@@ -56,23 +67,47 @@ class AsList: CallableCoercion {
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         var arguments = command.arguments
-        let ofType = try self.signature.paramType_0.unboxArgument("item_type", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        let arg_0 = try self.signature.paramType_0.unboxArgument("item_type", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
         if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
-        return AsList(ofType)
+        return AsList(arg_0)
     }
+}
+
+
+
+// Record
+
+class AsDictionary<KeyCoercion: BridgingCoercion, ValueCoercion: BridgingCoercion>: BridgingCoercion where KeyCoercion.SwiftType: Hashable {
     
+    var coercionName: String { return "record" }
     
+    override var description: String { return "\(self.coercionName)(\(self.valueType),\(self.keyType))" }
     
-    let elementType: Coercion
+    typealias SwiftType = [KeyCoercion.SwiftType: ValueCoercion.SwiftType]
     
-    init(_ elementType: Coercion) {
-        self.elementType = elementType
+    let keyType: KeyCoercion
+    let valueType: ValueCoercion
+    
+    init(_ keyType: KeyCoercion, _ valueType: ValueCoercion) {
+        self.keyType = keyType
+        self.valueType = valueType
     }
     
     func coerce(value: Value, env: Scope) throws -> Value {
-        return try value.toList(env: env, coercion: self)
+        fatalError() // TO DO: see AsArray.coerce()
+    }
+    
+    func unbox(value: Value, env: Scope) throws -> SwiftType {
+        return try value.toDictionary(env: env, coercion: self)
+    }
+    
+    func box(value: SwiftType, env: Scope) throws -> Value {
+        fatalError()
+        //return try Record(value.map { try self.elementType.box(value: $0, env: env) })
     }
 }
+
+// TO DO: AsStruct // Q. how best to pack/unpack?
 
 
 
@@ -82,13 +117,12 @@ class AsRecord: CallableCoercion {
     
     var coercionName: String { return "record" }
     
-    override var description: String { return "\(self.coercionName)(\(self.elementType))" }
+    override var description: String { return "\(self.coercionName)(\(self.valueType))" }
     
     var key: String { return self.coercionName } // kludge as both Coercion and HandlerProtocol implement this via extension
     
     let signature = (
-        paramType_0: asCoercion, // TO DO: make this Variant(COERCION,RECORD(COERCION)) to describe either value type[s] with no restriction on keys or a fixed structure of required keys (argument is a record of form `[KEY:COERCION]`, where each KEY is required)
-        returnType: asIs
+        paramType_0: asCoercion // TO DO: make this Variant(COERCION,RECORD(COERCION)) to describe either value type[s] with no restriction on keys or a fixed structure of required keys (argument is a record of form `[KEY:COERCION]`, where each KEY is required)
     )
     
     lazy private(set) var interface = HandlerInterface(
@@ -100,17 +134,17 @@ class AsRecord: CallableCoercion {
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         var arguments = command.arguments
-        let ofType = try self.signature.paramType_0.unboxArgument("structure", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        let arg_0 = try self.signature.paramType_0.unboxArgument("structure", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
         if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
-        return AsList(ofType)
+        return AsRecord(arg_0)
     }
     
     
+    // TO DO: what about being able to restrict keyType to asText/asTag? (currently native record coercion always allows mixed Text and/or Tag keys)
+    let valueType: Coercion
     
-    let elementType: Coercion
-    
-    init(_ elementType: Coercion) {
-        self.elementType = elementType
+    init(_ valueType: Coercion) {
+        self.valueType = valueType
     }
     
     func coerce(value: Value, env: Scope) throws -> Value {

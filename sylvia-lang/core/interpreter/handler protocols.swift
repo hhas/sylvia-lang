@@ -3,14 +3,6 @@
 //
 
 
-protocol RecordKey: Hashable { } // TO DO: currently unused; see also AsRecordKey/toRecordKey
-
-extension RecordKey {
-    var recordKey: AnyHashable { return AnyHashable(self) }
-}
-
-
-
 // HandlerProtocol Values (handlers, constrainable coercions)
 
 typealias Argument = (label: Identifier?, value: Value)

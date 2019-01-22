@@ -4,6 +4,8 @@
 
 // TO DO: when resolving global names (e.g. module-defined handlers), memoize constant value if it's read-only or value's container (stack frame) if it isn't (in the case of Command, value is a Handler instance so additional optimizations can be done for argument matching)
 
+// TO DO: where Identifier/Command references a library-defined attribute, parser might want to annotate it with that library's ID and version; this'll help when resolving conflicting attribute name defined by >1 library
+
 
 class Identifier: Expression {
     
