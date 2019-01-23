@@ -15,13 +15,14 @@
 		4F129E1621F5A449003EC7FE /* type constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1521F5A449003EC7FE /* type constants.swift */; };
 		4F129E1821F5AFC8003EC7FE /* scope protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1721F5AFC8003EC7FE /* scope protocols.swift */; };
 		4F129E1A21F67ABD003EC7FE /* value protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1921F67ABD003EC7FE /* value protocols.swift */; };
+		4F129E1C21F7D846003EC7FE /* record attributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F129E1B21F7D846003EC7FE /* record attributes.swift */; };
 		4F3BCE4A21BB0F6E005A6D72 /* stdlib_constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3BCE4921BB0F6E005A6D72 /* stdlib_constants.swift */; };
 		4F3BCE5021BB29C9005A6D72 /* handler protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3BCE4F21BB29C9005A6D72 /* handler protocols.swift */; };
 		4F60E8CA21A35226009B65F1 /* stdlib_coercions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */; };
 		4F60E8CE21AA31C0009B65F1 /* stdlib_load.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F60E8CD21AA31C0009B65F1 /* stdlib_load.swift */; };
 		4F60E8D021ABE1F6009B65F1 /* scalar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F60E8CF21ABE1F6009B65F1 /* scalar.swift */; };
 		4F66275721B6882600A84EF3 /* annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66275621B6882600A84EF3 /* annotation.swift */; };
-		4F66277921B7345A00A84EF3 /* list extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66277821B7345A00A84EF3 /* list extensions.swift */; };
+		4F66277921B7345A00A84EF3 /* list attributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66277821B7345A00A84EF3 /* list attributes.swift */; };
 		4F8B248021D96AE100D84E24 /* selector methods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B247F21D96AE100D84E24 /* selector methods.swift */; };
 		4F8B248921D96D2E00D84E24 /* math funcs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B248821D96D2E00D84E24 /* math funcs.swift */; };
 		4F8B248B21D96D3B00D84E24 /* control funcs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8B248A21D96D3B00D84E24 /* control funcs.swift */; };
@@ -116,6 +117,7 @@
 		4F129E1521F5A449003EC7FE /* type constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "type constants.swift"; sourceTree = "<group>"; };
 		4F129E1721F5AFC8003EC7FE /* scope protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "scope protocols.swift"; sourceTree = "<group>"; };
 		4F129E1921F67ABD003EC7FE /* value protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "value protocols.swift"; sourceTree = "<group>"; };
+		4F129E1B21F7D846003EC7FE /* record attributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "record attributes.swift"; sourceTree = "<group>"; };
 		4F3BCE4921BB0F6E005A6D72 /* stdlib_constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_constants.swift; sourceTree = "<group>"; };
 		4F3BCE4F21BB29C9005A6D72 /* handler protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "handler protocols.swift"; sourceTree = "<group>"; };
 		4F60E8C921A35226009B65F1 /* stdlib_coercions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_coercions.swift; sourceTree = "<group>"; };
@@ -127,7 +129,7 @@
 		4F66276E21B7156100A84EF3 /* aelib_load.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = aelib_load.swift; sourceTree = "<group>"; };
 		4F66277021B7185A00A84EF3 /* keyword converter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "keyword converter.swift"; sourceTree = "<group>"; };
 		4F66277221B718E000A84EF3 /* aelib_handlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = aelib_handlers.swift; sourceTree = "<group>"; };
-		4F66277821B7345A00A84EF3 /* list extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "list extensions.swift"; sourceTree = "<group>"; };
+		4F66277821B7345A00A84EF3 /* list attributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "list attributes.swift"; sourceTree = "<group>"; };
 		4F8B247F21D96AE100D84E24 /* selector methods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "selector methods.swift"; sourceTree = "<group>"; };
 		4F8B248821D96D2E00D84E24 /* math funcs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "math funcs.swift"; sourceTree = "<group>"; };
 		4F8B248A21D96D3B00D84E24 /* control funcs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "control funcs.swift"; sourceTree = "<group>"; };
@@ -263,7 +265,8 @@
 		4F8B249621E10E8900D84E24 /* values */ = {
 			isa = PBXGroup;
 			children = (
-				4F66277821B7345A00A84EF3 /* list extensions.swift */,
+				4F66277821B7345A00A84EF3 /* list attributes.swift */,
+				4F129E1B21F7D846003EC7FE /* record attributes.swift */,
 				4F8B249A21E40E1900D84E24 /* range value.swift */,
 			);
 			path = values;
@@ -508,7 +511,7 @@
 				4F8B249821E2503600D84E24 /* selector protocols.swift in Sources */,
 				4F60E8CA21A35226009B65F1 /* stdlib_coercions.swift in Sources */,
 				4F8B249521DC525500D84E24 /* token.swift in Sources */,
-				4F66277921B7345A00A84EF3 /* list extensions.swift in Sources */,
+				4F66277921B7345A00A84EF3 /* list attributes.swift in Sources */,
 				4F8B24C921ECF40A00D84E24 /* value extensions.swift in Sources */,
 				4F60E8D021ABE1F6009B65F1 /* scalar.swift in Sources */,
 				4F8B249321DA3DC200D84E24 /* reference funcs.swift in Sources */,
@@ -532,6 +535,7 @@
 				4F129E0E21F5A246003EC7FE /* atomic types.swift in Sources */,
 				4F8B24B321E8F35F00D84E24 /* tag.swift in Sources */,
 				4FEC272D219E1D7100B28A5A /* parsefunc.swift in Sources */,
+				4F129E1C21F7D846003EC7FE /* record attributes.swift in Sources */,
 				4F3BCE4A21BB0F6E005A6D72 /* stdlib_constants.swift in Sources */,
 				4F8B24D121F15B2D00D84E24 /* result descriptor.swift in Sources */,
 				4F8B248F21D96EA100D84E24 /* general funcs.swift in Sources */,

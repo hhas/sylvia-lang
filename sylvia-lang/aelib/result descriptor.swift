@@ -8,15 +8,6 @@ import Foundation
 import SwiftAutomation
 
 
-extension Tag {
-    
-    convenience init(_ code: OSType) {
-        self.init("«\(UTCreateStringForOSType(code).takeRetainedValue() as String)»")
-
-    }
-    
-}
-
 
 typealias OpaqueValue = Value // TO DO
 
@@ -77,7 +68,7 @@ class ResultDescriptor: OpaqueValue {
         if let name = self.appData.glueTable.typesByCode[code] {
             return Tag(name) // e.g. `#document`
         } else {
-            return Tag(code) // e.g. `#‘\docu’`
+            return Tag(code) // e.g. `#‘«docu»’`
         }
     }
     

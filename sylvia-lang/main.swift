@@ -300,6 +300,9 @@ store (#name, "Bob")
 
 //code = " [#foo:1, “foo”:2, foo:3] " // parser should throw
 
+code = " show (item named #bar of [#foo:1, “foo”:2, #bar:3]), show (item #bar of [#foo:1, “foo”:2, #bar:3]), show (#bar of [#foo:1, “foo”:2, #bar:3]) "
+
+
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
 

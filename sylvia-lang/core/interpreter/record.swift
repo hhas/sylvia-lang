@@ -13,7 +13,7 @@
 
 
 
-class Record: Value {
+class Record: Value, SwiftWrapper {
     
     typealias Storage = [RecordKey: Value]
     
@@ -23,7 +23,7 @@ class Record: Value {
     
     override class var nominalType: Coercion { return asRecord }
     
-    private var swiftValue: Storage // any items with non-literal keys; these will be resolved at evaluation and transferred to dict of returned value
+    var swiftValue: Storage // any items with non-literal keys; these will be resolved at evaluation and transferred to dict of returned value
     
     override init() {
         self.swiftValue = [:]
