@@ -30,6 +30,10 @@ class List: Value, SwiftWrapper {
         })
     }
     
+    override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
+        return self.swiftValue.count == 0 ? falseValue : trueValue
+    }
+    
     override func toList(env: Scope, coercion: AsList) throws -> List {
         return try List(self.swiftValue.map {
             do {

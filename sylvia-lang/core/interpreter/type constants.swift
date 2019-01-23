@@ -11,17 +11,19 @@ let asValue = AsValue() // any value except `nothing`; this is the default param
 let asAnything = AsAnything() // any value or `nothing`; this is the default return coercion for native handlers and may be used to expand any value, including [nested] lists containing `nothing`, e.g. `[1,nothing] as optional(value) -> CoercionError`, whereas `[1,nothing] as anything -> [1,nothing]`
 
 
-let asText = AsText()
-let asTag = AsTag()
-let asTagKey = AsTagKey()
 let asBool = AsBool()
+
 let asScalar = AsScalar()
 let asInt = AsInt()
 let asDouble = AsDouble()
 let asString = AsString()
+let asText = AsText()
+
+let asTag = AsTag()
+let asTagKey = AsTagKey()
+
 let asList = AsList(asValue)
 let asRecord = AsRecord(asValue)
-
 let asRecordKey = AsRecordKey()
 
 // lazy evaluation

@@ -139,11 +139,11 @@ class AsBool: BridgingCoercion {
     
     typealias SwiftType = Bool
     
-    // TO DO: implement `Value.toBool()` and use that (right now this implementation only accepts text/nothing and errors on lists)
+    // TO DO: implement `Value.toBoolean()` and use that (right now this implementation only accepts text/nothing and errors on lists)
     
     func coerce(value: Value, env: Scope) throws -> Value {
         do {
-            return try value.toText(env: env, coercion: self).swiftValue != "" ? trueValue : falseValue
+            return try value.toBoolean(env: env, coercion: self)
         } catch is NullCoercionError {
             return falseValue
         }
@@ -151,7 +151,7 @@ class AsBool: BridgingCoercion {
     
     func unbox(value: Value, env: Scope) throws -> SwiftType {
         do {
-            return try value.toText(env: env, coercion: self).swiftValue != ""
+            return try value.toBoolean(env: env, coercion: self).swiftValue
         } catch is NullCoercionError {
             return false
         }

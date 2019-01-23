@@ -20,6 +20,9 @@ extension SelfPackingValueWrapper {
 // extend standard Value subclasses to pack themselves where practical
 
 
+extension Boolean: SelfPackingValueWrapper { }
+
+
 extension Text: SelfPackingValueWrapper { } // TO DO: Text needs smarter behavior to distinguish 'actual' numbers from strings (incl. numeric strings); safest to check for *existing* scalar representation
 
 

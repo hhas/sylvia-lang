@@ -28,6 +28,12 @@ class ResultDescriptor: OpaqueValue {
     
     // unpack atomic types
     
+    override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
+        // TO DO: rework this (should it follow AE coercion rules or native? e.g. 0 = true or false?)
+        guard let desc = self.desc.coerce(toDescriptorType: typeBoolean) else { throw CoercionError(value: self, coercion: asBool) }
+        return desc.booleanValue ? trueValue : falseValue
+    }
+        
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         switch self.desc.descriptorType {
         // common AE types
@@ -140,6 +146,8 @@ class ResultDescriptor: OpaqueValue {
     
     override func toAny(env: Scope, coercion: Coercion) throws -> Value { // quick-n-dirty implementation
         switch self.desc.descriptorType {
+        case typeBoolean, typeTrue, typeFalse:
+            return try self.toBoolean(env: env, coercion: coercion)
         case typeSInt32, typeSInt16, typeIEEE64BitFloatingPoint, typeIEEE32BitFloatingPoint, type128BitFloatingPoint,
              typeSInt64, typeUInt64, typeUInt32, typeUInt16,
              typeChar, typeIntlText, typeUTF8Text, typeUTF16ExternalRepresentation, typeStyledText, typeUnicodeText, typeVersion:

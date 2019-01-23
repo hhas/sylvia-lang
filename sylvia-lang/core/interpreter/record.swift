@@ -37,6 +37,10 @@ class Record: Value, SwiftWrapper {
         return Record(try self.swiftValue.mapValues({ try $0.nativeEval(env: env, coercion: asAnything) })) // TO DO: what should coercion arg be here?
     }
     
+    override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
+        return self.swiftValue.count == 0 ? falseValue : trueValue
+    }
+    
     override func toList(env: Scope, coercion: AsList) throws -> List { // TO DO: not sure about record<->list coercion; simplest would be for record->list to use standard behavior (returns single-item list); allowing coercion to 'list of pair' or 'list of 2-item list' would be legal in principle, but semantically murky in the latter case (the former might be appropriate when iterating across record fields; OTOH, might want to use `toIterator` for that)
         do {
             return try List(self.swiftValue.map{ (key: RecordKey, value: Value) throws -> Value in

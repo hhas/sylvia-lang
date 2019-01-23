@@ -26,6 +26,10 @@ class Text: Value, SwiftWrapper, RecordKeyConvertible { // note that Identifier 
         self.scalar = scalar
     }
     
+    override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
+        return self.swiftValue == "" ? falseValue : trueValue
+    }
+    
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         return self
     }
@@ -64,8 +68,5 @@ extension Text {
 // convenience constants
 
 let emptyText = Text("")
-
-let falseValue = emptyText
-let trueValue = Text("ok")
 
 let piValue = Text(Double.pi)

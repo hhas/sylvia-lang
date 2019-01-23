@@ -56,6 +56,10 @@ class Value: CustomStringConvertible {
     
     // concrete subclasses must override the following as appropriate
     
+    func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
+        return trueValue
+    }
+    
     func toText(env: Scope, coercion: Coercion) throws -> Text { // re. coercion parameter: Coercion is assumed to be AsText, but may be AsString or other coercion as long as its coerce() method returns Text (would be good to get this strongly typed, but need to decide inheritance hierarchy for Coercion types)
         throw CoercionError(value: self, coercion: coercion)
     }
@@ -146,6 +150,10 @@ class Expression: Value {
         return try self.nativeEval(env: env, coercion: coercion)
     }
     
+    override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
+        return try self.safeRun(env: env, coercion: coercion)
+    }
+    
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         //        print("\(type(of:self)).\(#function) was called")
         return try self.safeRun(env: env, coercion: coercion)
@@ -160,44 +168,14 @@ class Expression: Value {
         print("\(type(of:self)).\(#function) was called")
         return try self.bridgingEval(env: env, coercion: coercion)
     }
-}
-
-
-
-
-
-
-
-
-
-// TO DO: putting the following in separate nothing.swift file causes swiftc to blow up with abort trap 6; need to file bug report on this
-
-class Nothing: Value {
     
-    override var description: String { return "nothing" } // TO DO: rename `no_value`?
-    
-    override class var nominalType: Coercion { return asNoResult }
-    
-    override func toAny(env: Scope, coercion: Coercion) throws -> Value {
-        throw NullCoercionError(value: self, coercion: coercion)
-    }
-    override func toText(env: Scope, coercion: Coercion) throws -> Text {
-        throw NullCoercionError(value: self, coercion: coercion)
-    }
-    override func toTag(env: Scope, coercion: Coercion) throws -> Tag {
-        throw NullCoercionError(value: self, coercion: coercion)
-    }
-    override func toList(env: Scope, coercion: AsList) throws -> List {
-        throw NullCoercionError(value: self, coercion: coercion)
-    }
-    override func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
-        throw NullCoercionError(value: self, coercion: coercion)
+    override func toRecord(env: Scope, coercion: AsRecord) throws -> Record {
+        return try self.safeRun(env: env, coercion: coercion)
     }
 }
 
 
-class DidNothing: Nothing { // used by flow control operators
-    
-    override var description: String { return "did_nothing" }
-    
-}
+
+
+
+
