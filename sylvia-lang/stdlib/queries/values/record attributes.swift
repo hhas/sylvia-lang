@@ -2,6 +2,10 @@
 //  record attributes.swift
 //
 
+// TO DO: leaning towards renaming 'reference' to 'query' throughout
+
+// Q. how best to separate query construction from query resolution? (and to what extent should the former use currently available knowledge of target object to reject obviously invalid reference forms - e.g. `item named X of LIST`, `item at N of RECORD`, `items of BOOLEAN` - and what should it defer until a command is applied [which is always the case with aelib queries as AETE/SDEF resources are insufficiently complete or correct to make that determination in advance of sending the query to the target app])
+
 
 // TO DO: there's a lot of bouncing about here; wouldn't be so bad if 'All*ItemsSpecifier' was standard implementation that works for any element on any selectable value; also wouldn't hurt if it could all be done as code-generated extensions; really need a 'standard language' for describing value interfaces in terms of attributes and one-to-one and one-to-many relationships (just as we already have a 'standard language' for describing handler interfaces)
 
@@ -19,7 +23,11 @@ extension Record: Attributed { // TO DO: List should be Attributed, not Scope (w
         // TO DO: `keys`, `values`
         // e.g. to resolve `item named KEY of RECORD` `of` operator looks up selector form method (e.g. "named") followed by element[s] name (e.g. "items")
         case "items", "item": // TO DO: is this appropriate? (if so, it should really refer to Pairs); might want to rename "field[s]"
-            return AllRecordItemsSpecifier(self, key)
+            return RecordElementsSpecifier(self, key) // TO DO: fix (it should refer to Pairs)
+        case "keys", "key":
+            return RecordElementsSpecifier(self, key) // TO DO: should refer to keys only, e.g. `get keys of RECORD` -> `[#foo, "bar"]`
+        case "values", "value":
+            return RecordElementsSpecifier(self, key) // TO DO: should refer to values only
         case "named": // `item named "foo" of RECORD` // TO DO: is there an easy standard way to make selector lookups fall thru to standard handlers?
             return NameSelector(for: self)
         case "where":
@@ -43,7 +51,7 @@ extension Record: Attributed { // TO DO: List should be Attributed, not Scope (w
 
 // TO DO: this currently relies on stdlib-defined selector handlers; this needs to change
 
-class AllRecordItemsSpecifier: Handler, Selectable { // `items of LIST` specifier; constructed by `List` extension // TO DO: rename and decide how best to generalize implementation
+class RecordElementsSpecifier: Handler, Selectable { // `items of LIST` specifier; constructed by `List` extension // TO DO: rename and decide how best to generalize implementation
     
     // `item` and `items` are effectively synonyms
     
@@ -67,6 +75,8 @@ class AllRecordItemsSpecifier: Handler, Selectable { // `items of LIST` specifie
         self.elementsName = elementsName
     }
     
+    // TO DO: still huge confusion on when to return a new query vs resolve current one; without an explicit accessor/mutator command or a coercion that forces query to resolve via `get` operation, the result should be a new query; Q. at what point should it check if parent object supports that query/reference form? immediately? or defer until resolution? (e.g. `item named X of LIST` is obviously invalid; problem with rejecting it immediately is that it's inconsistent with aelib which defers everything until command is applied)
+    
     // TO DO: to support selectors; `call` invokes preferred selector form (`at` for ordered list, `named` for key-value list); define `Selectable` protocol (Q. how to provide default implementations for unsupported forms?)
     
     // TO DO: atRange; Q. how will app selectors implement atIndex, given that anything can be passed there?
@@ -86,6 +96,26 @@ class AllRecordItemsSpecifier: Handler, Selectable { // `items of LIST` specifie
     
     func byTest(_ selectorData: Value) throws -> Value {
         fatalError("TO DO: `\(self) where \(selectorData)`")
+    }
+    
+    func first() throws -> Value {
+        throw UnsupportedSelectorError(name: "first", value: self)
+    }
+    
+    func middle() throws -> Value {
+        throw UnsupportedSelectorError(name: "middle", value: self)
+    }
+    
+    func last() throws -> Value {
+        throw UnsupportedSelectorError(name: "last", value: self)
+    }
+    
+    func any() throws -> Value {
+        throw UnsupportedSelectorError(name: "any", value: self)
+    }
+    
+    func all() throws -> Value {
+        throw UnsupportedSelectorError(name: "every", value: self)
     }
     
     // syntactic shortcut for 'named' selector

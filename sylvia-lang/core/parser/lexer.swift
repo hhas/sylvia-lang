@@ -5,6 +5,8 @@
 // TO DO: a quicker way to check quote and block balancing during code editing is to skip all characters except quote and block delimiters [and their associated escape sequences], which can be done with a very simple Scanner that pushes open delimiters onto a stack and pops them off again when the corresponding close delimiter is found
 
 
+// TO DO: lexer needs to read any leading annotations for custom syntax requirements, updating its operator registry as it goes (once a language token is encountered, subsequent syntax annotations will be treated as errors);
+
 
 /* TO DO:
  
@@ -149,6 +151,9 @@ class Lexer {
         var value = ""
         var scalar: Scalar
         if let sign = self.next(ifIn: signCharacters) { value.append(sign) } // read +/- sign, if any
+        
+        // TO DO: need smarter handling of leading `+`/`-` when it may be binary operator, e.g. `1-1` currently tokenizes wrongly (`(1)(-1)` instead of `(1)-(1)`); see also parseNumericSignOperator()
+        
         // TO DO: eventually could match known currency symbols here, returning appropriate 'currency' token (in addition to capturing $/€/etc currency symbol, currency values would also use fixed point/decimal storage instead of Float/Double)
         let digits = self.readCharacters(ifIn: digitCharacters) // read the digits
         if digits == "" { return self.readUnknown(value, description: "missing number") } // (or return .unknown if there weren't any)
@@ -164,7 +169,7 @@ class Lexer {
                 let digits = self.readCharacters(ifIn: hexadecimalCharacters) // get all hexadecimal digits after the '0x'
                 if digits == "" { return self.readUnknown(value, description: "missing hexadecimal value after \(value.description)") }
                 value += digits
-                if let n = Int(digits, radix: 16) {
+                if let n = Int(value, radix: 16) {
                     scalar = .integer(n, radix: 16)
                 } else {
                     scalar = .overflow(value, Int.self) // TO DO: consider using .floatingPoint, with approximate:true flag
@@ -191,7 +196,7 @@ class Lexer {
                     }
                 }
                 if isInteger {
-                    if let n = Int(digits) {
+                    if let n = Int(value) {
                         scalar = .integer(n, radix: 10)
                     } else {
                         scalar = .overflow(value, Int.self) // TO DO: consider using .floatingPoint, with approximate:true flag

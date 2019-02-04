@@ -47,21 +47,21 @@ enum ParseFunc { // holds an operator parsing function for use by Pratt parser; 
 }
 
 
-// convenience initializers for constructing the underlying commands
+// convenience initializers for constructing the underlying commands // TO DO: what about self.annotating? what about preserving operatorName?
 
 extension Command {
     
-    convenience init(_ operatorName: String) {
-        self.init(operatorName, [])
+    convenience init(_ operatorDefinition: OperatorDefinition) {
+        self.init(operatorDefinition.handlerName ?? operatorDefinition.name.name, [])
     }
-    convenience init(_ operatorName: String, leftOperand: Value) {
-        self.init(operatorName, [leftOperand])
+    convenience init(_ operatorDefinition: OperatorDefinition, leftOperand: Value) {
+        self.init(operatorDefinition.handlerName ?? operatorDefinition.name.name, [leftOperand])
     }
-    convenience init(_ operatorName: String, leftOperand: Value, rightOperand: Value) {
-        self.init(operatorName, [leftOperand, rightOperand])
+    convenience init(_ operatorDefinition: OperatorDefinition, leftOperand: Value, rightOperand: Value) {
+        self.init(operatorDefinition.handlerName ?? operatorDefinition.name.name, [leftOperand, rightOperand])
     }
-    convenience init(_ operatorName: String, rightOperand: Value) {
-        self.init(operatorName, [rightOperand])
+    convenience init(_ operatorDefinition: OperatorDefinition, rightOperand: Value) {
+        self.init(operatorDefinition.handlerName ?? operatorDefinition.name.name, [rightOperand])
     }
 }
 
@@ -70,23 +70,23 @@ extension Command {
 
 func parseAtomOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.advance()
-    return Command(definition.handlerName ?? operatorName)
+    return Command(definition)
 }
 func parsePrefixOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.advance()
-    return Command(definition.handlerName ?? operatorName, leftOperand: try parser.parseExpression(definition.precedence))
+    return Command(definition, leftOperand: try parser.parseExpression(definition.precedence))
 }
 func parseInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.advance()
-    return Command(definition.handlerName ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence))
+    return Command(definition, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence))
 }
 func parseRightInfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.advance()
-    return Command(definition.handlerName ?? operatorName, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence-1))
+    return Command(definition, leftOperand: leftExpr, rightOperand: try parser.parseExpression(definition.precedence-1))
 }
 func parsePostfixOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
     parser.advance()
-    return Command(definition.handlerName ?? operatorName, rightOperand: leftExpr)
+    return Command(definition, rightOperand: leftExpr)
 }
 
 
@@ -109,7 +109,7 @@ func parsePostfixOperatorWithBlock(_ parser: Parser, operatorName: String, defin
     let action = try parser.parseExpression(definition.precedence) // T|O DO: implement Parser.parseIfBlock, which returns nil if non-block is found, giving caller choice of what to do next [this is preferable to throwing SyntaxError, as errors occuring while parsing contents of block aren't trivially distinguished from error raised when expected block isn't found])
     // TO DO: how best to support 'code' formatting style in error messages? (one option is to treat all error strings as Markdown, and format/escape interpolated values when inserting; may be best to leave this until native 'tagged' text interpolation is implemented, then allow that to be used when constructing error messages in both native and Swift code)
     if !(action is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found: \(action)") } // TO DO: long code needs elided for readability
-    let command = Command(definition.handlerName ?? operatorName, leftOperand: expr, rightOperand: action)
+    let command = Command(definition, leftOperand: expr, rightOperand: action)
     command.annotations[operatorAnnotation] = (operatorName: operatorName, definition: definition) // TO DO: error messages should render this Command using its operator syntax
     return command
 }

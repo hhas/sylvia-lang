@@ -77,6 +77,18 @@ class Reference: AttributedValue { // abstract base class
             return IDSelector(for: self)
         case "where":
             return TestSelector(for: self)
+        
+        case "first": // `first ELEMENT_TYPE of ELEMENTS_REFERENCE`
+            return OrdinalSelector(.first, for: self)
+        case "middle":
+            return OrdinalSelector(.middle, for: self)
+        case "last":
+            return OrdinalSelector(.last, for: self)
+        case "any":
+            return OrdinalSelector(.any, for: self)
+        case "every":
+            return OrdinalSelector(.all, for: self)
+
         case "send_apple_event":
             fatalError() // TO DO: needs to return callable that takes AE codes + raw params
         default:
@@ -124,8 +136,8 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
     
     override func get(_ key: String) throws -> Value {
         switch key {
-        case "every":
-            return try self.toMultipleReference() // TO DO: return MultipleReference(self.swiftValue.all, appData: self.appData); need to implement ObjectSpecifierExtension.all first (this converts existing property specifier to all-elements specifier, allowing user to disambiguate conflicting terminology where a property name and elements name are identical, in which case the property definition would normally take priority [in AS, one exception is `text`, which defaults to all-elements definition by default])
+//        case "every": // TO DO
+//            return try self.toMultipleReference() // TO DO: return MultipleReference(self.swiftValue.all, appData: self.appData); need to implement ObjectSpecifierExtension.all first (this converts existing property specifier to all-elements specifier, allowing user to disambiguate conflicting terminology where a property name and elements name are identical, in which case the property definition would normally take priority [in AS, one exception is `text`, which defaults to all-elements definition by default])
         case "previous": // `ELEMENT_TYPE before ELEMENT_REFERENCE`
             fatalError()
         case "next": // `ELEMENT_TYPE after ELEMENT_REFERENCE`
@@ -168,15 +180,35 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
     }
     
     func byName(_ selectorData: Value) throws -> Value {
-        return try toMultipleReference().byIndex(selectorData)
+        return try toMultipleReference().byName(selectorData)
     }
     
     func byID(_ selectorData: Value) throws -> Value {
-        return try toMultipleReference().byIndex(selectorData)
+        return try toMultipleReference().byID(selectorData)
     }
     
     func byTest(_ selectorData: Value) throws -> Value {
-        return try toMultipleReference().byIndex(selectorData)
+        return try toMultipleReference().byTest(selectorData)
+    }
+    
+    func first() throws -> Value {
+        return try toMultipleReference().first()
+    }
+    
+    func middle() throws -> Value {
+        return try toMultipleReference().middle()
+    }
+    
+    func last() throws -> Value {
+        return try toMultipleReference().last()
+    }
+    
+    func any() throws -> Value {
+        return try toMultipleReference().any()
+    }
+    
+    func all() throws -> Value {
+        return try toMultipleReference().all()
     }
     
     let interface = HandlerInterface(name: "", parameters: [("selector_data", "", asValue)], returnType: asReference) // TO DO: what should name be?
@@ -201,17 +233,6 @@ class MultipleReference: SingleReference {
     
     override func get(_ key: String) throws -> Value {
         switch key {
-        // TO DO: these are wrong: ordinal names are defined as prefix operators, so need to return a closure that takes element name as argument
-        case "first": // `first ELEMENT_TYPE of ELEMENTS_REFERENCE`
-            return SingleReference(self._swiftValue.first, attributeName: key, appData: self.appData)
-        case "middle":
-            return SingleReference(self._swiftValue.middle, attributeName: key, appData: self.appData)
-        case "last":
-            return SingleReference(self._swiftValue.last, attributeName: key, appData: self.appData)
-        case "any":
-            return SingleReference(self._swiftValue.any, attributeName: key, appData: self.appData)
-        case "every":
-            return self
         // these are okay though as 'beginning' and 'end' are defined as atom operators to be used in `of` clause
         // TO DO: also put these on SingleReference.get(), with toMultipleReference call
         case "beginning": // `beginning of ELEMENTS_REFERENCE`
@@ -226,7 +247,15 @@ class MultipleReference: SingleReference {
     override func byIndex(_ selectorData: Value) throws -> Value {
         // TO DO: could do with explicit methods on SpecifierExtensions
         if let range = selectorData as? Range {
-            return MultipleReference(self._swiftValue[range.start, range.stop], attributeName: self.attributeName, appData: self.appData)
+            // TO DO: FIX: range start/stop need to be disambiguated when Text
+            let n = try (range.start as? Text)?.scalar?.toInt() //else { throw CoercionError(value: range.start, coercion: asInt) }
+            print(range.stop)
+            let m = try (range.stop as? Text)?.scalar?.toInt() //else { throw CoercionError(value: range.stop, coercion: asInt) }
+            print((range.stop as? Text)?.scalar)
+            return MultipleReference(self._swiftValue[n ?? range.start, m ?? range.stop], attributeName: self.attributeName, appData: self.appData)
+        } else if let text = selectorData as? Text {
+            guard let n = try text.scalar?.toInt() else { throw CoercionError(value: selectorData, coercion: asInt) }
+            return SingleReference(self._swiftValue[n], attributeName: self.attributeName, appData: self.appData)
         } else {
             return SingleReference(self._swiftValue[selectorData], attributeName: self.attributeName, appData: self.appData)
         }
@@ -241,16 +270,39 @@ class MultipleReference: SingleReference {
     }
     
     override func byTest(_ selectorData: Value) throws -> Value {
-        fatalError()
+        print("\(self).byTest: \(selectorData)")
+        throw GeneralError("TODO")
+        //fatalError()
         // let test = selectorData as? Reference // TO DO: should be TestReference; any way to verify that here? how do we get TestClause?
         // return MultipleReference(self.swiftValue[test], appData: self.appData)
     }
+    
+    override func first() throws -> Value {
+        return SingleReference(self._swiftValue.first, attributeName: self.attributeName, appData: self.appData)
+    }
+    
+    override func middle() throws -> Value {
+        return SingleReference(self._swiftValue.middle, attributeName: self.attributeName, appData: self.appData)
+    }
+    
+    override func last() throws -> Value {
+        return SingleReference(self._swiftValue.last, attributeName: self.attributeName, appData: self.appData)
+    }
+    
+    override func any() throws -> Value {
+        return SingleReference(self._swiftValue.any, attributeName: self.attributeName, appData: self.appData)
+    }
+    
+    override func all() throws -> Value {
+        return SingleReference(self._swiftValue.all, attributeName: self.attributeName, appData: self.appData)
+    }
+
     
     override func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value {
         var arguments = command.arguments
         let arg_0 = try asValue.unboxArgument("selector_data", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
         if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
-        if (try? asInt.unbox(value: arg_0, env: commandEnv)) != nil {
+        if (try? asText.unbox(value: arg_0, env: commandEnv).scalar?.toInt()) != nil { // TO DO: safer to coerce to text, then check for existing scalar annotation
             return try self.byIndex(arg_0)
         } else if (try? asString.unbox(value: arg_0, env: commandEnv)) != nil {
             return try self.byName(arg_0)

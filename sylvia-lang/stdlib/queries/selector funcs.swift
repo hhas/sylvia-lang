@@ -1,5 +1,5 @@
 //
-//  stdlib/references/reference funcs.swift
+//  selector funcs.swift
 //
 
 // TO DO: need to decide on jargon: 'query' vs 'reference'
@@ -29,7 +29,7 @@ func ofClause(attribute: Value, value: AttributedValue, commandEnv: Scope) throw
 
 // TO DO: these are really Reference methods, but are implemented here to catch any calls from operators, e.g. `item at 1` may be written in any Scope, though how it should be handled is another question (FWIW, `get name of every handler [of SCOPE]` would be legit introspection code)
 
-private func elements(ofType elementType: String, from parentObject: Scope) throws -> Selectable {
+func elements(ofType elementType: String, from parentObject: Scope) throws -> Selectable {
     guard let elements = try parentObject.get(elementType) as? Selectable else { // e.g. `items [of LIST]`
         throw ValueNotFoundError(name: elementType, env: parentObject) // TO DO: distinguish between 'not found' and 'not elements'
     }

@@ -287,19 +287,21 @@ class Parser {
         var result = [Value]()
         self.advance(ignoringLineBreaks: true)
         do {
-            readLine: while true {
-                result.append(try self.parseExpression())
-                self.advance(ignoringLineBreaks: false) // move to first token after expression
-                switch self.this {
-                case .lineBreak, .itemSeparator:
-                    self.advance(ignoringLineBreaks: true) // skip over comma separator and/or line break[s]
-                case .endOfCode:
-                    break readLine
-                default:
-                    throw SyntaxError("Expected end of line but found: \(self.thisInfo)")
+            if !isEndOfCode(self.this) { // skip if no expressions found (i.e. whitespace and/or annotations only)
+                readLine: while true {
+                    result.append(try self.parseExpression())
+                    self.advance(ignoringLineBreaks: false) // move to first token after expression
+                    switch self.this {
+                    case .lineBreak, .itemSeparator:
+                        self.advance(ignoringLineBreaks: true) // skip over comma separator and/or line break[s]
+                    case .endOfCode:
+                        break readLine
+                    default:
+                        throw SyntaxError("Expected end of line but found: \(self.thisInfo)")
+                    }
                 }
+                guard case .endOfCode = self.this else { throw SyntaxError("Expected end of code but found: \(self.this)") }
             }
-            guard case .endOfCode = self.this else { throw SyntaxError("Expected end of code but found: \(self.this)") }
             return ScriptAST(result) // TBH, should swap this around so ScriptAST initializer takes code as argument and lexes and parses it
         } catch { // TO DO: delete once syntax errors provide decent debugging info
             print("[DEBUG] Partially parsed script:", result.map{$0.description}.joined(separator: " "))

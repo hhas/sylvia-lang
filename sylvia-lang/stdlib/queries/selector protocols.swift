@@ -1,8 +1,6 @@
 //
-//  interface.swift
+//  selector protocols.swift
 //
-
-import Foundation
 
 
 
@@ -21,7 +19,11 @@ protocol Selectable { // unselected (all) elements // TO DO: rename `Elements`? 
     
     func byID(_ selectorData: Value) throws -> Value // argument is an opaque identifier previously supplied by target, not a value users would generate themselves; Q. any use outside of aelib? (e.g. a web library might pass URIs here)
     
-    // func first()/middle()/last()/any()/every() throws -> Value // TO DO: these need to throw if returning resolved values
+    func first() throws -> Value
+    func middle() throws -> Value
+    func last() throws -> Value
+    func any() throws -> Value
+    func all() throws -> Value // TO DO: these need to throw if returning resolved values
     
     // func previous/next(elementType) throws -> Value
     

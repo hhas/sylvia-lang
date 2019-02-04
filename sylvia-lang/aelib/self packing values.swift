@@ -23,7 +23,20 @@ extension SelfPackingValueWrapper {
 extension Boolean: SelfPackingValueWrapper { }
 
 
-extension Text: SelfPackingValueWrapper { } // TO DO: Text needs smarter behavior to distinguish 'actual' numbers from strings (incl. numeric strings); safest to check for *existing* scalar representation
+extension Text: SelfPackingValueWrapper {
+    
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
+        // does it look like a number?
+        if let number = self.scalar {
+            switch number {
+            case .integer(let n, radix: _): return try appData.pack(n)
+            case .floatingPoint(let n): return try appData.pack(n)
+            default: ()
+            }
+        }
+        return try appData.pack(self.swiftValue)
+    }
+}
 
 
 extension List: SelfPackingValueWrapper { }

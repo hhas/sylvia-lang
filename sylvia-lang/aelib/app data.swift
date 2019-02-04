@@ -5,6 +5,9 @@
 import SwiftAutomation
 
 
+// TO DO: need to decide native representations for date and file so that these can be reliably bridged
+
+
 // TO DO: cache glue tables for reuse (TO DO: how practical to have a global on-disk cache? this'd need to know each app's bundle ID and version so that it can reload correct terms for target app, and invalidate old entries when a newer version of app is found; caveat some [pro] apps, e.g. Adobe CC/MS Office, may have multiple versions installed)
 
 

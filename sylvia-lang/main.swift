@@ -279,6 +279,7 @@ tell app “TextEdit” {
 }
 """
 /*
+ */
 
 code = """
 «foo.sy -- about this script»
@@ -292,8 +293,7 @@ store (#name, "Bob")
 "Hello" & ", " & name & "!"
 
 «some comment»
-""" // TO DO: FIX: trailing comment is causing spurious 'expected expression' syntax error
-*/
+"""
 
 
 //code = " [[(#foo:1), (“foo”:2)], 3, 5, [#foo:1, “foo”:2]] "
@@ -301,6 +301,23 @@ store (#name, "Bob")
 //code = " [#foo:1, “foo”:2, foo:3] " // parser should throw
 
 //code = " show (item named #bar of [#foo:1, “foo”:2, #bar:3]), show (item #bar of [#foo:1, “foo”:2, #bar:3]), show (#bar of [#foo:1, “foo”:2, #bar:3]) "
+
+// TO DO: fix first, every, etc ("can't find handler")
+
+
+
+
+code = """
+tell app(“Finder”) { get name of item at 1 of home }
+tell app(“Finder”) { get name of some item of home }
+"""
+
+
+// TO DO: `thru` binds operands really badly here - `thru(items(2),-1)` - then fails as it's not a specifier method (part of problem is that `thru` must also accept relative specifiers as operands, e.g. `items file 2 thru folder -1 of home`; suspect we're exceeding LL(1) capabilities)
+
+code = """
+tell app(“Finder”) {  name of items (2 thru -1) of home }
+"""
 
 
 

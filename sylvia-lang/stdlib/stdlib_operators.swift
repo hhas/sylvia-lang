@@ -12,9 +12,34 @@
 
 // TO DO: should comparison operators return Boolean result or Icon-style input value/failure result (Icon approach has advantage of supporting operator chaining, e.g. `0 < x <= 10`, but is less familiar; if using Boolean, need to decide on `true`/`false` and/or non-empty/empty; true/false is desirable from formal education POV, though not especially helpful from everyday scripting POV)
 
+/*
+ 
+TO DO: don't like current parse tree, e.g.
+ 
+     tell app(“Finder”) { get name of item 1 of home }
+ 
+yields:
+ 
+     ‘tell’ (‘app’ (“Finder”), {
+         ‘of’ (‘get’ (‘name’), ‘of’ (‘at’ (#‘item’, “1”), ‘home’))
+     })
+
+which, aside from being unreadable, requires `get` to evaluate its argument (`name`) in non-lexical context (`item 1 of home`), while `at` parsefunc transforms `item` identifier to symbol to work around same confusion. Unfortunately, can't see how to make `get name` bind less tightly than `name of …` here, other than disallowing unparenthesized arguments, in which case original code is written as `get (name of item (1) of home)` (i.e. unparenthesized arguments do improve readability within specifiers).
+
+ 
+ Equivalent in nodeautomation:
+ 
+    app("Finder").get(app.home.items.at(1).name)
+ 
+ 
+ */
+
 
 /******************************************************************************/
 // custom parse funcs
+
+// caution: `operatorName` is found name, which may be an alias, not canonical name; use for error reporting only
+
 
 func parseNothingOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
     return noValue
@@ -34,10 +59,20 @@ func parseNumericSignOperator(_ parser: Parser, operatorName: String, definition
         }
     } else {
         parser.advance()
-        return Command(definition.handlerName ?? operatorName, rightOperand: try parser.parseExpression(definition.precedence))
+        return Command(definition, rightOperand: try parser.parseExpression(definition.precedence))
     }
 }
 
+
+func parsePrefixSelectorOperator(_ parser: Parser, operatorName: String, definition: OperatorDefinition) throws -> Value {
+    // similar to parseInfixOperator, except requires left operand to be an Identifier which it converts to Tag for use in Command
+    parser.advance()
+    let rightExpr = try parser.parseExpression(definition.precedence)
+    guard let right = rightExpr as? Identifier else {
+        throw SyntaxError("\(operatorName) expected ‘right’ operand to be identifier but received \(rightExpr.nominalType) instead.")
+    }
+    return Command(definition, rightOperand: right.tag)
+}
 
 func parseInfixSelectorOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
     // similar to parseInfixOperator, except requires left operand to be an Identifier which it converts to Tag for use in Command
@@ -45,7 +80,7 @@ func parseInfixSelectorOperator(_ parser: Parser, leftExpr: Value, operatorName:
     guard let left = leftExpr as? Identifier else {
         throw SyntaxError("\(operatorName) expected ‘left’ operand to be identifier but received \(leftExpr.nominalType) instead.")
     }
-    return Command(definition.handlerName ?? operatorName, leftOperand: left.tag, rightOperand: try parser.parseExpression(definition.precedence))
+    return Command(definition, leftOperand: left.tag, rightOperand: try parser.parseExpression(definition.precedence))
 }
 
 func parseInfixRelativeSelectorOperator(_ parser: Parser, leftExpr: Value, operatorName: String, definition: OperatorDefinition) throws -> Value {
@@ -54,8 +89,7 @@ func parseInfixRelativeSelectorOperator(_ parser: Parser, leftExpr: Value, opera
     guard let left = leftExpr as? Identifier else {
         throw SyntaxError("\(operatorName) expected ‘left’ operand to be identifier but received \(leftExpr.nominalType) instead.")
     }
-    return Command("of", leftOperand: Command(definition.handlerName ?? operatorName, leftOperand: left.tag),
-                        rightOperand: try parser.parseExpression(definition.precedence))
+    return Command("of", [Command(definition, leftOperand: left.tag), try parser.parseExpression(definition.precedence)])
 }
 
 
@@ -76,7 +110,7 @@ func parseHandlerOperator(_ isEventHandler: Bool) -> ParseFunc.Prefix { // retur
         if !(action is Block) { throw SyntaxError("Expected a block after `\(operatorName) \(expr)`, but found \(type(of:action)): \(action)") } // TO DO: ditto
         
         // TO DO: parseSignature should ensure all parameters and return coercion are declared correctly (there will be limits to what can be checked at parse time, e.g. `foo(arg as TYPE1) returning TYPE2` signature has no way of knowing if TYPE1 and TYPE2 are actually Coercions or some other Value coercion - that can only be determined when script is run [although it might be worth doing a superficial check once script's top-level declarations are all available to introspect, and note which ones can/can't be coercion-checked without running the script; this will be a particular issue if users use existing 'command' handlers to define their own coercions [it might even be an idea to have a separate CoercionHandler that can make hard guarantees about idempotency, side-effects, and halting - e.g. by only allowing other coercion values/coercion commands to be used within handler body, with hard limits on recursion depth in cases where coercions are used, say, to verify XML/JSON/etc data structures received by web interfaces]])
-        let command = Command(definition.handlerName ?? operatorName,
+        let command = Command(definition.handlerName ?? definition.name.name,
                               [Text(signature.name), List(parameters), returnType, action, isEventHandler ? trueValue : falseValue])
         command.annotations[operatorAnnotation] = (operatorName: operatorName, definition: definition) // TO DO: error messages should render this Command using its operator syntax
         return command
@@ -197,14 +231,14 @@ let stdlib_operators: [OperatorDefinition] = [
     ("at",         1200, .infix(parseInfixSelectorOperator), [], nil), // by-index/by-range
     ("named",      1200, .infix(parseInfixSelectorOperator), [], nil),
     ("for_id",     1200, .infix(parseInfixSelectorOperator), [], nil),
-    ("where",      1200, .infix(parseInfixSelectorOperator), [], nil),
+    ("where",      1200, .infix(parseInfixSelectorOperator), ["whose"], "where"),
     
     // ordinal
-    ("first",      1220, .prefix(parsePrefixOperator), [], nil),
-    ("middle",     1220, .prefix(parsePrefixOperator), [], nil),
-    ("last",       1220, .prefix(parsePrefixOperator), [], nil),
-    ("any",        1220, .prefix(parsePrefixOperator), [], nil),
-    ("every",      1220, .prefix(parsePrefixOperator), [], nil),
+    ("first",      1220, .prefix(parsePrefixSelectorOperator), [], nil),
+    ("middle",     1220, .prefix(parsePrefixSelectorOperator), [], nil),
+    ("last",       1220, .prefix(parsePrefixSelectorOperator), [], nil),
+    ("any",        1220, .prefix(parsePrefixSelectorOperator), ["some"], "any"),
+    ("every",      1220, .prefix(parsePrefixSelectorOperator), [], nil),
     
     // relative
     ("before",     1220, .infix(parseInfixRelativeSelectorOperator), [], "previous"), // `IDENTIFIER before ELEMENT` ➞ 'of'(previous(SYMBOL),REFERENCE)

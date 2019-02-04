@@ -144,6 +144,28 @@ class AllListItemsSpecifier: Handler, Selectable { // `items of LIST` specifier;
         fatalError("TO DO: `\(self) where \(selectorData)`")
     }
     
+    // TO DO:
+    
+    func first() throws -> Value {
+        throw UnsupportedSelectorError(name: "first", value: self)
+    }
+    
+    func middle() throws -> Value {
+        throw UnsupportedSelectorError(name: "middle", value: self)
+    }
+    
+    func last() throws -> Value {
+        throw UnsupportedSelectorError(name: "last", value: self)
+    }
+    
+    func any() throws -> Value {
+        throw UnsupportedSelectorError(name: "any", value: self)
+    }
+    
+    func all() throws -> Value {
+        throw UnsupportedSelectorError(name: "every", value: self)
+    }
+    
     // syntactic shortcut for 'at' selector
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // `item INDEX` -> `item(at:INDEX)`

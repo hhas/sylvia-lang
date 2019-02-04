@@ -18,12 +18,6 @@ class Boolean: Value, Equatable, SwiftWrapper {
     override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
         return self
     }
-    
-    override func toText(env: Scope, coercion: Coercion) throws -> Text {
-        return self.swiftValue ? Text("ok") : Text("")
-    }
-    
-    // TO DO: what else?
 }
 
 

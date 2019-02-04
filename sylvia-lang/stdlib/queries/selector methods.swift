@@ -1,5 +1,5 @@
 //
-//  selectors.swift
+//  selector methods.swift
 //
 
 // while `at`, `named`, etc are currently defined as 'global' handlers in stdlib, they should really be defined solely as methods upon Values; e.g. in a 'tell TARGET {…}' block, the target Value is used as the block's scope, so is passed as commandEnv to handlers called within it while also providing first lookup (if first lookup fails, it should fall thru to second lookup in 'tell' block's own commandEnv scope; we'll need a new Scope subclass that supports this delegation)
@@ -68,6 +68,65 @@ class TestSelector: InstanceMethod { // returns a 'where' handler (closure), use
             command: command, commandEnv: self.parent, handler: self, handlerEnv: handlerEnv, coercion: coercion)
     }
 }
+
+
+
+
+
+
+class OrdinalSelector: InstanceMethod { // returns a 'first'/'middle'/'last'/'any'/'every' closure
+    
+    enum Ordinal {
+        case first
+        case middle
+        case last
+        case any
+        case all
+    
+        var description: String {
+            switch self {
+            case .first: return "first"
+            case .middle: return "middle"
+            case .last: return "last"
+            case .any: return "any"
+            case .all: return "every"
+            }
+        }
+    }
+    
+    let selector: Ordinal
+    
+    private(set) lazy var interface = {
+        return HandlerInterface(
+            name: self.selector.description,
+            parameters: [
+                ("element_type", "", asTagKey),
+                ],
+            returnType: asReference
+        )
+    }()
+    
+    init(_ selector: Ordinal, for parent: AttributedValue) {
+        self.selector = selector
+        super.init(for: parent)
+    }
+    
+    
+    func call(command: Command, commandEnv: Scope, handlerEnv parentObject: Scope, coercion: Coercion) throws -> Value {
+        var arguments = command.arguments
+        let arg_0 = try asTagKey.unboxArgument("element_type", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
+        if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
+        let target = try elements(ofType: arg_0, from: parentObject)
+        switch self.selector {
+        case .first: return try target.first()
+        case .middle: return try target.middle()
+        case .last: return try target.last()
+        case .any: return try target.any()
+        case .all: return try target.all()
+        }
+    }
+}
+
 
 
 // relative: previous(SYMBOL)/next(SYMBOL)
