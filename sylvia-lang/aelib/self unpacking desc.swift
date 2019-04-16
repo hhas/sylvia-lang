@@ -1,7 +1,7 @@
 //
 //  descriptor value.swift
 //
-//  wraps NSAppleEventDescriptor returned by AppData.sendAppleEvent(…) as Value, allowing unpacking to be driven by Coercion
+//  wraps AEDesc returned by AppData.sendAppleEvent(…) as Value, allowing unpacking to be driven by Coercion
 //
 
 import Foundation
@@ -18,42 +18,44 @@ class ResultDescriptor: OpaqueValue {
     
     override class var nominalType: Coercion { return asAnything } // TO DO: need Precis, and probably AsOpaque
     
-    private let desc: NSAppleEventDescriptor
+    private let desc: AEDesc
     private let appData: NativeAppData
     
-    init(_ desc: NSAppleEventDescriptor, appData: NativeAppData) {
+    init(_ desc: AEDesc, appData: NativeAppData) {
         self.desc = desc
         self.appData = appData
+    }
+    
+    deinit {
+        self.desc.dispose()
     }
     
     // unpack atomic types
     
     override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
         // TO DO: rework this (should it follow AE coercion rules or native? e.g. 0 = true or false?)
-        guard let desc = self.desc.coerce(toDescriptorType: typeBoolean) else { throw CoercionError(value: self, coercion: asBool) }
-        return desc.booleanValue ? trueValue : falseValue
+        guard let result = try? self.desc.bool() else { throw CoercionError(value: self, coercion: asBool) }
+        return result ? trueValue : falseValue
     }
         
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
         switch self.desc.descriptorType {
         // common AE types
-        case typeSInt32, typeSInt16, typeUInt16:  // typeSInt64, typeUInt64, typeUInt32
-            return Text(Int(self.desc.int32Value))
+        case typeSInt32, typeSInt16, typeUInt16, typeSInt64, typeUInt64, typeUInt32:
+            return Text(try! self.desc.int())
         // TO DO: other integer types
-        case typeIEEE64BitFloatingPoint, typeIEEE32BitFloatingPoint:
-            return Text(self.desc.doubleValue)
-        case type128BitFloatingPoint: // coerce down lossy
-            guard let doubleDesc = self.desc.coerce(toDescriptorType: typeIEEE64BitFloatingPoint) else {
+        case typeIEEE64BitFloatingPoint, typeIEEE32BitFloatingPoint, type128BitFloatingPoint: // 128-bit will be coerced down (lossy)
+            guard let result = try? self.desc.double() else {
                 throw CoercionError(value: self, coercion: coercion) // message: "Can't coerce 128-bit float to double."
             }
-            return Text(doubleDesc.doubleValue)
+            return Text(result)
         case typeChar, typeIntlText, typeUTF8Text, typeUTF16ExternalRepresentation, typeStyledText, typeUnicodeText, typeVersion:
-            guard let result = self.desc.stringValue else {
+            guard let result = try? self.desc.string() else {
                 throw GeneralError("Corrupt descriptor: \(self.desc)")
             }
             return Text(result)
         default:
-            guard let result = self.desc.stringValue else {
+            guard let result = try? self.desc.string() else {
                 throw CoercionError(value: self, coercion: coercion)
             }
             return Text(result)
@@ -64,9 +66,9 @@ class ResultDescriptor: OpaqueValue {
         let code: OSType
         switch self.desc.descriptorType {
         case typeType, typeProperty, typeKeyword:
-            code = desc.typeCodeValue
+            code = try! desc.typeCode()
         case typeEnumerated:
-            code = desc.enumCodeValue
+            code = try! desc.enumCode()
         default:
             throw CoercionError(value: self, coercion: coercion)
         }
@@ -82,17 +84,20 @@ class ResultDescriptor: OpaqueValue {
     
     override func toList(env: Scope, coercion: AsList) throws -> List {
         do {
-            guard let listDesc = self.desc.coerce(toDescriptorType: typeAEList) else { throw CoercionError(value: self, coercion: coercion) }
-            var result = [Value]()
-            for i in 1...listDesc.numberOfItems {
-                let desc = ResultDescriptor(listDesc.atIndex(i)!, appData: self.appData)
-                do {
-                    result.append(try desc.nativeEval(env: env, coercion: coercion.elementType))
-                } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-                    throw CoercionError(value: desc, coercion: coercion.elementType).from(error)
+            if self.desc.isList {
+                var result = [Value]()
+                for i in 1...(try self.desc.count()) {
+                    let item = ResultDescriptor(try self.desc.item(i).value, appData: self.appData)
+                    do {
+                        result.append(try item.nativeEval(env: env, coercion: coercion.elementType))
+                    } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
+                        throw CoercionError(value: item, coercion: coercion.elementType).from(error)
+                    }
                 }
+                return List(result)
+            } else {
+                return List([try self.nativeEval(env: env, coercion: coercion.elementType)])
             }
-            return List(result)
         } catch {
             throw CoercionError(value: self, coercion: coercion).from(error)
         }
@@ -100,17 +105,20 @@ class ResultDescriptor: OpaqueValue {
     
     override func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         do {
-            guard let listDesc = self.desc.coerce(toDescriptorType: typeAEList) else { throw CoercionError(value: self, coercion: coercion) }
-            var result = [E.SwiftType]()
-            for i in 1...listDesc.numberOfItems {
-                let desc = ResultDescriptor(listDesc.atIndex(i)!, appData: self.appData)
-                do {
-                    result.append(try desc.bridgingEval(env: env, coercion: coercion.elementType))
-                } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
-                    throw CoercionError(value: desc, coercion: coercion.elementType).from(error)
+            if self.desc.isList {
+                var result = [E.SwiftType]()
+                for i in 1...(try self.desc.count()) {
+                    let item = ResultDescriptor(try self.desc.item(i).value, appData: self.appData)
+                    do {
+                        result.append(try item.bridgingEval(env: env, coercion: coercion.elementType))
+                    } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
+                        throw CoercionError(value: item, coercion: coercion.elementType).from(error)
+                    }
                 }
+                return result
+            } else {
+                return [try self.bridgingEval(env: env, coercion: coercion.elementType)]
             }
-            return result
         } catch {
             throw CoercionError(value: self, coercion: coercion).from(error)
         }
@@ -119,14 +127,14 @@ class ResultDescriptor: OpaqueValue {
     private let classKey = Tag("class").recordKey
     
     override func toRecord(env: Scope, coercion: AsRecord) throws -> Record {
-        if !self.desc.isRecordDescriptor { throw CoercionError(value: self, coercion: coercion) }
+        if !self.desc.isRecord { throw CoercionError(value: self, coercion: coercion) }
         var fields = Record.Storage()
         if self.desc.descriptorType != typeAERecord {
-            fields[classKey] = try self.appData.unpack(NSAppleEventDescriptor(typeCode: self.desc.descriptorType))
+            fields[classKey] = try self.appData.unpack(AEDesc(typeCode: self.desc.descriptorType))
         }
-        for i in 1...self.desc.numberOfItems {
+        for i in 1...(try! self.desc.count()) {
             let key: Tag
-            let keyCode = self.desc.keywordForDescriptor(at: i)
+            let (keyCode, valueDesc) = try self.desc.item(i) // ResultDescriptor will take ownership; TO DO: what about applying [simple] value type coercions here?
             // TO DO: better to hide this table behind API that returns Tag instances, as that allows caching (alternative is to create all Tag instances up-front, but that's probably overkill as most won't be used in any given script)
             if keyCode == 0x6C697374 { // keyASUserRecordFields
                 fatalError("TODO") // TO DO: unpack user fields (an AEList of form `[string,any,string,any,…]`, where each string is a field name)
@@ -136,7 +144,7 @@ class ResultDescriptor: OpaqueValue {
                 } else { // TO DO: how to represent four-char-codes as tags? easiest to use `0x_HEXACODE`, though that's not the most readable; probably sufficient to use leading underscore or other character that isn't encountered in terminology keywords [caveat it has to be legal in at least a single-quoted identifier]
                     key = Tag(keyCode)
                 }
-                fields[key.recordKey] = try ResultDescriptor(self.desc.atIndex(i)!, appData: self.appData).nativeEval(env: env, coercion: coercion.valueType)
+                fields[key.recordKey] = try ResultDescriptor(valueDesc, appData: self.appData).nativeEval(env: env, coercion: coercion.valueType)
             }
         }
         return Record(fields)
@@ -156,7 +164,7 @@ class ResultDescriptor: OpaqueValue {
             return try self.toList(env: env, coercion: asList)
         case typeAERecord:
             return try self.toRecord(env: env, coercion: asRecord)
-        case typeType where self.desc.typeCodeValue == 0x6D736E67: // cMissingValue
+        case typeType where (try? self.desc.typeCode()) == 0x6D736E67: // cMissingValue
             return noValue
         case typeType, typeProperty, typeKeyword, typeEnumerated:
             return try self.toTag(env: env, coercion: coercion)
@@ -170,7 +178,7 @@ class ResultDescriptor: OpaqueValue {
         case typeQDPoint, typeQDRectangle, typeRGBColor:
             return List((try self.appData.unpack(desc) as [Int]).map{Text($0)})
         default:
-            if self.desc.isRecordDescriptor { return try self.toRecord(env: env, coercion: asRecord) }
+            if self.desc.isRecord { return try self.toRecord(env: env, coercion: asRecord) }
             return self
         }
     }

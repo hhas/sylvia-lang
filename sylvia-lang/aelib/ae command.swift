@@ -43,7 +43,7 @@ class RemoteCall: Handler {
                                                    waitReply: true,
                                                    sendOptions: nil,
                                                    withTimeout: nil,
-                                                   considering: nil) as NSAppleEventDescriptor?
+                                                   considering: nil) as AEDesc?
         if let result = desc {
             do {
                 return try ResultDescriptor(result, appData: self.appData).nativeEval(env: commandEnv, coercion: coercion)
@@ -60,7 +60,7 @@ class RemoteCall: Handler {
         self.parent = parent
         self.definition = definition
         self.appData = appData
-        self.orderedParameterDefinitions = [("direct_parameter", 0x2D2D2D2D)] + definition.orderedParameters.map{ ($0.name, $0.code) }
+        self.orderedParameterDefinitions = [("direct_parameter", 0x2D2D2D2D)] + definition.parameters.map{ ($0.name, $0.code) }
     }
 }
 

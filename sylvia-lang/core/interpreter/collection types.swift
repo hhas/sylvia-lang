@@ -55,7 +55,8 @@ class AsList: CallableCoercion {
     // TO DO: simplify the following and [partially?] move to extension; should some/all of it be code-generated?
     
     let signature = (
-        paramType_0: asCoercion
+        paramType_0: asCoercion,
+        _na: asNoResult // TO DO: Swift 4/5 breaks on single-item tuples; probably simplest to use separate var for each parameter
     )
     
     lazy private(set) var interface = HandlerInterface(
@@ -122,7 +123,8 @@ class AsRecord: CallableCoercion {
     var key: String { return self.coercionName } // kludge as both Coercion and HandlerProtocol implement this via extension
     
     let signature = (
-        paramType_0: asCoercion // TO DO: make this Variant(COERCION,RECORD(COERCION)) to describe either value type[s] with no restriction on keys or a fixed structure of required keys (argument is a record of form `[KEY:COERCION]`, where each KEY is required)
+        paramType_0: asCoercion, // TO DO: make this Variant(COERCION,RECORD(COERCION)) to describe either value type[s] with no restriction on keys or a fixed structure of required keys (argument is a record of form `[KEY:COERCION]`, where each KEY is required)
+        _na: asNoResult
     )
     
     lazy private(set) var interface = HandlerInterface(

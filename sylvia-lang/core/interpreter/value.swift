@@ -4,7 +4,10 @@
 //  native datatypes; these should have literal representations
 //
 
-// TO DO: aelib requires native Boolean datatype in order to bridge reliably
+// TO DO: consider replacing Value class with protocol and define all values as structs; Q. how will this impact mutability? (one possibility would be for Editable coercion to wrap a value struct in a MutableValue class instance); Q. how does Swift provide for mixed struct+class usage? (main benefit of representing values as structs would be to reduce refcounting and refcycles, particularly in short-lived values; long-lived types such as coercions and highly mutable types like Environment are probably still best implemented as classes [even if coercion implementation does suffer poor subclassability]); needs more thought, plus a better understanding of performance pros and cons of structs and classes
+
+
+// Q. how practical to provide 'chunk expression' (query) support via composition rather than extension? given that language core is designed to be a DSL toolkit as much as a language in its own right, not every DSL will need or want chunk expression support; the query architecture should be an “overlay” layer on top of the basic Swift datatypes (String, Array, Dictionary, Set), which in turn will also make it much more reusable in server-side frameworks (using the same query-building+resolving code on both client and server sides has obvious appeal, not least in paving the way to a modern high-level Swift-native View-Controller framework as alternative to the old, problematic CocoaScripting ObjC framework that can only grow even more problematic as more App developers implement more of their Model layers using native Swift datatypes [String, Array, etc] instead of ObjC classes [NSString, NSArray, etc]; especially if a sylvia-based DSL can be used to write a lot of the glue code, generate user documentation and unit tests/example code, etc)
 
 
 

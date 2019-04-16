@@ -30,12 +30,12 @@ protocol SelfPackingReferenceWrapper: SelfPacking, SwiftWrapper {
     
     var swiftValue: SpecifierType { get }
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc
 }
 
 extension SelfPackingReferenceWrapper {
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc {
         return try swiftValue.SwiftAutomation_packSelf(appData)
     }
 }
@@ -125,7 +125,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
     
     override var specifier: Specifier { return swiftValue }
     
-    let swiftValue: AEItem // a SwiftAutomation ObjectSpecifier containing basic AppData and NSAppleEventDescriptor
+    let swiftValue: AEItem // a SwiftAutomation ObjectSpecifier containing basic AppData and AEDesc
     internal let attributeName: String
     
     init(_ specifier: AEItem, attributeName: String, appData: NativeAppData) { // TO DO: take [property] name as argument
@@ -249,9 +249,9 @@ class MultipleReference: SingleReference {
         if let range = selectorData as? Range {
             // TO DO: FIX: range start/stop need to be disambiguated when Text
             let n = try (range.start as? Text)?.scalar?.toInt() //else { throw CoercionError(value: range.start, coercion: asInt) }
-            print(range.stop)
+            print(range.stop) // debug
             let m = try (range.stop as? Text)?.scalar?.toInt() //else { throw CoercionError(value: range.stop, coercion: asInt) }
-            print((range.stop as? Text)?.scalar)
+            print((range.stop as? Text)?.scalar as Any) // debug
             return MultipleReference(self._swiftValue[n ?? range.start, m ?? range.stop], attributeName: self.attributeName, appData: self.appData)
         } else if let text = selectorData as? Text {
             guard let n = try text.scalar?.toInt() else { throw CoercionError(value: selectorData, coercion: asInt) }
@@ -302,7 +302,7 @@ class MultipleReference: SingleReference {
         var arguments = command.arguments
         let arg_0 = try asValue.unboxArgument("selector_data", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
         if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
-        if (try? asText.unbox(value: arg_0, env: commandEnv).scalar?.toInt()) != nil { // TO DO: safer to coerce to text, then check for existing scalar annotation
+        if (((try? asText.unbox(value: arg_0, env: commandEnv).scalar?.toInt()) as Int??)) != nil { // TO DO: safer to coerce to text, then check for existing scalar annotation
             return try self.byIndex(arg_0)
         } else if (try? asString.unbox(value: arg_0, env: commandEnv)) != nil {
             return try self.byName(arg_0)

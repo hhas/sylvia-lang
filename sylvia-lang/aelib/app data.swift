@@ -27,7 +27,7 @@ class NativeAppData: AppData {
     func interfaceForCommand(term: CommandTerm) -> HandlerInterface {
         if let interface = self.commandInterfaces[term.name] { return interface }
         let interface = HandlerInterface(name: term.name,
-                                          parameters: term.orderedParameters.map{ ($0.name, "", asAnything) },
+                                          parameters: term.parameters.map{ ($0.name, "", asAnything) },
                                           returnType: asIs)
         commandInterfaces[term.name] = interface
         return interface
@@ -62,7 +62,7 @@ class NativeAppData: AppData {
 
     //
     
-    override func pack(_ value: Any) throws -> NSAppleEventDescriptor {
+    override func pack(_ value: Any) throws -> AEDesc {
         switch value {
         case let tag as Tag:
             guard let desc = self.glueTable.typesByName[tag.key] else { return try super.pack(value) } // TO DO: throw 'unknown tag' error here
@@ -74,12 +74,12 @@ class NativeAppData: AppData {
     
     // TO DO: need to check where these get called (right now they're problematic)
     
-    override func unpack<T>(_ desc: NSAppleEventDescriptor) throws -> T {
+    override func unpack<T>(_ desc: AEDesc) throws -> T {
         //print("Unpack as \(T.self):", desc)
         return try super.unpack(desc)
     }
     
-    override func unpackAsAny(_ desc: NSAppleEventDescriptor) throws -> Any {
+    override func unpackAsAny(_ desc: AEDesc) throws -> Any {
         //print("Unpack as Any:", self)
         return try super.unpackAsAny(desc)
     }

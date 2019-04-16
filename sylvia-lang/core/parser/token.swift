@@ -175,7 +175,7 @@ struct TokenInfo: CustomDebugStringConvertible {
     let start: String.Index
     let end: String.Index
     
-    var debugDescription: String { return "\(self.start.encodedOffset)…\(self.end.encodedOffset) \(self.token)" }
+    var debugDescription: String { return "\(self.start)…\(self.end) \(self.token)" }
     
     // TO DO: consider always using single-line Lexer, and store line number here as well
 }

@@ -9,7 +9,7 @@ class Text: Value, SwiftWrapper, RecordKeyConvertible { // note that Identifier 
     
     override class var nominalType: Coercion { return asText }
     
-    internal(set) var scalar: Scalar? // TO DO: any way to make this lazily self-initialize if not set by init?
+    internal(set) public var scalar: Scalar? // TO DO: any way to make this lazily self-initialize if not set by init?
     
     // hash key // TO DO: what about case-insensitivity?
     

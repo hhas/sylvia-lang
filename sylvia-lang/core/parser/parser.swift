@@ -5,6 +5,9 @@
 // Pratt parser (enhanced recursive descent parser that supports operator fixity and associativity)
 
 
+// TO DO: unparenthesized commands need to adjust their precedence depending on whether they are inside or outside an `of` operand, e.g. when parsing `get text of document 1`, `get` should have lower precedence than `of` whereas `document` should have higher precedence than `of`; how best to implement variable precedence as generic behavior that library-defined operators can customize? (requiring context-sensitive parsing is a royal pain for both developers and users, but unavoidable - at least in this use-case - but unavoidable if we want to keep AST/pure-command representations remotely readable/logical/supportable while allowing unparenthesized commands in operator-enabled code for readability/friendliness/ease-of-use); consider also mathematical code, e.g. how should `sin 30° ÷ 2` parse?
+
+
 /* TO DO: each [non-comment/-disable] annotation should bind to an adjacent expression on same line (or to parent block/list/group if nothing else on that line); e.g. annotations on right-end of line should bind left, ignoring punctuation:
  
  

@@ -11,7 +11,7 @@ protocol SelfPackingValueWrapper: SelfPacking, SwiftWrapper { }
 
 extension SelfPackingValueWrapper {
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc {
         return try appData.pack(self.swiftValue)
     }
 }
@@ -25,7 +25,7 @@ extension Boolean: SelfPackingValueWrapper { }
 
 extension Text: SelfPackingValueWrapper {
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc {
         // does it look like a number?
         if let number = self.scalar {
             switch number {
@@ -44,19 +44,22 @@ extension List: SelfPackingValueWrapper { }
 
 extension Record: SelfPackingValueWrapper {
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
-        let resultDesc = NSAppleEventDescriptor.record()
-        var userFieldsDesc: NSAppleEventDescriptor? = nil
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc {
+        let resultDesc = AEDesc.record()
+        var userFieldsDesc: AEDesc? = nil
         for (key, value) in self.swiftValue {
             let valueDesc = try appData.pack(value)
+            
             switch key.value {
             case let text as Text:
-                if userFieldsDesc == nil { userFieldsDesc = NSAppleEventDescriptor.list() }
-                userFieldsDesc!.insert(NSAppleEventDescriptor(string: text.swiftValue), at: 0)
-                userFieldsDesc!.insert(valueDesc, at: 0)
+                if userFieldsDesc == nil { userFieldsDesc = AEDesc.list() }
+                let keyDesc = AEDesc(string: text.swiftValue)
+                defer { keyDesc.dispose() }
+                try userFieldsDesc!.appendItem(keyDesc)
+                try userFieldsDesc!.appendItem(valueDesc)
             case let tag as Tag:
                 let keyDesc = try tag.SwiftAutomation_packSelf(appData)
-                resultDesc.setParam(valueDesc, forKeyword: keyDesc.typeCodeValue)
+                try resultDesc.setParameter(keyDesc.typeCode(), to: valueDesc)
             default:
                 throw CoercionError(value: key.value, coercion: asRecordKey)
             }
@@ -69,10 +72,10 @@ extension Record: SelfPackingValueWrapper {
 
 
 
-private let missingValueDescriptor = NSAppleEventDescriptor(typeCode: 0x6D736E67) // 'msng'
+private let missingValueDescriptor = AEDesc(typeCode: 0x6D736E67) // 'msng'
 
 extension Nothing: SelfPacking {
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc {
         return missingValueDescriptor
     }
 }
@@ -88,10 +91,10 @@ extension Tag: SelfPackingValueWrapper {
         self.init("«\(UTCreateStringForOSType(code).takeRetainedValue() as String)»") // TO DO: distinguish typeType/typeEnumerated?
     }
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> NSAppleEventDescriptor {
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc {
         // can't self-pack without upcasting AppData to NativeAppData, throwing if that fails, which is not ideal -- Q. is this going to be an issue for packing Specifiers? (e.g. `#document after document 1`, `ELEMENTS where PROPERTY eq TAG`)
         if self.key.hasPrefix("«") && self.key.hasSuffix("»") {
-            return NSAppleEventDescriptor(typeCode: UTGetOSTypeFromString(code as CFString)) // TO DO: distinguish typeType/typeEnumerated?
+            return AEDesc(typeCode: UTGetOSTypeFromString(code as CFString)) // TO DO: distinguish typeType/typeEnumerated?
         }
         if let desc = (appData as? NativeAppData)?.glueTable.typesByName[self.key] { return desc }
         throw GeneralError("Can't pack \(self)")
