@@ -21,7 +21,6 @@ class Tag: Value, SwiftWrapper, RecordKeyConvertible {
     
     // hashing
     
-    public var hashValue: Int { return self.key.hashValue }
     public func hash(into hasher: inout Hasher) { self.key.hash(into: &hasher) }
     public static func == (lhs: Tag, rhs: Tag) -> Bool { return lhs.key == rhs.key }
     

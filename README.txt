@@ -1,42 +1,46 @@
 # Sylvia
 
-Sylvia (genus) = typical warblers, closely related to Old World babblers
+(final name TBC)
 
+## Example
+
+    tell app “Finder” { get name of folder 1 of home }
 
 ## About
 
-Experimental AST-walking interpreter for a weak, untyped (Algol-ish) language.
+A stealth Lisp/Logo, devised as a modern, easy-to-use AppleScript successor.
 
-Primarily created as a testbed for standardized native<->Swift bridging APIs.
+Language core implements standard datatypes, environment, and eval loop functionality
+only; all behaviors (including flow control) is supplied by optional libraries.
+Operators are optional, library-defined, syntactic sugar over commands.
 
-Goal is to eliminate need for manual boilerplate code when implementing primitive libraries.
-Moving all bridging logic into standard Coercion classes avoids polluting Swift function
-implementations with bridging code (c.f. Python/Ruby extensions), making primitive libraries
-simpler, quicker, and less error-prone to create.
+“[Almost] Everything is a command.”
 
-Separate bridging logic also makes it easy to autogenerate handler documentation for users,
-and facilitates compilation of native code to Swift. e.g. Given a primitive library with
-`foo() as text` and `bar(someArg as text)` handlers, the native script `bar(foo)` can be
-reduced to Swift code `bar(a:foo())` that calls the primitive library's underlying Swift
-functions (`foo()->String` and `bar(someArg:String)`) directly, without the redundant
-boxing/unboxing.
+Rich metadata, homoiconic syntax. Able to support GUI (Shortcuts-style) and voice (Siri)
+control, in addition to traditional text (keyboard) input.
 
-(Note that while the surface language [if implemented] would be a C/Pascal-lookalike,
-its AST representation is more Lisp-ish in nature, where all code is data and vice-versa,
-although without the uniformity of Lisp's "everything is a list"; thus native code
-generation/rewrites could be done purely by creating/manipulating native values within
-the language itself, though with rather more distinct datatypes than in Lisp.)
+Weak, untyped: “If a value looks right, it [generally] is.” Rich coercion and constraint-
+checking annotations for primitive/native handler parameters and results provide both
+runtime safety and opportunities for automated compile-time correctness checks and/or
+performance optimizations (via partial/full cross-compilation to Swift code).
+
+Optional (library-enabled) metaprogramming support.
+
+High-level native<->Swift bridging APIs makes new primitive libraries trivial to develop.
+Type-conversion and constraint-checking for arguments and results is provided for free,
+along with basic interface documentation.
 
 
 ## Status
 
-* Some basic datatypes: Nothing, Text, List.
+* Some basic datatypes: Nothing, Text (including numbers), List, Record (dictionary).
 
 * Some basic coercions: AsText, AsList, AsOptional, etc.
 
 * Traditional, lexically-scoped constants/variables. Name masking is currently not allowed.
 
-* Traditional commands, except arguments are evaluated less eagerly by consuming handler.
+* Traditional commands, except that arguments are evaluated by receiving handler (allowing,
+  e.g., lazy evaluation).
 
 * Primitive & user-defined handlers; parameters can specify coercions (including lazy eval).
 

@@ -55,11 +55,11 @@ protocol SwiftWrapper {
 protocol RecordKeyConvertible: Hashable { } // Values that can be used as record keys (Text, Tag) must adopt this protocol [in addition to implementing the usual Hashable+Equatable methods]
 
 extension RecordKeyConvertible where Self: Value {
-    var recordKey: RecordKey { return RecordKey(self) }
+    var recordKey: RecordKey { return RecordKey(self) } // TO DO: how/where do we perform normalizations (e.g. case-sensitivity) defined by Record's key Coercion
 }
 
 
-struct RecordKey: Hashable { // type-safe wrapper around AnyHashable that ensures non-Value types can't get into Record's internal storage by accident, while still allowing mixed-type keys
+struct RecordKey: Hashable { // type-safe wrapper around AnyHashable that ensures non-Value types can't get into Record's internal storage by accident, while still allowing mixed-type keys (the alternative would be to use an enum, but that isn't extensible; Q. what was reasoning for not using RecordKeyConvertible as dictionary key type? [probably because we don't want to implement `==` directly on Values, nor recalculate keys on every use; TO DO: how can this decoupling facilitate records custom-normalizing hash keys, e.g. for case-sensitive vs case-insensitive storage])
     
     private let key: AnyHashable
     let value: Value
@@ -69,7 +69,6 @@ struct RecordKey: Hashable { // type-safe wrapper around AnyHashable that ensure
         self.value = value
     }
     
-    public var hashValue: Int { return self.key.hashValue }
     public func hash(into hasher: inout Hasher) { self.key.hash(into: &hasher) }
     public static func == (lhs: RecordKey, rhs: RecordKey) -> Bool { return lhs.key == rhs.key }
 }

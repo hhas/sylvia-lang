@@ -13,7 +13,6 @@ class Text: Value, SwiftWrapper, RecordKeyConvertible { // note that Identifier 
     
     // hash key // TO DO: what about case-insensitivity?
     
-    public var hashValue: Int { return self.swiftValue.hashValue }
     public func hash(into hasher: inout Hasher) { self.swiftValue.hash(into: &hasher) }
     public static func == (lhs: Text, rhs: Text) -> Bool { return lhs.swiftValue == rhs.swiftValue } // TO DO: what about `rhs:Value`? (and, for that matter, what about normalizing case as standard? right now only Tag is case-insensitive, although there are cons to case-insensitive keys in a mutable dictionary, as the keys that go in are not guaranteed to preserve case; e.g. consider `d["Bob"]=1` followed by `d["bob"]=1`; which case gets kept and which gets discarded?)
     

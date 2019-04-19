@@ -17,9 +17,13 @@ class Record: Value, SwiftWrapper {
     
     typealias Storage = [RecordKey: Value]
     
-    override var description: String { return self.swiftValue.count == 0 ? "[:]" : String(describing: self.swiftValue.map{ Pair($0.value, $1) }) }
-    
     // TO DO: pretty printer needs to support line wrapping and indentation of long lists
+    
+    override var description: String {
+        return self.swiftValue.count == 0 ? "[:]" : String(describing: self.swiftValue.map{ Pair($0.value, $1) })
+    }
+    
+    // TO DO: assigned instance type (if any) is more important than nominal type, as that affects how keys are stored and matched (e.g. case-insensitive vs case-sensitive records); how should this be attached?
     
     override class var nominalType: Coercion { return asRecord }
     

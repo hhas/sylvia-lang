@@ -7,6 +7,9 @@
 // TO DO: where Identifier/Command references a library-defined attribute, parser might want to annotate it with that library's ID and version; this'll help when resolving conflicting attribute name defined by >1 library
 
 
+// TO DO: conceptually a command is a composite of an identifier and a tuple, a unary operator with a right-hand operand; ideally users should be able to omit the tuple's parentheses (currently parser allows omitting parens from single-item tuple only); there is the question of how `foo() of bar` vs `foo of bar` should resolve if queries are lazy by default - the latter implies it will return `foo of bar`, rather than the result of calling foo (not to be confused with getting `foo` as a closure, which [unlike e.g. Python] requires an explicit `foo of bar as handler` cast)
+
+
 class Identifier: Expression {
     
     // TO DO: while the goal is to build a slow AST interpreter with good runtime introspection that facilitates easy exploration and debugging plus option to cross-compile to fast[er] Swift code, there may still be a few parse-/run-time optimizations worth implementing once all the essentials are done. e.g. How can/when should Identifiers and Commands memoize non-maskable, read-only slot values (`nothing`, `π`, `+`, `as`, `show()`, etc) so they never need looked more than once? In theory, primitive library-defined constants could be defined in LIB_operators.swift as .constant(Value) parsefuncs, telling parser to substitute immediately as it builds the AST. Even when slots are writable, as long as they're guaranteed never to be masked the cost of identifier/command lookups could be reduced by capturing the environment frame in which they're defined, avoiding a full recursive lookup of Environment every time.

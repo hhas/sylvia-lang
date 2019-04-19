@@ -217,7 +217,12 @@ class Parser {
         case .tagLiteral(value: let string):
             value = Tag(string)
         case .identifier(value: let name, isQuoted: _): // found `NAME`
-            switch self.peek(ignoringLineBreaks: false) {  // is there an argument tuple after NAME (i.e. is it a command name or identifier?) // TO DO: how safe to accept a single unparenthesized argument? e.g. `get file 1` = `get (file (1))`
+            // TO DO:
+            // 1. how safe to accept a single unparenthesized argument? e.g. `get file 1` = `get (file (1))`
+            // 2. how practical to allow multiple unparenthesized labeled arguments, e.g. `move FOO to: BAR replacing: ASK`?
+            // 3. how to eliminate distinction between NAME and argless COMMAND? (as in entoli, NAME would be an 'argless command' that returns a stored value)
+            // if all three questions can be successfully answered, we can define syntax rules for achieving very-close-to-AS-syntax in both application- and user-defined commands
+            switch self.peek(ignoringLineBreaks: false) {  // is there an argument tuple after NAME (i.e. is it a command name or identifier?)
             case .groupLiteral: // read zero or more parenthesized arguments
                 // TO DO: call parseRecord/parseTuple to read arg list; this should know how to read Pairs (this is context-sensitive: pair labels that lexer marks as .operator must be converted to .identifier)
                 self.advance(ignoringLineBreaks: false) // advance cursor onto "("

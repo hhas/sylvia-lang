@@ -306,19 +306,38 @@ store (#name, "Bob")
 
 
 
+// ‘any’ (#‘item’)
+// 'at' (#'item',SELD)
+// 'item' (SELD) // shortcut for preferred form
+
+// current parse trees are not pleasant, and potentially problematic:
+//
+//      ‘of’ (‘get’ (‘name’), ‘of’ (‘at’ (#‘item’, “1”), ‘home’))
+//
+// ought to be `get (of (name, of (at (#item, 1), home)))`
+//
+// increasing precedence of commands that appear as operands to `of` operator (and some/all other operators?) may solve this (higher precedence will ensure that unquoted args will bind to command name)
+
 
 code = """
-tell app(“Finder”) { get name of item at 1 of home }
-tell app(“Finder”) { get name of some item of home }
+tell app “Finder” { get name of folder 1 of home }
 """
 
+// TO DO: FIX: trailing comments cause syntax error
 
-// TO DO: `thru` binds operands really badly here - `thru(items(2),-1)` - then fails as it's not a specifier method (part of problem is that `thru` must also accept relative specifiers as operands, e.g. `items file 2 thru folder -1 of home`; suspect we're exceeding LL(1) capabilities)
+//«tell app “Finder” { get name of some item of home }»
 
+
+
+// TO DO: `thru` binds operands really badly here - `thru(items(2),-1)` - then fails as it's not a specifier method (part of problem is that `thru` must also accept relative specifiers as operands, e.g. `items file 2 thru folder -1 of home`; suspect we're exceeding LL(1) capabilities); for now, parenthesizing the `thru` expression works around this
+
+// TO DO: when coercing a query, it should perform automatic `get` command and coerce result (there is a risk to such lazy behavior that users assume the query is eagerly resolved at construction time, as in AppleScript, as the delay between construction and resolution allows time for the target to mutate, returning a different result to the one expected; OTOH, AS’s implicit-get “magic” makes it really tricky for users to understand what a script is actually doing)
+/*
 code = """
-tell app(“Finder”) {  name of items (2 thru -1) of home }
+« without a `get` command, this returns the constructed query »
+tell app “Finder” { name of items (2 thru -1) of home }
 """
-
+*/
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
