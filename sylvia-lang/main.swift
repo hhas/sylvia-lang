@@ -265,17 +265,17 @@ code = "tell app “TextEdit” { get text of document 1 as string }"
 // TO DO: parseTuple needs to treat `OPERATOR PAIR_SEPARATOR EXPRESSION` sequence as `IDENTIFIER PAIR_SEPARATOR EXPRESSION`, avoiding need to single-quote the 'to' label below
 
 code = """
-tell app “TextEdit” {
-    get text of documents as list (item_type: string)
-    get text of documents
+tell app (“TextEdit”) {
+    get (text of documents as list (item_type: string))
+    get (text of documents)
     «set (text of document 3, ‘to’: “HELLO!”)»
-    get documents «note: unlike AS, explicit `get` command is required»
+    get (documents) «note: unlike AS, explicit `get` command is required»
 }
 """
 
 code = """
-tell app “TextEdit” {
-    get properties of documents
+tell app (“TextEdit”) {
+    get (properties of documents)
 }
 """
 /*
@@ -316,11 +316,18 @@ store (#name, "Bob")
 //
 // ought to be `get (of (name, of (at (#item, 1), home)))`
 //
-// increasing precedence of commands that appear as operands to `of` operator (and some/all other operators?) may solve this (higher precedence will ensure that unquoted args will bind to command name)
+// it's not wrong, if LH operand is assumed to be evaluated with RH operand as its context (thus, `get(name) of foo` is equivalent to `tell foo to get name [of it]`), but implicit contexts within `of` operator is almost certainly going to cause problems of its own
+//
+// increasing precedence of commands that appear as operands to `of` operator (and some/all other operators?) may solve this (higher precedence will ensure that unquoted args will bind to command name); problem:
+//
+//      item idx of home // `item` needs to bind to `idx`, so reducing command precedence outside `of` operands will result in mis-bound `item (of (idx, home))` instead of `of (item (idx), home)`
+//
+//      get item idx of home
+//
 
 
 code = """
-tell app “Finder” { get name of folder 1 of home }
+tell app (“Finder”) { get (name of folder at 1 of home) }
 """
 
 // TO DO: FIX: trailing comments cause syntax error
@@ -329,15 +336,17 @@ tell app “Finder” { get name of folder 1 of home }
 
 
 
-// TO DO: `thru` binds operands really badly here - `thru(items(2),-1)` - then fails as it's not a specifier method (part of problem is that `thru` must also accept relative specifiers as operands, e.g. `items file 2 thru folder -1 of home`; suspect we're exceeding LL(1) capabilities); for now, parenthesizing the `thru` expression works around this
+// TO DO: `thru` binds operands really badly here - `thru(items(2),-1)` - then fails as it's not a specifier method (part of problem is that `thru` must also accept relative specifiers as operands, e.g. `items file 2 thru folder -1 of home`; suspect we're exceeding LL(1) capabilities); for now, parenthesizing the `thru` expression works around this // think answer if for thru to bind tighter
 
 // TO DO: when coercing a query, it should perform automatic `get` command and coerce result (there is a risk to such lazy behavior that users assume the query is eagerly resolved at construction time, as in AppleScript, as the delay between construction and resolution allows time for the target to mutate, returning a different result to the one expected; OTOH, AS’s implicit-get “magic” makes it really tricky for users to understand what a script is actually doing)
-/*
+
+// problem: `items` should look up on `home` [and nowhere else], but `at` and `thru` should look up on global scope (although there is an argument they should be methods on Value, or on the subset of values that support Selectable); Q. given `foo at bar`, how to look up 'at' on `foo`? (operator would need to transform to `at(bar) of foo`, aka `foo.at(bar)`)
+
 code = """
 « without a `get` command, this returns the constructed query »
-tell app “Finder” { name of items (2 thru -1) of home }
+tell app (“Finder”) { name of items at 2 thru -1 of home }
 """
-*/
+
 
 
 let lexer = Lexer(code: code, operatorRegistry: ops)

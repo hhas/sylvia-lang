@@ -55,7 +55,7 @@
 		4FEC2714219A33EF00B28A5A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270C219A33EE00B28A5A /* main.swift */; };
 		4FEC2715219A33EF00B28A5A /* value.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270D219A33EE00B28A5A /* value.swift */; };
 		4FEC2716219A33EF00B28A5A /* handler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270E219A33EE00B28A5A /* handler.swift */; };
-		4FEC2717219A33EF00B28A5A /* scope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270F219A33EE00B28A5A /* scope.swift */; };
+		4FEC2717219A33EF00B28A5A /* environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC270F219A33EE00B28A5A /* environment.swift */; };
 		4FEC2718219A33EF00B28A5A /* state funcs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2710219A33EE00B28A5A /* state funcs.swift */; };
 		4FEC2719219A33EF00B28A5A /* error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2711219A33EE00B28A5A /* error.swift */; };
 		4FEC271A219A33EF00B28A5A /* collection types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2712219A33EF00B28A5A /* collection types.swift */; };
@@ -65,6 +65,7 @@
 		4FEC2729219DB5DF00B28A5A /* operator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC2728219DB5DF00B28A5A /* operator.swift */; };
 		4FEC272B219E18B100B28A5A /* stdlib_operators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC272A219E18B100B28A5A /* stdlib_operators.swift */; };
 		4FEC272D219E1D7100B28A5A /* parsefunc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEC272C219E1D7100B28A5A /* parsefunc.swift */; };
+		4FFBE3FB2296E73C00DADF30 /* AppleEvents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FFBE3FA2296E73C00DADF30 /* AppleEvents.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,6 +96,20 @@
 			proxyType = 2;
 			remoteGlobalIDString = 4F1A57FA1D9E81C300ACFA51;
 			remoteInfo = MacOSGlues;
+		};
+		4FFBE3F62296E72900DADF30 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4F407C0A2265F98900B1F5FC /* SwiftAutomation.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 4FACE27222723090000A04A0;
+			remoteInfo = SwiftAutomationLite;
+		};
+		4FFBE3F82296E72900DADF30 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4F407C0A2265F98900B1F5FC /* SwiftAutomation.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 4F21AF3D22861DA400A1B978;
+			remoteInfo = libSwiftAutomation;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -162,7 +177,7 @@
 		4FEC270C219A33EE00B28A5A /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		4FEC270D219A33EE00B28A5A /* value.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = value.swift; sourceTree = "<group>"; };
 		4FEC270E219A33EE00B28A5A /* handler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = handler.swift; sourceTree = "<group>"; };
-		4FEC270F219A33EE00B28A5A /* scope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = scope.swift; sourceTree = "<group>"; };
+		4FEC270F219A33EE00B28A5A /* environment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = environment.swift; sourceTree = "<group>"; };
 		4FEC2710219A33EE00B28A5A /* state funcs.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "state funcs.swift"; sourceTree = "<group>"; };
 		4FEC2711219A33EE00B28A5A /* error.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = error.swift; sourceTree = "<group>"; };
 		4FEC2712219A33EF00B28A5A /* collection types.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "collection types.swift"; sourceTree = "<group>"; };
@@ -173,6 +188,7 @@
 		4FEC2728219DB5DF00B28A5A /* operator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = operator.swift; sourceTree = "<group>"; };
 		4FEC272A219E18B100B28A5A /* stdlib_operators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = stdlib_operators.swift; sourceTree = "<group>"; };
 		4FEC272C219E1D7100B28A5A /* parsefunc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = parsefunc.swift; sourceTree = "<group>"; };
+		4FFBE3FA2296E73C00DADF30 /* AppleEvents.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = AppleEvents.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -180,8 +196,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4F407C1F2266023C00B1F5FC /* SwiftAutomation.framework in Frameworks */,
 				4F8B24AA21E80D2E00D84E24 /* Foundation.framework in Frameworks */,
+				4FFBE3FB2296E73C00DADF30 /* AppleEvents.framework in Frameworks */,
+				4F407C1F2266023C00B1F5FC /* SwiftAutomation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -209,6 +226,8 @@
 				4F407C142265F98900B1F5FC /* aeglue */,
 				4F407C162265F98900B1F5FC /* test */,
 				4F407C182265F98900B1F5FC /* MacOSGlues.framework */,
+				4FFBE3F72296E72900DADF30 /* SwiftAutomationLite.framework */,
+				4FFBE3F92296E72900DADF30 /* libSwiftAutomation.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -224,6 +243,7 @@
 		4F66276721B7146E00A84EF3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4FFBE3FA2296E73C00DADF30 /* AppleEvents.framework */,
 				4F8B24A921E80D2E00D84E24 /* Foundation.framework */,
 				4F8B24A421E8079D00D84E24 /* AppKit.framework */,
 			);
@@ -333,10 +353,10 @@
 		4FEC26F8219A33C600B28A5A = {
 			isa = PBXGroup;
 			children = (
+				4F407C0A2265F98900B1F5FC /* SwiftAutomation.xcodeproj */,
 				4FEC271B219A49C900B28A5A /* README.txt */,
 				4FEC2703219A33C600B28A5A /* sylvia-lang */,
 				4F60E8CB21A6DAE8009B65F1 /* tools */,
-				4F407C0A2265F98900B1F5FC /* SwiftAutomation.xcodeproj */,
 				4F66276721B7146E00A84EF3 /* Frameworks */,
 				4FEC2702219A33C600B28A5A /* Products */,
 			);
@@ -364,10 +384,10 @@
 		4FEC271C219B8B4500B28A5A /* interpreter */ = {
 			isa = PBXGroup;
 			children = (
+				4F129E1721F5AFC8003EC7FE /* scope protocols.swift */,
+				4FEC270F219A33EE00B28A5A /* environment.swift */,
 				4F3BCE4F21BB29C9005A6D72 /* handler protocols.swift */,
 				4FEC270E219A33EE00B28A5A /* handler.swift */,
-				4F129E1721F5AFC8003EC7FE /* scope protocols.swift */,
-				4FEC270F219A33EE00B28A5A /* scope.swift */,
 				4F66275621B6882600A84EF3 /* annotation.swift */,
 				4FEC2711219A33EE00B28A5A /* error.swift */,
 			);
@@ -485,6 +505,20 @@
 			remoteRef = 4F407C172265F98900B1F5FC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		4FFBE3F72296E72900DADF30 /* SwiftAutomationLite.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = SwiftAutomationLite.framework;
+			remoteRef = 4FFBE3F62296E72900DADF30 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		4FFBE3F92296E72900DADF30 /* libSwiftAutomation.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libSwiftAutomation.a;
+			remoteRef = 4FFBE3F82296E72900DADF30 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -539,7 +573,7 @@
 				4F129E1A21F67ABD003EC7FE /* value protocols.swift in Sources */,
 				4F8B24AF21E8F28800D84E24 /* list.swift in Sources */,
 				4F8B249D21E695D200D84E24 /* stdlib error.swift in Sources */,
-				4FEC2717219A33EF00B28A5A /* scope.swift in Sources */,
+				4FEC2717219A33EF00B28A5A /* environment.swift in Sources */,
 				4F129E0E21F5A246003EC7FE /* atomic types.swift in Sources */,
 				4F8B24B321E8F35F00D84E24 /* tag.swift in Sources */,
 				4FEC272D219E1D7100B28A5A /* parsefunc.swift in Sources */,

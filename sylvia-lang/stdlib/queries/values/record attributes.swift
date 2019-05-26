@@ -18,7 +18,7 @@ extension Record: Attributed { // TO DO: List should be Attributed, not Scope (w
         fatalError() // TO DO: any settable attributes? if not, throw ReadOnly error
     }
     
-    func get(_ key: String) throws -> Value { // e.g. `items of RECORD`
+    func get(_ key: String, delegate: Attributed? = nil) throws -> Value { // e.g. `items of RECORD`
         switch key {
         // TO DO: `keys`, `values`
         // e.g. to resolve `item named KEY of RECORD` `of` operator looks up selector form method (e.g. "named") followed by element[s] name (e.g. "items")

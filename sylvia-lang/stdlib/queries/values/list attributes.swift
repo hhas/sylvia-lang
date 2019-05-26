@@ -51,7 +51,7 @@ extension List: Attributed { // TO DO: List should be Attributed, not Scope (whi
         fatalError() // TO DO: any settable attributes? if not, throw ReadOnly error
     }
     
-    func get(_ key: String) throws -> Value { // e.g. `items of LIST`
+    func get(_ key: String, delegate: Attributed? = nil) throws -> Value { // e.g. `items of LIST`
         switch key {
         case "items", "item": // singular/plural naming conventions aren't consistent, so have to treat them as synonyms; TO DO: where both spellings are available, pretty printer should choose according to to-one/to-many selector, e.g. `item at 1`, `items at 1 thru 3`
             return AllListItemsSpecifier(self, key)

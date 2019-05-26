@@ -2,6 +2,8 @@
 //  aelib.swift
 //
 
+import Foundation
+import AppleEvents
 import SwiftAutomation
 
 
@@ -52,7 +54,7 @@ class NativeAppData: AppData {
                                       multiObjectSpecifierType: AEItems.self, rootSpecifierType: AERoot.self,
                                       applicationType: AERoot.self, symbolType: AESymbol.self, formatter: specifierFormatter) // TO DO: check how this unpacks (c.f. py-appscript, should be fine as long as there's a native wrapper around specifier and a formatter that knows how to navigate and format both native and Swift values)
         super.init(target: TargetApplication.url(applicationURL),
-                  launchOptions: DefaultLaunchOptions, relaunchMode: DefaultRelaunchMode, glueClasses: glueClasses)
+                   launchOptions: defaultLaunchOptions, relaunchMode: defaultRelaunchMode, glueClasses: glueClasses)
     }
     
     
@@ -62,7 +64,7 @@ class NativeAppData: AppData {
 
     //
     
-    override func pack(_ value: Any) throws -> AEDesc {
+    override func pack(_ value: Any) throws -> Descriptor {
         switch value {
         case let tag as Tag:
             guard let desc = self.glueTable.typesByName[tag.key] else { return try super.pack(value) } // TO DO: throw 'unknown tag' error here
@@ -74,12 +76,12 @@ class NativeAppData: AppData {
     
     // TO DO: need to check where these get called (right now they're problematic)
     
-    override func unpack<T>(_ desc: AEDesc) throws -> T {
+    override func unpack<T>(_ desc: Descriptor) throws -> T {
         //print("Unpack as \(T.self):", desc)
         return try super.unpack(desc)
     }
     
-    override func unpackAsAny(_ desc: AEDesc) throws -> Any {
+    override func unpackAsAny(_ desc: Descriptor) throws -> Any {
         //print("Unpack as Any:", self)
         return try super.unpackAsAny(desc)
     }

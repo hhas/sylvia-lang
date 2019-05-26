@@ -18,6 +18,8 @@
 // TO DO: watch out for mutable lists being used in a specifier, e.g. `…where REFERENCE is_in MUTABLE_LIST`; ideally all Values used in specifiers should be evaluated immediately with `AsImmutable(…)` coercion
 
 
+import Foundation
+import AppleEvents
 import SwiftAutomation
 
 
@@ -30,12 +32,12 @@ protocol SelfPackingReferenceWrapper: SelfPacking, SwiftWrapper {
     
     var swiftValue: SpecifierType { get }
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> Descriptor
 }
 
 extension SelfPackingReferenceWrapper {
     
-    func SwiftAutomation_packSelf(_ appData: AppData) throws -> AEDesc {
+    func SwiftAutomation_packSelf(_ appData: AppData) throws -> Descriptor {
         return try swiftValue.SwiftAutomation_packSelf(appData)
     }
 }
@@ -66,7 +68,8 @@ class Reference: AttributedValue { // abstract base class
         fatalError()
     }
     
-    func get(_ key: String) throws -> Value {
+    // TO DO: could use `nullDelegate` that throws as default; real problem we've got is recursion depth, as w/o tail call optimization it's going to blow the stack
+    func get(_ key: String, delegate: Attributed? = nil) throws -> Value {
         switch key {
         // this is counter-intuitive, but `at`, `named`, etc handlers are looked up on parent object
         case "at":
@@ -94,6 +97,8 @@ class Reference: AttributedValue { // abstract base class
         default:
             if let command = self.appData.glueTable.commandsByName[key] {
                 return RemoteCall(self, definition: command, appData: self.appData)
+            } else if let delegate = delegate {
+                return try delegate.get(key)
             } else {
                 //print("`\(key)` not found in \(self)") // DEBUG
                 throw ValueNotFoundError(name: key, env: self) // TO DO: would it be safe to delegate to commandEnv here? (bearing in mind that it'll need set first? Or can we trust)
@@ -125,7 +130,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
     
     override var specifier: Specifier { return swiftValue }
     
-    let swiftValue: AEItem // a SwiftAutomation ObjectSpecifier containing basic AppData and AEDesc
+    let swiftValue: AEItem // a SwiftAutomation ObjectSpecifier containing basic AppData and Descriptor
     internal let attributeName: String
     
     init(_ specifier: AEItem, attributeName: String, appData: NativeAppData) { // TO DO: take [property] name as argument
@@ -134,14 +139,14 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
         super.init(appData: appData)
     }
     
-    override func get(_ key: String) throws -> Value {
+    override func get(_ key: String, delegate: Attributed? = nil) throws -> Value {
         switch key {
 //        case "every": // TO DO
 //            return try self.toMultipleReference() // TO DO: return MultipleReference(self.swiftValue.all, appData: self.appData); need to implement ObjectSpecifierExtension.all first (this converts existing property specifier to all-elements specifier, allowing user to disambiguate conflicting terminology where a property name and elements name are identical, in which case the property definition would normally take priority [in AS, one exception is `text`, which defaults to all-elements definition by default])
         case "previous": // `ELEMENT_TYPE before ELEMENT_REFERENCE`
             fatalError()
         case "next": // `ELEMENT_TYPE after ELEMENT_REFERENCE`
-            fatalError() // TO DO: return RelativeSelector(for: self, position: name) // HandlerProtocol that takes Tag (which packs as AEDesc of typeType) as sole argument
+            fatalError() // TO DO: return RelativeSelector(for: self, position: name) // HandlerProtocol that takes Tag (which packs as Descriptor of typeType) as sole argument
         case "before": // `before ELEMENT_REFERENCE`
             return InsertionReference(self.swiftValue.before, appData: self.appData)
         case "after": // `after ELEMENT_REFERENCE`
@@ -156,7 +161,7 @@ class SingleReference: SelfPackingReference, SelfPacking, Selectable, HandlerPro
             } else if let code = self.appData.glueTable.elementsByName[key]?.code {
                 return MultipleReference(self.swiftValue.elements(code), attributeName: key, appData: appData)
             } else {
-                return try super.get(key)
+                return try super.get(key, delegate: delegate)
             }
         }
     }
@@ -231,7 +236,7 @@ class MultipleReference: SingleReference {
         super.init(specifier, attributeName: attributeName, appData: appData)
     }
     
-    override func get(_ key: String) throws -> Value {
+    override func get(_ key: String, delegate: Attributed? = nil) throws -> Value {
         switch key {
         // these are okay though as 'beginning' and 'end' are defined as atom operators to be used in `of` clause
         // TO DO: also put these on SingleReference.get(), with toMultipleReference call
@@ -240,7 +245,7 @@ class MultipleReference: SingleReference {
         case "end": // `end of ELEMENTS`
             return InsertionReference(self._swiftValue.end, appData: self.appData)
         default:
-            return try super.get(key)
+            return try super.get(key, delegate: delegate)
         }
     }
     
@@ -355,7 +360,7 @@ class Application: SelfPackingReference, HandlerProtocol {
         
         let appData = try NativeAppData(applicationURL: url) // TO DO: pass target, launchOptions, relaunchMode, useTerminology arguments
 
-        self.swiftValue = AEApplication(rootObject: AppRootDesc, appData: appData)
+        self.swiftValue = AEApplication(rootObject: appRootDesc, appData: appData)
         super.init(appData: appData)
     }
     
@@ -369,13 +374,14 @@ class Application: SelfPackingReference, HandlerProtocol {
      init(processIdentifier: pid_t, launchOptions: LaunchOptions = DefaultLaunchOptions, relaunchMode: RelaunchMode = DefaultRelaunchMode)
      */
     
-    override func get(_ key: String) throws -> Value {
+    override func get(_ key: String, delegate: Attributed? = nil) throws -> Value {
+        print("GET", key.debugDescription, "of \(self), delegating to", delegate as Any)
         if let code = self.appData.glueTable.propertiesByName[key]?.code {
             return SingleReference(self.swiftValue.property(code), attributeName: key, appData: appData)
         } else if let code = self.appData.glueTable.elementsByName[key]?.code {
             return MultipleReference(self.swiftValue.elements(code), attributeName: key, appData: appData)
         } else {
-            return try super.get(key)
+            return try super.get(key, delegate: delegate)
         }
     }
     
@@ -386,7 +392,6 @@ class Application: SelfPackingReference, HandlerProtocol {
         let arg_0 = try asString.unboxArgument("name", in: &arguments, commandEnv: commandEnv, command: command, handler: self)
         if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
         return try Application(name: arg_0)
-
     }
 
 }

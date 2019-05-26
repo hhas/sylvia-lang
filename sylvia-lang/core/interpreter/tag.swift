@@ -2,6 +2,7 @@
 //  tag.swift
 //
 
+// hashtag/symbol
 
 
 class Tag: Value, SwiftWrapper, RecordKeyConvertible {

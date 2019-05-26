@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import AppleEvents
 import SwiftAutomation
 
 
@@ -23,7 +24,7 @@ class RemoteCall: Handler {
     private let orderedParameterDefinitions: [(String, OSType)]
     
     func call(command: Command, commandEnv: Scope, handlerEnv: Scope, coercion: Coercion) throws -> Value { // TO DO: how to support returnType coercions? (they should drive unpacking, which means reply AE needs to present as Value wrapper with toTYPE methods that drive the actual AE unpacking, e.g. by coercing the wrapped descriptor to the appropriate AE type; presumably AEList [and AERecord?] descs will need to be custom-unpacked)
-        var parameters = [OSType: Value]()
+        var parameters = [UInt32: Value]() // OSType
         var arguments = command.arguments
         // TO DO: confirm that method arguments will always be evaluated in extended target scope, and generalize to all methods (on one hand, this is necessary to support unparenthesized commands, e.g. `get text of document 1` -> `of(get(text),document(1))`; on the other, this could have all sorts of hilariously unintended consequences where user isn't expecting it [as, unlike explicit `tell` block where its ability to mask existing names in command scope is obvious, the extra scope is implicitly injected when evaluating argument expression but can still mask names in command scope])
         let scope = TargetScope(self.parent, parent: commandEnv)
@@ -35,15 +36,14 @@ class RemoteCall: Handler {
         if arguments.count > 0 { throw UnrecognizedArgumentError(command: command, handler: self) }
         
         // TO DO: need to catch and rethrow (Q. how to present primitive errors as native?)
-        let desc = try self.appData.sendAppleEvent(eventClass: self.definition.eventClass,
-                                                   eventID: self.definition.eventID,
+        let desc = try self.appData.sendAppleEvent(event: self.definition.event,
                                                    parentSpecifier: self.parent.specifier,
                                                    parameters: parameters,
                                                    requestedType: nil,
                                                    waitReply: true,
                                                    sendOptions: nil,
                                                    withTimeout: nil,
-                                                   considering: nil) as AEDesc?
+                                                   considering: nil) as Descriptor?
         if let result = desc {
             do {
                 return try ResultDescriptor(result, appData: self.appData).nativeEval(env: commandEnv, coercion: coercion)

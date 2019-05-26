@@ -24,9 +24,12 @@ class Nothing: Value {
     override func toList(env: Scope, coercion: AsList) throws -> List {
         throw NullCoercionError(value: self, coercion: coercion)
     }
+    // swiftc tends to crash on following; no idea why, so for now just disable
+    /*
     override func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         throw NullCoercionError(value: self, coercion: coercion)
     }
+     */
 }
 
 

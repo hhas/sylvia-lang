@@ -6,7 +6,9 @@
 
 class List: Value, SwiftWrapper {
     
-    override var description: String { return "[\(self.swiftValue.map{ $0 is Pair ? "(\($0))" : "\($0)" }.joined(separator:", "))]" } // TO DO: pretty printer needs to support line wrapping and indentation of long lists
+    override var description: String { // TO DO: pretty printer needs to support line wrapping and indentation of long lists
+        return "[\(self.swiftValue.map{ $0 is Pair ? "(\($0))" : "\($0)" }.joined(separator:", "))]"
+    }
     
     override class var nominalType: Coercion { return asList }
     

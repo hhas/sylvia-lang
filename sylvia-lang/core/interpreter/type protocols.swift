@@ -31,8 +31,9 @@
 
 // TO DO: how practical to support `COLLECTION_TYPE of TYPE`, e.g. `list of text` as synonym for `list (text)`? (probably risky, as it conflicts with `TYPE of MODULE` usage)
 
-// Q. if coercions support constructor call chaining, each time returning a more specialized copy of self, e.g. `list(max_length:10)(of_type:text)`, `list(anything) -> list(anything,max_length:10) -> list(of_type:text,max_length:10)`, could this approach be generalized for intersecting coercions as well, e.g. `list(text) ∩ list(number(min:0),max_length:10)`? (this'd go a long way to streamlining how return values are coerced [currently 2 coercions are performed; first to the handler's return type, then to the caller's input type])
+// TO DO: allow complex type specs to be expressed template-style where context makes it unambiguous (e.g. RH `as` operand), e.g. `[string]`, `[#foo:integer, #bar:date]`, `any item of [number,string,date]`
 
+// Q. if coercions support constructor call chaining, each time returning a more specialized copy of self, e.g. `list(max_length:10)(of_type:text)`, `list(anything) -> list(anything,max_length:10) -> list(of_type:text,max_length:10)`, could this approach be generalized for intersecting coercions as well, e.g. `list(text) ∩ list(number(min:0),max_length:10)`? (this'd go a long way to streamlining how return values are coerced [currently 2 coercions are performed; first to the handler's return type, then to the caller's input type])
 
 
 typealias Coercion = Value & CoercionProtocol

@@ -11,9 +11,11 @@ typealias AttributedValue = Value & Attributed
 
 protocol Attributed {
     
+    // TO DO: slot lookup != get/set; rename fetch/assign?
+    
     func set(_ key: String, to value: Value) throws // used to set (via `store` command/`IDENTIFIER:VALUE` assignment) [mutable] simple attributes and one-to-one relationships only (for one-to-many relationships, `get` an [all] elements specifier, e.g. `items`, then apply selector to that); TO DO: this needs more thought, as `set(REFERENCE,to:VALUE)` is also used particularly in aelib; it might be that we standardize on `set(_:to:)` for *all* assignment
     
-    func get(_ key: String) throws -> Value
+    func get(_ key: String, delegate: Attributed?) throws -> Value // TO DO: return type?
     
     func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value // used to look-up *and* invoke a handler for the specified command (the given arguments are passed along to `Handler.call()`, along with the handlerEnv argument)
     
@@ -21,12 +23,20 @@ protocol Attributed {
     
 }
 
+extension Attributed {
+    func get(_ key: String) throws -> Value { // workaround for inability to indicate default value for `delegate` in `Attributed` protocol // TO DO: smells
+        return try self.get(key, delegate: nil)
+    }
+}
+
 
 extension Attributed { // TO DO: currently used by Reference and List, which rely on their own `get()` implementation to return closures each time; implementing `handle` on those will eliminate need for Closures, allowing their selector and other methods to be constructed as unbound primitive handlers
     
     func handle(command: Command, commandEnv: Scope, coercion: Coercion) throws -> Value {
         //print("Attributed EXTENSION \(self) handling \(command)")
-        guard let handler = (try? self.get(command.key)) as? HandlerProtocol else { throw HandlerNotFoundError(name: command.key, env: self) }
+        guard let handler = (try? self.get(command.key)) as? HandlerProtocol else {
+            throw HandlerNotFoundError(name: command.key, env: self)
+        }
         return try handler.call(command: command, commandEnv: commandEnv, handlerEnv: ScopeShim(self), coercion: coercion)
     }
     

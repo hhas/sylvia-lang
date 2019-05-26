@@ -3,6 +3,8 @@
 //
 
 
+// TO DO: if identifier lookup returns handler and return type != handler, call it with no arguments (c.f. Ruby)? currently it returns handler as closure (c.f. Python), but for majority of use-cases users would want to call handler, not get handler itself (calling also allows a degree of transparency between ivars and getters; although in longer-term getters and setters should be implemented on user objects as get/set handlers, optionally pattern-matching the attribute name, e.g. `get (#name) returning string {…}`, `set (#name, to: new_value as string(non_empty: yes)) {…}`) -- main argument against this is that it arguably makes command syntax inconsistent, depending on whether you think of command as `NAME ([ARG,…])` or `NAME [ARGS_TUPLE]`; compare entoli where `NAME` is always a command (a 'variable' is just a 'handler' that returns the value stored under that name)
+
 // TO DO: what about hooks into abstract namespaces (e.g. modules, persistent store)
 
 // note: this design prevents masking, so stdlib slots (which should always be read-only) can never be customized/subverted by overriding in a sub-scope; flipside of this is that once released, adding new slots to stdlib always risks breaking existing client code that uses the same names; Q. add `local IDENTIFIER` operator/command which adds new slot to current frame without searching parent frames to see if that identifier already exists
@@ -25,13 +27,26 @@
 
 // Scope is generalized description of Environment API (e.g. TargetScope is a composite of AttributedValue over Environment)
 
+class NullDelegate: Attributed {
+    func set(_ key: String, to value: Value) throws {
+        throw ReadOnlyValueError(name: key, env: self)
+    }
+    
+    func get(_ key: String, delegate: Attributed? = nil) throws -> Value {
+        throw ValueNotFoundError(name: key, env: self)
+    }
+    
+
+}
+
+
 
 class Environment: Scope { // stack frames
     
     // Q. can/should .handler slot always be readOnly? i.e. initial definition of primitive/native handler probably shouldn't be overwritable; where switching between handlers is required, use a separate read-write Value/Closure slot and assign a closure to it
     
     enum Slot {
-        case value(value: Value, readOnly: Bool)
+        case value(value: Value, readOnly: Bool) // TO DO: Coercion?
         case unboundHandler(handler: Handler) // original handler definition is always read-only (other slots are read-only unless specified otherwise)
         case closure(handler: Handler, readOnly: Bool)
         
@@ -56,7 +71,7 @@ class Environment: Scope { // stack frames
         return self.parent?.find(name)
     }
     
-    func get(_ key: String) throws -> Value {
+    func get(_ key: String, delegate: Attributed? = nil) throws -> Value { // TO DO: what about passing Coercion arg? (if `foo` is an unbound handler and parens-less commands are allowed, we don't want to return a Closure when we can just invoke immediately, but to do that we need to know the return type [if handler then return closure, otherwise call passing return type to handler.call()])
         guard let result = self.find(key) else { throw ValueNotFoundError(name: key, env: self) }
         switch result.slot {
         case .value(value: let value, readOnly: _):
@@ -138,13 +153,16 @@ class TargetScope: Scope { // creates sub-scope of an existing scope (typically 
         return self
     }
     
-    func get(_ key: String) throws -> Value {
+    func get(_ key: String, delegate: Attributed? = nil) throws -> Value {
+        print("TargetScope.get(\(key), \(delegate as Any))")
         do {
             return try self.target.get(key)
         } catch is ValueNotFoundError {
+            print(key, "lookup parent",self.parent)
             do {
                 return try self.parent.get(key)
             } catch is ValueNotFoundError {
+                // TO DO: call delegate
                 throw GeneralError("Can't find value named ‘\(key)’ in \(self.target) or in \(self.parent)") // TO DO: need to throw an error describing both scopes (chaining would be simplest, though possibly misleading)
             }
         }
@@ -154,10 +172,11 @@ class TargetScope: Scope { // creates sub-scope of an existing scope (typically 
         //print("TELL block \(self) handling \(command)")
         do {
             return try self.target.handle(command: command, commandEnv: commandEnv, coercion: coercion)
-        } catch is ValueNotFoundError {
+        } catch is HandlerNotFoundError {
+            print(command, "lookup parent",self.parent)
             do {
                 return try self.parent.handle(command: command, commandEnv: commandEnv, coercion: coercion)
-            } catch is ValueNotFoundError {
+            } catch is HandlerNotFoundError {
                 throw GeneralError("Can't find handler named ‘\(command.key)’ in \(self.target) or in \(self.parent)") // TO DO: as above
             }
         }
@@ -183,7 +202,7 @@ class ScopeShim: Scope { // quick-n-dirty workaround for passing AttributedValue
         return self
     }
     
-    func get(_ key: String) throws -> Value {
+    func get(_ key: String, delegate: Attributed? = nil) throws -> Value {
         return try self.value.get(key)
     }
     

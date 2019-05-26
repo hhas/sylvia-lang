@@ -1,10 +1,11 @@
 //
 //  descriptor value.swift
 //
-//  wraps AEDesc returned by AppData.sendAppleEvent(…) as Value, allowing unpacking to be driven by Coercion
+//  wraps Descriptor returned by AppData.sendAppleEvent(…) as Value, allowing unpacking to be driven by Coercion
 //
 
 import Foundation
+import AppleEvents
 import SwiftAutomation
 
 
@@ -18,44 +19,40 @@ class ResultDescriptor: OpaqueValue {
     
     override class var nominalType: Coercion { return asAnything } // TO DO: need Precis, and probably AsOpaque
     
-    private let desc: AEDesc
+    private let desc: Descriptor
     private let appData: NativeAppData
     
-    init(_ desc: AEDesc, appData: NativeAppData) {
+    init(_ desc: Descriptor, appData: NativeAppData) {
         self.desc = desc
         self.appData = appData
-    }
-    
-    deinit {
-        self.desc.dispose()
     }
     
     // unpack atomic types
     
     override func toBoolean(env: Scope, coercion: Coercion) throws -> Boolean {
         // TO DO: rework this (should it follow AE coercion rules or native? e.g. 0 = true or false?)
-        guard let result = try? self.desc.bool() else { throw CoercionError(value: self, coercion: asBool) }
+        guard let result = try? unpackAsBool(self.desc) else { throw CoercionError(value: self, coercion: asBool) }
         return result ? trueValue : falseValue
     }
         
     override func toText(env: Scope, coercion: Coercion) throws -> Text {
-        switch self.desc.descriptorType {
+        switch self.desc.type {
         // common AE types
         case typeSInt32, typeSInt16, typeUInt16, typeSInt64, typeUInt64, typeUInt32:
-            return Text(try! self.desc.int())
+            return Text(try! unpackAsInt(self.desc))
         // TO DO: other integer types
         case typeIEEE64BitFloatingPoint, typeIEEE32BitFloatingPoint, type128BitFloatingPoint: // 128-bit will be coerced down (lossy)
-            guard let result = try? self.desc.double() else {
+            guard let result = try? unpackAsDouble(self.desc) else {
                 throw CoercionError(value: self, coercion: coercion) // message: "Can't coerce 128-bit float to double."
             }
             return Text(result)
         case typeChar, typeIntlText, typeUTF8Text, typeUTF16ExternalRepresentation, typeStyledText, typeUnicodeText, typeVersion:
-            guard let result = try? self.desc.string() else {
+            guard let result = try? unpackAsString(self.desc) else {
                 throw GeneralError("Corrupt descriptor: \(self.desc)")
             }
             return Text(result)
         default:
-            guard let result = try? self.desc.string() else {
+            guard let result = try? unpackAsString(self.desc) else {
                 throw CoercionError(value: self, coercion: coercion)
             }
             return Text(result)
@@ -64,11 +61,9 @@ class ResultDescriptor: OpaqueValue {
     
     override func toTag(env: Scope, coercion: Coercion) throws -> Tag {
         let code: OSType
-        switch self.desc.descriptorType {
-        case typeType, typeProperty, typeKeyword:
-            code = try! desc.typeCode()
-        case typeEnumerated:
-            code = try! desc.enumCode()
+        switch self.desc.type {
+        case typeType, typeProperty, typeKeyword, typeEnumerated:
+            code = try! unpackAsFourCharCode(desc)
         default:
             throw CoercionError(value: self, coercion: coercion)
         }
@@ -84,10 +79,10 @@ class ResultDescriptor: OpaqueValue {
     
     override func toList(env: Scope, coercion: AsList) throws -> List {
         do {
-            if self.desc.isList {
+            if let desc = self.desc as? ListDescriptor {
                 var result = [Value]()
-                for i in 1...(try self.desc.count()) {
-                    let item = ResultDescriptor(try self.desc.item(i).value, appData: self.appData)
+                for itemDesc in desc {
+                    let item = ResultDescriptor(itemDesc, appData: self.appData)
                     do {
                         result.append(try item.nativeEval(env: env, coercion: coercion.elementType))
                     } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
@@ -103,12 +98,12 @@ class ResultDescriptor: OpaqueValue {
         }
     }
     
-    override func toArray<E, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
+    override func toArray<E: BridgingCoercion, T: AsArray<E>>(env: Scope, coercion: T) throws -> T.SwiftType {
         do {
-            if self.desc.isList {
+            if let desc = self.desc as? ListDescriptor {
                 var result = [E.SwiftType]()
-                for i in 1...(try self.desc.count()) {
-                    let item = ResultDescriptor(try self.desc.item(i).value, appData: self.appData)
+                for itemDesc in desc {
+                    let item = ResultDescriptor(itemDesc, appData: self.appData)
                     do {
                         result.append(try item.bridgingEval(env: env, coercion: coercion.elementType))
                     } catch { // NullCoercionErrors thrown by list items must be rethrown as permanent errors
@@ -127,10 +122,12 @@ class ResultDescriptor: OpaqueValue {
     private let classKey = Tag("class").recordKey
     
     override func toRecord(env: Scope, coercion: AsRecord) throws -> Record {
+        throw NotYetImplementedError()
+        /*
         if !self.desc.isRecord { throw CoercionError(value: self, coercion: coercion) }
         var fields = Record.Storage()
-        if self.desc.descriptorType != typeAERecord {
-            fields[classKey] = try self.appData.unpack(AEDesc(typeCode: self.desc.descriptorType))
+        if self.desc.type != typeAERecord {
+            fields[classKey] = try self.appData.unpack(Descriptor(typeCode: self.desc.type))
         }
         for i in 1...(try! self.desc.count()) {
             let key: Tag
@@ -148,12 +145,13 @@ class ResultDescriptor: OpaqueValue {
             }
         }
         return Record(fields)
+     */
     }
     
     // unpack as anything
     
     override func toAny(env: Scope, coercion: Coercion) throws -> Value { // quick-n-dirty implementation
-        switch self.desc.descriptorType {
+        switch self.desc.type {
         case typeBoolean, typeTrue, typeFalse:
             return try self.toBoolean(env: env, coercion: coercion)
         case typeSInt32, typeSInt16, typeIEEE64BitFloatingPoint, typeIEEE32BitFloatingPoint, type128BitFloatingPoint,
@@ -164,7 +162,7 @@ class ResultDescriptor: OpaqueValue {
             return try self.toList(env: env, coercion: asList)
         case typeAERecord:
             return try self.toRecord(env: env, coercion: asRecord)
-        case typeType where (try? self.desc.typeCode()) == 0x6D736E67: // cMissingValue
+        case typeType where (try? unpackAsType(self.desc)) == 0x6D736E67: // cMissingValue
             return noValue
         case typeType, typeProperty, typeKeyword, typeEnumerated:
             return try self.toTag(env: env, coercion: coercion)
@@ -178,7 +176,7 @@ class ResultDescriptor: OpaqueValue {
         case typeQDPoint, typeQDRectangle, typeRGBColor:
             return List((try self.appData.unpack(desc) as [Int]).map{Text($0)})
         default:
-            if self.desc.isRecord { return try self.toRecord(env: env, coercion: asRecord) }
+            //if self.desc.isRecord { return try self.toRecord(env: env, coercion: asRecord) }
             return self
         }
     }
