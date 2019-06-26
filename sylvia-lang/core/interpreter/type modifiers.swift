@@ -243,6 +243,8 @@ class AsCommandLiteral: AsLiteral<Command> {
     override var coercionName: String { return "command" }
 }
 
+/*
 class AsReference: AsTypeChecked<Reference> {
     override var coercionName: String { return "reference" }
 }
+*/

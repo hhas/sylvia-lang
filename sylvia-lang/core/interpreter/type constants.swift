@@ -51,5 +51,5 @@ let asNoResult = AsNoResult() // expands value to anything, ignoring any result,
 let asAttributedValue = AsAttributedValue()
 let asAttribute = AsAttribute()
 
-let asReference = AsReference()
+let asReference = asAnything //AsReference()
 let asTestReference = asReference // TO DO: how easy to implement this? (being able to distinguish reference types will improve runtime error checking and tooling support)

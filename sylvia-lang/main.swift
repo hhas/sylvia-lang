@@ -14,7 +14,7 @@ let e = Environment()
 
 do {
     try stdlib_load(env: e)
-    try aelib_load(env: e)
+   // try aelib_load(env: e)
 } catch {
     print("ImportError: Can’t import stdlib due to \(type(of:error)): \(error)")
     exit(1)
@@ -63,7 +63,7 @@ do { // evaluate to List of Text, using default value
 } catch {
     print(3, error)
 }
-
+*/
 do { // evaluate commands
     /*
         « '-'('+'(1, 2), 6) »
@@ -75,7 +75,7 @@ do { // evaluate commands
 } catch {
     print(4, error)
 }
-
+/*
 do { // define and call native handler
     /*
          to add_one(n as number) returning number {
@@ -258,6 +258,7 @@ if y > 8 {
 
 //code = "color of documents at 1 of app “TextEdit”, text of document “Untitled” of app “TextEdit”"
 
+/*
 
 code = "tell app “TextEdit” { get text of document 1 as string }"
 
@@ -278,7 +279,6 @@ tell app (“TextEdit”) {
     get (properties of documents)
 }
 """
-/*
  */
 
 code = """
@@ -324,11 +324,12 @@ store (#name, "Bob")
 //
 //      get item idx of home
 //
-
+/*
 
 code = """
 tell app (“Finder”) { get (name of folder at 1 of home) }
 """
+*/
 
 // TO DO: FIX: trailing comments cause syntax error
 
@@ -341,13 +342,13 @@ tell app (“Finder”) { get (name of folder at 1 of home) }
 // TO DO: when coercing a query, it should perform automatic `get` command and coerce result (there is a risk to such lazy behavior that users assume the query is eagerly resolved at construction time, as in AppleScript, as the delay between construction and resolution allows time for the target to mutate, returning a different result to the one expected; OTOH, AS’s implicit-get “magic” makes it really tricky for users to understand what a script is actually doing)
 
 // problem: `items` should look up on `home` [and nowhere else], but `at` and `thru` should look up on global scope (although there is an argument they should be methods on Value, or on the subset of values that support Selectable); Q. given `foo at bar`, how to look up 'at' on `foo`? (operator would need to transform to `at(bar) of foo`, aka `foo.at(bar)`)
-
+/*
 code = """
 « without a `get` command, this returns the constructed query »
 tell app (“Finder”) { name of items at 2 thru -1 of home }
 """
 
-
+*/
 
 let lexer = Lexer(code: code, operatorRegistry: ops)
 

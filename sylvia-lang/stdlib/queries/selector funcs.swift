@@ -48,6 +48,8 @@ func idSelector(elementType: String, selectorData: Value, commandEnv parentObjec
     return try elements(ofType: elementType, from: parentObject).byID(selectorData)
 }
 
+typealias Reference = Value
+
 func testSelector(elementType: String, selectorData: Reference, commandEnv parentObject: Scope) throws -> Value {
     return try elements(ofType: elementType, from: parentObject).byTest(selectorData)
 }
